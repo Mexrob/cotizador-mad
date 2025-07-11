@@ -1,0 +1,390 @@
+generator client {
+    provider = "prisma-client-js"
+    binaryTargets = ["native", "linux-musl-arm64-openssl-3.0.x"]
+}
+
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+// NextAuth Models
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// User Management
+enum UserRole {
+  ADMIN
+  DEALER
+  RETAIL
+  VIP
+  WHOLESALE
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  PENDING
+}
+
+model User {
+  id            String     @id @default(cuid())
+  name          String?
+  email         String     @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?
+  role          UserRole   @default(RETAIL)
+  status        UserStatus @default(PENDING)
+  
+  // Business Information
+  companyName   String?
+  taxId         String?    // RFC for Mexico
+  phone         String?
+  address       String?
+  city          String?
+  state         String?
+  zipCode       String?
+  country       String     @default("Mexico")
+  
+  // Pricing Information
+  discountRate  Float      @default(0)
+  creditLimit   Float      @default(0)
+  
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  
+  accounts      Account[]
+  sessions      Session[]
+  quotes        Quote[]
+  quotesShared  QuoteShare[]
+  
+  @@map("users")
+}
+
+// Company Configuration
+model CompanySettings {
+  id            String   @id @default(cuid())
+  companyName   String
+  logo          String?
+  address       String
+  city          String
+  state         String
+  zipCode       String
+  country       String   @default("Mexico")
+  phone         String
+  email         String
+  website       String?
+  taxId         String   // RFC
+  
+  // Branding
+  primaryColor  String   @default("#1f2937")
+  secondaryColor String  @default("#3b82f6")
+  tertiaryColor String   @default("#10b981")
+  
+  // Business Settings
+  currency      String   @default("MXN")
+  timezone      String   @default("America/Mexico_City")
+  language      String   @default("es")
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  @@map("company_settings")
+}
+
+model TaxSettings {
+  id          String  @id @default(cuid())
+  name        String
+  rate        Float
+  isDefault   Boolean @default(false)
+  description String?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("tax_settings")
+}
+
+// Product Catalog
+enum ProductStatus {
+  ACTIVE
+  INACTIVE
+  DISCONTINUED
+}
+
+model Category {
+  id          String        @id @default(cuid())
+  name        String
+  description String?
+  image       String?
+  parentId    String?
+  status      ProductStatus @default(ACTIVE)
+  
+  parent      Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children    Category[] @relation("CategoryHierarchy")
+  products    Product[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("categories")
+}
+
+model Material {
+  id          String        @id @default(cuid())
+  name        String
+  description String?
+  image       String?
+  color       String?
+  finish      String?
+  texture     String?
+  status      ProductStatus @default(ACTIVE)
+  
+  // Pricing
+  costPerUnit Float
+  unit        String        @default("m2")
+  
+  products    Product[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("materials")
+}
+
+model Hardware {
+  id          String        @id @default(cuid())
+  name        String
+  description String?
+  image       String?
+  type        String        // handle, hinge, drawer_slide, etc.
+  brand       String?
+  model       String?
+  status      ProductStatus @default(ACTIVE)
+  
+  // Pricing
+  costPerUnit Float
+  unit        String        @default("piece")
+  
+  products    Product[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("hardware")
+}
+
+model Product {
+  id              String        @id @default(cuid())
+  name            String
+  description     String?
+  sku             String        @unique
+  categoryId      String
+  status          ProductStatus @default(ACTIVE)
+  
+  // Physical Properties
+  width           Float?
+  height          Float?
+  depth           Float?
+  weight          Float?
+  dimensionUnit   String        @default("mm") // mm, cm, m, in
+  weightUnit      String        @default("kg") // kg, g, lb
+  
+  // Pricing
+  basePrice       Float         @default(0)
+  currency        String        @default("MXN")
+  
+  // Images and 3D
+  images          String[]
+  model3d         String?       // URL to 3D model
+  thumbnail       String?
+  
+  // Manufacturing
+  isCustomizable  Boolean       @default(true)
+  leadTime        Int           @default(7) // days
+  minQuantity     Int           @default(1)
+  maxQuantity     Int?
+  
+  // SEO and Search
+  tags            String[]      // For search and filtering
+  featured        Boolean       @default(false)
+  
+  // Relationships
+  category        Category      @relation(fields: [categoryId], references: [id])
+  materials       Material[]
+  hardware        Hardware[]
+  pricing         ProductPricing[]
+  quoteItems      QuoteItem[]
+  
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  @@map("products")
+}
+
+// Pricing System
+model ProductPricing {
+  id          String   @id @default(cuid())
+  productId   String
+  userRole    UserRole
+  basePrice   Float
+  markup      Float    @default(0)
+  finalPrice  Float
+  
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@unique([productId, userRole])
+  @@map("product_pricing")
+}
+
+// Quotation System
+enum QuoteStatus {
+  DRAFT
+  PENDING
+  APPROVED
+  REJECTED
+  EXPIRED
+  CONVERTED
+}
+
+model Quote {
+  id              String        @id @default(cuid())
+  quoteNumber     String        @unique
+  userId          String
+  status          QuoteStatus   @default(DRAFT)
+  
+  // Customer Information
+  customerName    String
+  customerEmail   String
+  customerPhone   String?
+  customerAddress String?
+  
+  // Project Information
+  projectName     String
+  projectAddress  String?
+  roomDimensions  Json?         // {width: 4.5, height: 2.4, depth: 3.2}
+  
+  // Pricing
+  subtotal        Float         @default(0)
+  taxAmount       Float         @default(0)
+  discountAmount  Float         @default(0)
+  totalAmount     Float         @default(0)
+  
+  // Dates
+  validUntil      DateTime
+  deliveryDate    DateTime?
+  
+  // Notes and Files
+  notes           String?
+  attachments     String[]      // URLs to files
+  
+  // Design Configuration
+  design3d        Json?         // 3D configuration data
+  floorPlan       String?       // URL to floor plan image
+  
+  user            User          @relation(fields: [userId], references: [id])
+  items           QuoteItem[]
+  shares          QuoteShare[]
+  
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  @@map("quotes")
+}
+
+model QuoteItem {
+  id            String  @id @default(cuid())
+  quoteId       String
+  productId     String
+  quantity      Int     @default(1)
+  
+  // Customization
+  customWidth   Float?
+  customHeight  Float?
+  customDepth   Float?
+  selectedMaterial String?
+  selectedHardware String?
+  customOptions Json?   // Additional customization options
+  
+  // Pricing
+  unitPrice     Float
+  totalPrice    Float
+  
+  quote         Quote   @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  product       Product @relation(fields: [productId], references: [id])
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  @@map("quote_items")
+}
+
+model QuoteShare {
+  id        String   @id @default(cuid())
+  quoteId   String
+  userId    String
+  shareType String   @default("view") // view, edit, admin
+  
+  quote     Quote    @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id])
+  
+  createdAt DateTime @default(now())
+  
+  @@unique([quoteId, userId])
+  @@map("quote_shares")
+}
+
+
+
+// System Logs for Compliance
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String   // CREATE, UPDATE, DELETE, VIEW
+  table     String   // Table affected
+  recordId  String   // ID of affected record
+  oldData   Json?    // Previous state
+  newData   Json?    // New state
+  ipAddress String?
+  userAgent String?
+  
+  createdAt DateTime @default(now())
+  
+  @@map("audit_logs")
+}
