@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { UserRole } from '@prisma/client';
+import { adminAuthGuard } from '@/lib/authUtils';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,24 +15,35 @@ export async function GET(
 ) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
-    }
-
     const product = await prisma.product.findUnique({
       where: { id: params.id },
       include: {
         category: true,
         materials: true,
         hardware: true,
-        pricing: {
+        pricing: session ? {
           where: { userRole: session.user.role as UserRole }
-        },
+        } : false, // Only include pricing if session exists
         _count: {
           select: { quoteItems: true }
         }
       }
     });
+
+    // If no session, public access is allowed, but pricing won't be included.
+    // If session exists but product is not found, or not authorized, then return error.
+    if (!product && session) {
+      return NextResponse.json(
+        { error: 'Producto no encontrado' },
+        { status: 404 }
+      );
+    } else if (!product) {
+      // If no session and product not found, return generic not found without auth error
+      return NextResponse.json(
+        { error: 'Producto no encontrado' },
+        { status: 404 }
+      );
+    }
 
     if (!product) {
       return NextResponse.json(
@@ -57,9 +69,11 @@ export async function PUT(
 ) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session || session.user.role !== UserRole.ADMIN) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
+    if (!session) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
+    const authGuardResponse = adminAuthGuard(session);
+    if (authGuardResponse) return authGuardResponse;
 
     const body = await request.json();
     const {
@@ -181,9 +195,11 @@ export async function DELETE(
 ) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session || session.user.role !== UserRole.ADMIN) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
+    if (!session) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
+    const authGuardResponse = adminAuthGuard(session);
+    if (authGuardResponse) return authGuardResponse;
 
     // Check if product exists
     const existingProduct = await prisma.product.findUnique({

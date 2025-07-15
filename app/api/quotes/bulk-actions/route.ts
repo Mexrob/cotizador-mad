@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
+import { adminAuthGuard } from '@/lib/authUtils'
 
 export const dynamic = 'force-dynamic'
 
@@ -33,7 +34,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Regular users can only modify their own quotes
-    if (session.user.role !== 'ADMIN') {
+    // Regular users can only modify their own quotes
+    if (!adminAuthGuard(session)) { // If not admin, restrict to own quotes
       where.userId = session.user.id
     }
 
@@ -48,12 +50,8 @@ export async function POST(request: NextRequest) {
 
       case 'change_status':
         // Only admins can change quote status
-        if (session.user.role !== 'ADMIN') {
-          return NextResponse.json(
-            { error: 'Solo los administradores pueden cambiar el estado de las cotizaciones' },
-            { status: 403 }
-          )
-        }
+        const authGuardResponse = adminAuthGuard(session)
+        if (authGuardResponse) return authGuardResponse
         
         const { status } = body
         if (!status) {

@@ -1,4 +1,3 @@
-
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -13,12 +12,15 @@ import { ProductCard } from '@/components/product-card'
 import { useToast } from '@/hooks/use-toast'
 import { formatMXN, generateQuoteNumber } from '@/lib/utils'
 import DimensionCalculator from '@/components/dimension-calculator'
-import { 
-  ChevronLeft, 
-  ChevronRight, 
-  Home, 
-  Package, 
-  Palette, 
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Label } from '@/components/ui/label'
+import {
+  ChevronLeft,
+  ChevronRight,
+  Home,
+  Package,
+  Palette,
   FileText,
   Plus,
   Minus,
@@ -28,7 +30,23 @@ import {
   Calculator,
   X
 } from 'lucide-react'
-import { Product, QuoteItem, ConfiguratorStep } from '@/lib/types'
+import { Product, QuoteItem, ConfiguratorStep, DoorType, DoorModel, ColorTone, WoodGrain, Handle } from '@/lib/types'
+
+interface SelectedProductItem extends Product {
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+  customWidth?: number | null;
+  customHeight?: number | null;
+  customDepth?: number | null;
+  doorTypeId?: string | null;
+  doorModelId?: string | null;
+  colorToneId?: string | null;
+  woodGrainId?: string | null;
+  handleId?: string | null;
+  isTwoSided?: boolean | null;
+  packagingCost?: number | null;
+}
 
 const steps: ConfiguratorStep[] = [
   {
@@ -76,7 +94,7 @@ export default function ConfiguratorPage() {
   const { data: session } = useSession()
   const router = useRouter()
   const { toast } = useToast()
-  
+
   const [currentStep, setCurrentStep] = useState(0)
   const [configSteps, setConfigSteps] = useState(steps)
   const [roomConfig, setRoomConfig] = useState<RoomConfig>({
@@ -89,13 +107,34 @@ export default function ConfiguratorPage() {
     customerPhone: '',
     projectAddress: '',
   })
-  const [selectedProducts, setSelectedProducts] = useState<(Product & { quantity: number, unitPrice: number, customWidth?: number, customHeight?: number })[]>([])
+  const [selectedProducts, setSelectedProducts] = useState<SelectedProductItem[]>([])
   const [availableProducts, setAvailableProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(false)
   const [configuringProduct, setConfiguringProduct] = useState<Product | null>(null)
 
+  // New states for product configuration options
+  const [doorTypes, setDoorTypes] = useState<DoorType[]>([])
+  const [doorModels, setDoorModels] = useState<DoorModel[]>([])
+  const [colorTones, setColorTones] = useState<ColorTone[]>([])
+  const [woodGrains, setWoodGrains] = useState<WoodGrain[]>([])
+  const [handles, setHandles] = useState<Handle[]>([])
+
+  // States for current product customization
+  const [selectedDoorType, setSelectedDoorType] = useState<string | null>(null)
+  const [selectedDoorModel, setSelectedDoorModel] = useState<string | null>(null)
+  const [selectedColorTone, setSelectedColorTone] = useState<string | null>(null)
+  const [selectedWoodGrain, setSelectedWoodGrain] = useState<string | null>(null)
+  const [selectedHandle, setSelectedHandle] = useState<string | null>(null)
+  const [isTwoSided, setIsTwoSided] = useState(false)
+
+  // States for quote options
+  const [isExpressOrder, setIsExpressOrder] = useState(false)
+  const [isExhibitionOrder, setIsExhibitionOrder] = useState(false)
+
+
   useEffect(() => {
     fetchProducts()
+    fetchOptions()
     if (session?.user) {
       setRoomConfig(prev => ({
         ...prev,
@@ -109,12 +148,41 @@ export default function ConfiguratorPage() {
     try {
       const response = await fetch('/api/products?limit=50')
       const data = await response.json()
-      
+
       if (data.success) {
         setAvailableProducts(data.data)
       }
     } catch (error) {
       console.error('Error fetching products:', error)
+    }
+  }
+
+  const fetchOptions = async () => {
+    try {
+      const [doorTypesRes, doorModelsRes, colorTonesRes, woodGrainsRes, handlesRes] = await Promise.all([
+        fetch('/api/doortypes'),
+        fetch('/api/doormodels'),
+        fetch('/api/colortones'),
+        fetch('/api/woodgrains'),
+        fetch('/api/handles'),
+      ])
+
+      const [doorTypesData, doorModelsData, colorTonesData, woodGrainsData, handlesData] = await Promise.all([
+        doorTypesRes.json(),
+        doorModelsRes.json(),
+        colorTonesRes.json(),
+        woodGrainsRes.json(),
+        handlesRes.json(),
+      ])
+
+      setDoorTypes(doorTypesData.data || [])
+      setDoorModels(doorModelsData.data || [])
+      setColorTones(colorTonesData.data || [])
+      setWoodGrains(woodGrainsData.data || [])
+      setHandles(handlesData.data || [])
+
+    } catch (error) {
+      console.error('Error fetching options:', error)
     }
   }
 
@@ -148,23 +216,23 @@ export default function ConfiguratorPage() {
   }
 
   const handleAddProduct = (product: Product) => {
-    const existingItem = selectedProducts.find(p => p.id === product.id && !p.customWidth && !p.customHeight)
     const unitPrice = product.pricing?.[0]?.finalPrice || 0
-    
-    if (existingItem) {
-      setSelectedProducts(prev => prev.map(p => 
-        p.id === product.id && !p.customWidth && !p.customHeight
-          ? { ...p, quantity: p.quantity + 1 }
-          : p
-      ))
-    } else {
-      setSelectedProducts(prev => [...prev, { 
-        ...product, 
-        quantity: 1, 
-        unitPrice 
-      }])
-    }
-    
+    const packagingCost = (product.width || 0) * (product.height || 0) * 0.00001; // Default packaging cost
+
+    setSelectedProducts(prev => [...prev, {
+      ...product,
+      quantity: 1,
+      unitPrice,
+      totalPrice: unitPrice + packagingCost,
+      packagingCost,
+      doorTypeId: product.doorTypeId,
+      doorModelId: product.doorModelId,
+      colorToneId: product.colorToneId,
+      woodGrainId: product.woodGrainId,
+      handleId: null, // Default to no handle
+      isTwoSided: false,
+    }])
+
     toast({
       title: 'Producto agregado',
       description: `${product.name} se agregó a tu cotización`,
@@ -177,6 +245,13 @@ export default function ConfiguratorPage() {
       return
     }
     setConfiguringProduct(product)
+    // Reset customization options when configuring a new product
+    setSelectedDoorType(product.doorTypeId || null)
+    setSelectedDoorModel(product.doorModelId || null)
+    setSelectedColorTone(product.colorToneId || null)
+    setSelectedWoodGrain(product.woodGrainId || null)
+    setSelectedHandle(null)
+    setIsTwoSided(false)
   }
 
   const handleAddCustomDimensionsToQuote = (data: {
@@ -191,67 +266,69 @@ export default function ConfiguratorPage() {
     const product = availableProducts.find(p => p.id === data.productId)
     if (!product) return
 
-    // Check if we already have this exact configuration
-    const existingItem = selectedProducts.find(p => 
-      p.id === data.productId && 
-      p.customWidth === data.customWidth && 
-      p.customHeight === data.customHeight
-    )
-    
-    if (existingItem) {
-      setSelectedProducts(prev => prev.map(p => 
-        p.id === data.productId && 
-        p.customWidth === data.customWidth && 
-        p.customHeight === data.customHeight
-          ? { ...p, quantity: p.quantity + data.quantity }
-          : p
-      ))
-    } else {
-      setSelectedProducts(prev => [...prev, { 
-        ...product, 
-        quantity: data.quantity, 
-        unitPrice: data.calculatedPrice,
-        customWidth: data.customWidth,
-        customHeight: data.customHeight
-      }])
-    }
-    
+    const packagingCost = data.customWidth * data.customHeight * 0.00001; // Packaging cost for custom dimensions
+    const handlePrice = handles.find(h => h.id === selectedHandle)?.cost || 0;
+
+    setSelectedProducts(prev => [...prev, {
+      ...product,
+      quantity: data.quantity,
+      unitPrice: data.calculatedPrice,
+      totalPrice: (data.calculatedPrice * data.quantity) + packagingCost + handlePrice,
+      customWidth: data.customWidth,
+      customHeight: data.customHeight,
+      packagingCost,
+      doorTypeId: selectedDoorType,
+      doorModelId: selectedDoorModel,
+      colorToneId: selectedColorTone,
+      woodGrainId: selectedWoodGrain,
+      handleId: selectedHandle,
+      isTwoSided: isTwoSided,
+    }])
+
     setConfiguringProduct(null)
-    
+
     toast({
       title: 'Producto agregado con dimensiones personalizadas',
       description: `${product.name} - ${data.quantity} unidad(es) (${data.customWidth}×${data.customHeight}mm) - Total: ${formatMXN(data.totalPrice)}`,
     })
   }
 
-  const handleUpdateQuantity = (productId: string, quantity: number, customWidth?: number, customHeight?: number) => {
+  const handleUpdateQuantity = (productId: string, quantity: number, customWidth?: number | null, customHeight?: number | null) => {
     if (quantity <= 0) {
       handleRemoveProduct(productId, customWidth, customHeight)
       return
     }
-    
-    setSelectedProducts(prev => prev.map(p => 
-      p.id === productId && 
-      p.customWidth === customWidth && 
-      p.customHeight === customHeight
-        ? { ...p, quantity }
+
+    setSelectedProducts(prev => prev.map(p =>
+      p.id === productId &&
+        p.customWidth === (customWidth ?? null) && // Use nullish coalescing for comparison
+        p.customHeight === (customHeight ?? null)
+        ? { ...p, quantity, totalPrice: (p.unitPrice * quantity) + (p.packagingCost || 0) + (handles.find(h => h.id === p.handleId)?.cost || 0) }
         : p
     ))
   }
 
-  const handleRemoveProduct = (productId: string, customWidth?: number, customHeight?: number) => {
-    setSelectedProducts(prev => prev.filter(p => 
-      !(p.id === productId && p.customWidth === customWidth && p.customHeight === customHeight)
+  const handleRemoveProduct = (productId: string, customWidth?: number | null, customHeight?: number | null) => {
+    setSelectedProducts(prev => prev.filter(p =>
+      !(p.id === productId && p.customWidth === (customWidth ?? null) && p.customHeight === (customHeight ?? null))
     ))
   }
 
   const calculateTotal = () => {
-    const subtotal = selectedProducts.reduce((sum, item) => sum + (item.unitPrice * item.quantity), 0)
+    const subtotal = selectedProducts.reduce((sum, item) => sum + item.totalPrice, 0)
     const tax = subtotal * 0.16 // 16% IVA
+    let total = subtotal + tax
+
+    if (isExpressOrder) {
+      total *= 1.10 // 10% increase
+    } else if (isExhibitionOrder) {
+      total *= 0.90 // 10% discount
+    }
+
     return {
       subtotal,
       tax,
-      total: subtotal + tax
+      total
     }
   }
 
@@ -271,7 +348,7 @@ export default function ConfiguratorPage() {
     }
 
     setLoading(true)
-    
+
     try {
       const quoteData = {
         customerName: roomConfig.customerName,
@@ -285,12 +362,24 @@ export default function ConfiguratorPage() {
           height: roomConfig.height,
           depth: roomConfig.depth,
         },
-        items: selectedProducts.map(product => ({
-          productId: product.id,
-          quantity: product.quantity,
-          unitPrice: product.unitPrice,
+        items: selectedProducts.map(item => ({
+          productId: item.id,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          customWidth: item.customWidth,
+          customHeight: item.customHeight,
+          customDepth: item.customDepth,
+          doorTypeId: item.doorTypeId,
+          doorModelId: item.doorModelId,
+          colorToneId: item.colorToneId,
+          woodGrainId: item.woodGrainId,
+          handleId: item.handleId,
+          isTwoSided: item.isTwoSided,
+          packagingCost: item.packagingCost,
         })),
         notes: `Proyecto configurado con dimensiones: ${roomConfig.width}m x ${roomConfig.height}m x ${roomConfig.depth}m`,
+        isExpressOrder: isExpressOrder,
+        isExhibitionOrder: isExhibitionOrder,
       }
 
       const response = await fetch('/api/quotes', {
@@ -495,6 +584,9 @@ export default function ConfiguratorPage() {
                                 Estándar
                               </Badge>
                             )}
+                            {product.doorType && <p className="text-xs text-gray-500">Tipo: {product.doorType.name}</p>}
+                            {product.colorTone && <p className="text-xs text-gray-500">Color: {product.colorTone.name}</p>}
+                            {product.handle && <p className="text-xs text-gray-500">Jaladera: {product.handle.name}</p>}
                             <p className="text-sm font-medium text-blue-600">
                               {formatMXN(product.unitPrice)}
                               {product.customWidth && product.customHeight && (
@@ -509,7 +601,7 @@ export default function ConfiguratorPage() {
                           <Button
                             size="icon"
                             variant="outline"
-                            onClick={() => handleUpdateQuantity(product.id, product.quantity - 1, product.customWidth, product.customHeight)}
+                            onClick={() => handleUpdateQuantity(product.id, product.quantity - 1, product.customWidth ?? null, product.customHeight ?? null)}
                           >
                             <Minus className="w-4 h-4" />
                           </Button>
@@ -517,14 +609,14 @@ export default function ConfiguratorPage() {
                           <Button
                             size="icon"
                             variant="outline"
-                            onClick={() => handleUpdateQuantity(product.id, product.quantity + 1, product.customWidth, product.customHeight)}
+                            onClick={() => handleUpdateQuantity(product.id, product.quantity + 1, product.customWidth ?? null, product.customHeight ?? null)}
                           >
                             <Plus className="w-4 h-4" />
                           </Button>
                           <Button
                             size="icon"
                             variant="outline"
-                            onClick={() => handleRemoveProduct(product.id, product.customWidth, product.customHeight)}
+                            onClick={() => handleRemoveProduct(product.id, product.customWidth ?? null, product.customHeight ?? null)}
                           >
                             <Trash2 className="w-4 h-4 text-red-500" />
                           </Button>
@@ -595,7 +687,103 @@ export default function ConfiguratorPage() {
                       </Badge>
                     </div>
                   </div>
-                  
+
+                  {/* New configuration options */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="doorType">Tipo de Puerta</Label>
+                      <Select
+                        value={selectedDoorType || ''}
+                        onValueChange={setSelectedDoorType}
+                      >
+                        <SelectTrigger id="doorType">
+                          <SelectValue placeholder="Selecciona un tipo" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {doorTypes.map(type => (
+                            <SelectItem key={type.id} value={type.id}>{type.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="doorModel">Modelo</Label>
+                      <Select
+                        value={selectedDoorModel || ''}
+                        onValueChange={setSelectedDoorModel}
+                        disabled={!selectedDoorType}
+                      >
+                        <SelectTrigger id="doorModel">
+                          <SelectValue placeholder="Selecciona un modelo" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {doorModels.map(model => (
+                            <SelectItem key={model.id} value={model.id}>{model.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="colorTone">Tono (Color)</Label>
+                      <Select
+                        value={selectedColorTone || ''}
+                        onValueChange={setSelectedColorTone}
+                        disabled={!selectedDoorModel}
+                      >
+                        <SelectTrigger id="colorTone">
+                          <SelectValue placeholder="Selecciona un tono" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {colorTones.map(tone => (
+                            <SelectItem key={tone.id} value={tone.id}>{tone.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="woodGrain">Veta</Label>
+                      <Select
+                        value={selectedWoodGrain || ''}
+                        onValueChange={setSelectedWoodGrain}
+                        disabled={!selectedColorTone}
+                      >
+                        <SelectTrigger id="woodGrain">
+                          <SelectValue placeholder="Selecciona una veta" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {woodGrains.map(grain => (
+                            <SelectItem key={grain.id} value={grain.id}>{grain.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="handle">Jaladera (Opcional)</Label>
+                      <Select
+                        value={selectedHandle || ''}
+                        onValueChange={setSelectedHandle}
+                      >
+                        <SelectTrigger id="handle">
+                          <SelectValue placeholder="Selecciona una jaladera" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">Ninguna</SelectItem>
+                          {handles.map(handle => (
+                            <SelectItem key={handle.id} value={handle.id}>{handle.name} ({formatMXN(handle.cost)})</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="flex items-center space-x-2 mt-6">
+                      <Checkbox
+                        id="twoSided"
+                        checked={isTwoSided}
+                        onCheckedChange={(checked: boolean) => setIsTwoSided(checked)}
+                      />
+                      <Label htmlFor="twoSided">Dos Caras</Label>
+                    </div>
+                  </div>
+
                   <DimensionCalculator
                     basePrice={configuringProduct.basePrice || 0}
                     productName={configuringProduct.name}
@@ -722,9 +910,16 @@ export default function ConfiguratorPage() {
                               </p>
                             </div>
                           )}
+                          {product.doorType && <p className="text-xs text-gray-500">Tipo: {product.doorType.name}</p>}
+                          {product.doorModel && <p className="text-xs text-gray-500">Modelo: {product.doorModel.name}</p>}
+                          {product.colorTone && <p className="text-xs text-gray-500">Tono: {product.colorTone.name}</p>}
+                          {product.woodGrain && <p className="text-xs text-gray-500">Veta: {product.woodGrain.name}</p>}
+                          {product.handle && <p className="text-xs text-gray-500">Jaladera: {product.handle.name}</p>}
+                          {product.isTwoSided && <Badge variant="outline" className="text-xs">Dos Caras</Badge>}
+                          {product.packagingCost && product.packagingCost > 0 && <p className="text-xs text-gray-500">Costo Empaque: {formatMXN(product.packagingCost)}</p>}
                         </div>
                         <p className="font-semibold">
-                          {formatMXN(product.quantity * product.unitPrice)}
+                          {formatMXN(product.totalPrice)}
                         </p>
                       </div>
                     ))}
@@ -742,10 +937,49 @@ export default function ConfiguratorPage() {
                       <span>IVA (16%):</span>
                       <span>{formatMXN(totals.tax)}</span>
                     </div>
+                    {isExpressOrder && (
+                      <div className="flex justify-between text-orange-600">
+                        <span>Recargo Pedido Express (10%):</span>
+                        <span>{formatMXN(totals.total - (totals.subtotal + totals.tax))}</span>
+                      </div>
+                    )}
+                    {isExhibitionOrder && (
+                      <div className="flex justify-between text-green-600">
+                        <span>Descuento Pedido Exhibición (10%):</span>
+                        <span>{formatMXN((totals.subtotal + totals.tax) - totals.total)}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between text-lg font-bold">
                       <span>Total:</span>
                       <span>{formatMXN(totals.total)}</span>
                     </div>
+                  </div>
+                </div>
+
+                {/* Quote Options */}
+                <div className="space-y-4">
+                  <h4 className="font-semibold mb-2">Opciones de Servicio</h4>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="expressOrder"
+                      checked={isExpressOrder}
+                      onCheckedChange={(checked: boolean) => {
+                        setIsExpressOrder(checked);
+                        if (checked) setIsExhibitionOrder(false);
+                      }}
+                    />
+                    <Label htmlFor="expressOrder">Pedido Express (Aumenta costo 10%)</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="exhibitionOrder"
+                      checked={isExhibitionOrder}
+                      onCheckedChange={(checked: boolean) => {
+                        setIsExhibitionOrder(checked);
+                        if (checked) setIsExpressOrder(false);
+                      }}
+                    />
+                    <Label htmlFor="exhibitionOrder">Pedido de Exhibición (Aplica descuento 10%)</Label>
                   </div>
                 </div>
 
@@ -812,7 +1046,7 @@ export default function ConfiguratorPage() {
               </div>
             ))}
           </div>
-          
+
           <div className="text-center">
             <h2 className="text-xl font-semibold text-gray-900">
               {configSteps[currentStep].title}
@@ -838,7 +1072,7 @@ export default function ConfiguratorPage() {
             <ChevronLeft className="w-4 h-4 mr-2" />
             Anterior
           </Button>
-          
+
           {currentStep < configSteps.length - 1 ? (
             <Button
               onClick={nextStep}

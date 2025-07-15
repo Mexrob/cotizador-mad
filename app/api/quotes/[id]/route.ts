@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
+import { adminAuthGuard } from '@/lib/authUtils'
 
 export const dynamic = 'force-dynamic'
 
@@ -82,10 +83,7 @@ export async function PUT(
     const session = await getServerSession(authOptions)
     
     if (!session) {
-      return NextResponse.json(
-        { error: 'No autorizado' },
-        { status: 401 }
-      )
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
     const body = await request.json()
@@ -109,18 +107,13 @@ export async function PUT(
     })
 
     if (!currentQuote) {
-      return NextResponse.json(
-        { error: 'Cotización no encontrada' },
-        { status: 404 }
-      )
+      return NextResponse.json({ error: 'Cotización no encontrada' }, { status: 404 })
     }
 
-    // Check permissions
-    if (session.user.role !== 'ADMIN' && currentQuote.userId !== session.user.id) {
-      return NextResponse.json(
-        { error: 'No autorizado' },
-        { status: 403 }
-      )
+    // Check permissions: Admin can modify any quote. Non-admin can only modify their own quotes.
+    const isAdmin = adminAuthGuard(session) == null;
+    if (!isAdmin && currentQuote.userId !== session.user.id) {
+      return NextResponse.json({ error: 'Acceso denegado' }, { status: 403 })
     }
 
     // Calculate new totals if discount is applied
@@ -138,12 +131,8 @@ export async function PUT(
 
     // Only admins can change quote status
     if (status) {
-      if (session.user.role !== 'ADMIN') {
-        return NextResponse.json(
-          { error: 'Solo los administradores pueden cambiar el estado de las cotizaciones' },
-          { status: 403 }
-        )
-      }
+      const authGuardResponse = adminAuthGuard(session);
+      if (authGuardResponse) return authGuardResponse;
       updateData.status = status
     }
 
@@ -187,10 +176,7 @@ export async function DELETE(
     const session = await getServerSession(authOptions)
     
     if (!session) {
-      return NextResponse.json(
-        { error: 'No autorizado' },
-        { status: 401 }
-      )
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
     // Get current quote to check ownership
@@ -199,18 +185,14 @@ export async function DELETE(
     })
 
     if (!currentQuote) {
-      return NextResponse.json(
-        { error: 'Cotización no encontrada' },
-        { status: 404 }
-      )
+      return NextResponse.json({ error: 'Cotización no encontrada' }, { status: 404 })
     }
 
     // Check permissions
-    if (session.user.role !== 'ADMIN' && currentQuote.userId !== session.user.id) {
-      return NextResponse.json(
-        { error: 'No autorizado' },
-        { status: 403 }
-      )
+    // Admin can delete any quote. Non-admin can only delete their own quotes.
+    const isAdmin = adminAuthGuard(session) == null;
+    if (!isAdmin && currentQuote.userId !== session.user.id) {
+      return NextResponse.json({ error: 'Acceso denegado' }, { status: 403 })
     }
 
     // Delete quote and related items (cascade)

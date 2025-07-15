@@ -7,8 +7,11 @@ import { prisma } from '@/lib/db'
 export const dynamic = 'force-dynamic'
 
 export async function GET() {
+  console.log('Attempting to fetch session...'); // Added log
   try {
     const session = await getServerSession(authOptions)
+    
+    console.log('Session fetched:', session ? 'Successful' : 'Failed to retrieve session'); // Added log
     
     if (!session) {
       return NextResponse.json(
@@ -17,7 +20,13 @@ export async function GET() {
       )
     }
 
+    // Log the session user for debugging
+    console.log('Session user:', session.user)
+
     const userId = session.user.role === 'ADMIN' ? undefined : session.user.id
+
+    console.log('Determined userId:', userId); // Added log
+    console.log('Session user role:', session.user.role); // Added log
 
     // Date ranges
     const now = new Date()
@@ -42,13 +51,13 @@ export async function GET() {
       prisma.quote.count({ where: whereBase }),
       
       // Pending quotes
-      prisma.quote.count({ 
-        where: { ...whereBase, status: 'PENDING' } 
+      prisma.quote.count({
+        where: { ...whereBase, status: 'PENDING' }
       }),
       
       // Approved quotes
-      prisma.quote.count({ 
-        where: { ...whereBase, status: 'APPROVED' } 
+      prisma.quote.count({
+        where: { ...whereBase, status: 'APPROVED' }
       }),
       
       // Monthly quotes
@@ -147,6 +156,9 @@ export async function GET() {
     })
   } catch (error) {
     console.error('Dashboard stats error:', error)
+    if (error instanceof Error) {
+        console.error('Error details:', error.message, error.stack);
+    }
     return NextResponse.json(
       { error: 'Error al obtener estadísticas' },
       { status: 500 }

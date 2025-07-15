@@ -4,6 +4,9 @@ import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import bcrypt from 'bcryptjs'
+import { adminAuthGuard } from '@/lib/authUtils'
+import { createUserSchema } from '@/lib/validationSchemas'
+import { ZodError } from 'zod'
 
 export const dynamic = 'force-dynamic'
 
@@ -11,14 +14,11 @@ export const dynamic = 'force-dynamic'
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
-    
     if (!session) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+        return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
-
-    if (session.user.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Acceso denegado' }, { status: 403 })
-    }
+    const authGuardResponse = adminAuthGuard(session)
+    if (authGuardResponse) return authGuardResponse
 
     const { searchParams } = new URL(request.url)
     const page = parseInt(searchParams.get('page') || '1')
@@ -56,12 +56,13 @@ export async function GET(request: NextRequest) {
           name: true,
           email: true,
           phone: true,
+          phone2: true,
           companyName: true,
           taxId: true,
-          address: true,
-          city: true,
-          state: true,
-          zipCode: true,
+          fiscalRegime: true,
+          cfdiUse: true,
+          deliveryAddress: true,
+          billingAddress: true,
           country: true,
           role: true,
           status: true,
@@ -104,41 +105,45 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
-    
     if (!session) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+        return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
-
-    if (session.user.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Acceso denegado' }, { status: 403 })
-    }
+    const authGuardResponse = adminAuthGuard(session)
+    if (authGuardResponse) return authGuardResponse
 
     const body = await request.json()
+    // Validate input using Zod
+    let validatedData;
+    try {
+      validatedData = createUserSchema.parse(body);
+    } catch (error) {
+      if (error instanceof ZodError) {
+        return NextResponse.json(
+          { error: 'Error de validación', details: error.errors },
+          { status: 400 }
+        );
+      }
+      throw error; // Re-throw if it's not a ZodError
+    }
+
     const {
       name,
       email,
       password,
       phone,
+      phone2,
       companyName,
       taxId,
-      address,
-      city,
-      state,
-      zipCode,
+      fiscalRegime,
+      cfdiUse,
+      deliveryAddress,
+      billingAddress,
       country,
       role,
       status,
       discountRate,
-      creditLimit
-    } = body
-
-    // Validate required fields
-    if (!email || !password) {
-      return NextResponse.json(
-        { error: 'Email y contraseña son requeridos' },
-        { status: 400 }
-      )
-    }
+      creditLimit,
+    } = validatedData; // Use validatedData here
 
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
@@ -155,6 +160,37 @@ export async function POST(request: NextRequest) {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 12)
 
+    // Create delivery address if provided
+    let newDeliveryAddress = null;
+    if (deliveryAddress) {
+      newDeliveryAddress = await prisma.deliveryAddress.create({
+        data: {
+          street: deliveryAddress.street,
+          exteriorNumber: deliveryAddress.exteriorNumber,
+          interiorNumber: deliveryAddress.interiorNumber,
+          colony: deliveryAddress.colony,
+          zipCode: deliveryAddress.zipCode,
+          city: deliveryAddress.city,
+          state: deliveryAddress.state,
+        }
+      });
+    }
+
+    // Create billing address if provided
+    let newBillingAddress = null;
+    if (billingAddress) {
+      newBillingAddress = await prisma.billingAddress.create({
+        data: {
+          street: billingAddress.street,
+          number: billingAddress.number,
+          colony: billingAddress.colony,
+          zipCode: billingAddress.zipCode,
+          city: billingAddress.city,
+          state: billingAddress.state,
+        }
+      });
+    }
+
     // Create user
     const newUser = await prisma.user.create({
       data: {
@@ -162,12 +198,13 @@ export async function POST(request: NextRequest) {
         email,
         password: hashedPassword,
         phone,
+        phone2,
         companyName,
         taxId,
-        address,
-        city,
-        state,
-        zipCode,
+        fiscalRegime,
+        cfdiUse,
+        deliveryAddress: newDeliveryAddress ? { connect: { id: newDeliveryAddress.id } } : undefined,
+        billingAddress: newBillingAddress ? { connect: { id: newBillingAddress.id } } : undefined,
         country: country || 'Mexico',
         role: role || 'RETAIL',
         status: status || 'ACTIVE',
@@ -179,12 +216,13 @@ export async function POST(request: NextRequest) {
         name: true,
         email: true,
         phone: true,
+        phone2: true,
         companyName: true,
         taxId: true,
-        address: true,
-        city: true,
-        state: true,
-        zipCode: true,
+        fiscalRegime: true,
+        cfdiUse: true,
+        deliveryAddress: true,
+        billingAddress: true,
         country: true,
         role: true,
         status: true,
@@ -204,3 +242,4 @@ export async function POST(request: NextRequest) {
     )
   }
 }
+

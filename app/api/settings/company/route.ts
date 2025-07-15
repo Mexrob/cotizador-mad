@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
+import { adminAuthGuard } from '@/lib/authUtils'
 
 export const dynamic = 'force-dynamic'
 
@@ -43,12 +44,11 @@ export async function PUT(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     
-    if (!session || session.user.role !== 'ADMIN') {
-      return NextResponse.json(
-        { error: 'No autorizado' },
-        { status: 401 }
-      )
+    if (!session) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
+    const authGuardResponse = adminAuthGuard(session)
+    if (authGuardResponse) return authGuardResponse
 
     const body = await request.json()
     const {

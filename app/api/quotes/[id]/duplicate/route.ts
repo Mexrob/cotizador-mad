@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
+import { adminAuthGuard } from '@/lib/authUtils'
 import { generateQuoteNumber } from '@/lib/utils'
 
 export const dynamic = 'force-dynamic'
@@ -15,11 +16,9 @@ export async function POST(
     const session = await getServerSession(authOptions)
     
     if (!session) {
-      return NextResponse.json(
-        { error: 'No autorizado' },
-        { status: 401 }
-      )
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
+
 
     // Get the original quote
     const originalQuote = await prisma.quote.findUnique({
@@ -30,18 +29,13 @@ export async function POST(
     })
 
     if (!originalQuote) {
-      return NextResponse.json(
-        { error: 'Cotización no encontrada' },
-        { status: 404 }
-      )
+      return NextResponse.json({ error: 'Cotización no encontrada' }, { status: 404 })
     }
 
-    // Check permissions
-    if (session.user.role !== 'ADMIN' && originalQuote.userId !== session.user.id) {
-      return NextResponse.json(
-        { error: 'No autorizado' },
-        { status: 403 }
-      )
+    // Check permissions: Admin can duplicate any quote. Non-admin can only duplicate their own quotes.
+    const isAdmin = adminAuthGuard(session) == null; // It returns null if admin, so this is true for admin
+    if (!isAdmin && originalQuote.userId !== session.user.id) {
+      return NextResponse.json({ error: 'Acceso denegado' }, { status: 403 })
     }
 
     // Create the duplicate quote
@@ -74,9 +68,12 @@ export async function POST(
             customWidth: item.customWidth,
             customHeight: item.customHeight,
             customDepth: item.customDepth,
-            selectedMaterial: item.selectedMaterial,
-            selectedHardware: item.selectedHardware,
-            customOptions: item.customOptions as any,
+            doorTypeId: item.doorTypeId,
+            doorModelId: item.doorModelId,
+            colorToneId: item.colorToneId,
+            woodGrainId: item.woodGrainId,
+            handleId: item.handleId,
+            isTwoSided: item.isTwoSided,
             unitPrice: item.unitPrice,
             totalPrice: item.totalPrice,
           })),

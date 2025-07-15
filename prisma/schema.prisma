@@ -72,11 +72,17 @@ model User {
   // Business Information
   companyName   String?
   taxId         String?    // RFC for Mexico
+  fiscalRegime  String?    // Régimen Fiscal
+  cfdiUse       String?    // Uso de CFDI
   phone         String?
-  address       String?
-  city          String?
-  state         String?
-  zipCode       String?
+  phone2        String?    // Teléfono 2 (opcional)
+  
+  deliveryAddress   DeliveryAddress? @relation(fields: [deliveryAddressId], references: [id])
+  deliveryAddressId String? @unique
+  
+  billingAddress    BillingAddress? @relation(fields: [billingAddressId], references: [id])
+  billingAddressId  String? @unique
+  
   country       String     @default("Mexico")
   
   // Pricing Information
@@ -92,6 +98,41 @@ model User {
   quotesShared  QuoteShare[]
   
   @@map("users")
+}
+
+model DeliveryAddress {
+  id             String  @id @default(cuid())
+  street         String
+  exteriorNumber String
+  interiorNumber String?
+  colony         String
+  zipCode        String
+  city           String
+  state          String
+  
+  user           User?
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  
+  @@map("delivery_addresses")
+}
+
+model BillingAddress {
+  id             String  @id @default(cuid())
+  street         String
+  number         String
+  colony         String
+  zipCode        String
+  city           String
+  state          String
+  
+  user           User?
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  
+  @@map("billing_addresses")
 }
 
 // Company Configuration
@@ -249,10 +290,94 @@ model Product {
   pricing         ProductPricing[]
   quoteItems      QuoteItem[]
   
+  // New fields for door configuration
+  doorTypeId      String?
+  doorModelId     String?
+  colorToneId     String?
+  woodGrainId     String?
+  
+  doorType        DoorType?    @relation(fields: [doorTypeId], references: [id])
+  doorModel       DoorModel?   @relation(fields: [doorModelId], references: [id])
+  colorTone       ColorTone?   @relation(fields: [colorToneId], references: [id])
+  woodGrain       WoodGrain?   @relation(fields: [woodGrainId], references: [id])
+  
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
   
   @@map("products")
+}
+
+model DoorType {
+  id          String        @id @default(cuid())
+  name        String        @unique
+  description String?
+  status      ProductStatus @default(ACTIVE)
+  products    Product[]
+  quoteItems  QuoteItem[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("door_types")
+}
+
+model DoorModel {
+  id          String        @id @default(cuid())
+  name        String        @unique
+  description String?
+  status      ProductStatus @default(ACTIVE)
+  products    Product[]
+  quoteItems  QuoteItem[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("door_models")
+}
+
+model ColorTone {
+  id          String        @id @default(cuid())
+  name        String        @unique
+  hexCode     String?
+  imageUrl    String?
+  status      ProductStatus @default(ACTIVE)
+  products    Product[]
+  quoteItems  QuoteItem[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("color_tones")
+}
+
+model WoodGrain {
+  id          String        @id @default(cuid())
+  name        String        @unique
+  direction   String?       // Vertical, Horizontal
+  imageUrl    String?
+  status      ProductStatus @default(ACTIVE)
+  products    Product[]
+  quoteItems  QuoteItem[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("wood_grains")
+}
+
+model Handle {
+  id          String        @id @default(cuid())
+  name        String        @unique
+  description String?
+  imageUrl    String?
+  cost        Float         @default(0)
+  status      ProductStatus @default(ACTIVE)
+  quoteItems  QuoteItem[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("handles")
 }
 
 // Pricing System
@@ -276,11 +401,19 @@ model ProductPricing {
 // Quotation System
 enum QuoteStatus {
   DRAFT
-  PENDING
+  PENDING // Mantener los estados antiguos
   APPROVED
   REJECTED
   EXPIRED
   CONVERTED
+  SENT_TO_CLIENT // Enviada al cliente
+  APPROVED_BY_CLIENT // Aprobada por cliente
+  PAID // Pagado
+  IN_PRODUCTION // En Producción
+  READY_FOR_DELIVERY // Listo para Entrega
+  INVOICED // Facturado
+  COMPLETED // Completado
+  CANCELLED // Cancelado
 }
 
 model Quote {
@@ -306,13 +439,22 @@ model Quote {
   discountAmount  Float         @default(0)
   totalAmount     Float         @default(0)
   
+  // New pricing options
+  isExpressOrder  Boolean       @default(false)
+  isExhibitionOrder Boolean     @default(false)
+  
   // Dates
   validUntil      DateTime
   deliveryDate    DateTime?
+  validationDate  DateTime?     // Fecha de Validación (Pago)
+  productionEndDate DateTime?   // Fecha de Salida de Producción
   
   // Notes and Files
   notes           String?
   attachments     String[]      // URLs to files
+  paymentProof    String?       // URL to payment proof (image or PDF)
+  invoicePdf      String?       // URL to official invoice PDF
+  invoiceXml      String?       // URL to official invoice XML
   
   // Design Configuration
   design3d        Json?         // 3D configuration data
@@ -338,13 +480,26 @@ model QuoteItem {
   customWidth   Float?
   customHeight  Float?
   customDepth   Float?
-  selectedMaterial String?
-  selectedHardware String?
-  customOptions Json?   // Additional customization options
+  
+  // New fields for door configuration per item
+  doorTypeId      String?
+  doorModelId     String?
+  colorToneId     String?
+  woodGrainId     String?
+  handleId        String?
+  isTwoSided      Boolean?      @default(false)
+  
+  // Relationships for item configuration
+  doorType        DoorType?    @relation(fields: [doorTypeId], references: [id])
+  doorModel       DoorModel?   @relation(fields: [doorModelId], references: [id])
+  colorTone       ColorTone?   @relation(fields: [colorToneId], references: [id])
+  woodGrain       WoodGrain?   @relation(fields: [woodGrainId], references: [id])
+  handle          Handle?      @relation(fields: [handleId], references: [id])
   
   // Pricing
   unitPrice     Float
   totalPrice    Float
+  packagingCost Float         @default(0) // Costo de Empaque calculado por Alto × Ancho
   
   quote         Quote   @relation(fields: [quoteId], references: [id], onDelete: Cascade)
   product       Product @relation(fields: [productId], references: [id])

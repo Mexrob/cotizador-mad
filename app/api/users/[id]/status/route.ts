@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
+import { adminAuthGuard } from '@/lib/authUtils'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,10 +17,8 @@ export async function PATCH(
     if (!session) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
-
-    if (session.user.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Acceso denegado' }, { status: 403 })
-    }
+    const authGuardResponse = adminAuthGuard(session)
+    if (authGuardResponse) return authGuardResponse
 
     const body = await request.json()
     const { status } = body

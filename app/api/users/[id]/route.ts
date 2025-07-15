@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import bcrypt from 'bcryptjs'
+import { adminAuthGuard } from '@/lib/authUtils'
 
 export const dynamic = 'force-dynamic'
 
@@ -17,10 +18,9 @@ export async function GET(
     if (!session) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
-
     // Users can only access their own profile, unless they're admin
-    if (session.user.id !== params.id && session.user.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Acceso denegado' }, { status: 403 })
+    if (session.user.id !== params.id && (adminAuthGuard(session))) {
+        return NextResponse.json({ error: 'Acceso denegado' }, { status: 403 })
     }
 
     const user = await prisma.user.findUnique({
@@ -30,12 +30,13 @@ export async function GET(
         name: true,
         email: true,
         phone: true,
+        phone2: true,
         companyName: true,
         taxId: true,
-        address: true,
-        city: true,
-        state: true,
-        zipCode: true,
+        fiscalRegime: true,
+        cfdiUse: true,
+        deliveryAddress: true,
+        billingAddress: true,
         country: true,
         role: true,
         status: true,
@@ -75,9 +76,8 @@ export async function PUT(
     if (!session) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
-
     // Users can only update their own profile, unless they're admin
-    if (session.user.id !== params.id && session.user.role !== 'ADMIN') {
+    if (session.user.id !== params.id && (adminAuthGuard(session))) {
       return NextResponse.json({ error: 'Acceso denegado' }, { status: 403 })
     }
 
@@ -85,12 +85,13 @@ export async function PUT(
     const {
       name,
       phone,
+      phone2,
       companyName,
       taxId,
-      address,
-      city,
-      state,
-      zipCode,
+      fiscalRegime,
+      cfdiUse,
+      deliveryAddress,
+      billingAddress,
       country,
       role,
       status,
@@ -103,13 +104,82 @@ export async function PUT(
     const updateData: any = {
       name,
       phone,
+      phone2,
       companyName,
       taxId,
-      address,
-      city,
-      state,
-      zipCode,
+      fiscalRegime,
+      cfdiUse,
       country,
+    }
+
+    // Handle delivery address update
+    if (deliveryAddress) {
+      if (deliveryAddress.id) {
+        // Update existing delivery address
+        await prisma.deliveryAddress.update({
+          where: { id: deliveryAddress.id },
+          data: {
+            street: deliveryAddress.street,
+            exteriorNumber: deliveryAddress.exteriorNumber,
+            interiorNumber: deliveryAddress.interiorNumber,
+            colony: deliveryAddress.colony,
+            zipCode: deliveryAddress.zipCode,
+            city: deliveryAddress.city,
+            state: deliveryAddress.state,
+          }
+        });
+      } else {
+        // Create new delivery address
+        const newDeliveryAddress = await prisma.deliveryAddress.create({
+          data: {
+            street: deliveryAddress.street,
+            exteriorNumber: deliveryAddress.exteriorNumber,
+            interiorNumber: deliveryAddress.interiorNumber,
+            colony: deliveryAddress.colony,
+            zipCode: deliveryAddress.zipCode,
+            city: deliveryAddress.city,
+            state: deliveryAddress.state,
+          }
+        });
+        updateData.deliveryAddress = { connect: { id: newDeliveryAddress.id } };
+      }
+    } else if (updateData.deliveryAddressId) {
+      // If deliveryAddress is null and there was an existing one, disconnect it
+      updateData.deliveryAddress = { disconnect: true };
+    }
+
+    // Handle billing address update
+    if (billingAddress) {
+      if (billingAddress.id) {
+        // Update existing billing address
+        await prisma.billingAddress.update({
+          where: { id: billingAddress.id },
+          data: {
+            street: billingAddress.street,
+            number: billingAddress.number,
+            colony: billingAddress.colony,
+            zipCode: billingAddress.zipCode,
+            city: billingAddress.city,
+            state: billingAddress.state,
+          }
+        });
+      } else {
+        // Create new billing address
+        const newBillingAddress = await prisma.billingAddress.create({
+          data: {
+            street: billingAddress.street,
+            number: billingAddress.number,
+            colony: billingAddress.colony,
+            zipCode: billingAddress.zipCode,
+            city: billingAddress.city,
+            state: billingAddress.state,
+          }
+        });
+        updateData.billingAddress = { connect: { id: newBillingAddress.id } };
+      }
+    } else if (updateData.billingAddressId) {
+      // If billingAddress is null and there was an existing one, disconnect it
+      updateData.billingAddress = { disconnect: true };
     }
 
     // Only admins can update role, status, discount rate, and credit limit
@@ -135,10 +205,10 @@ export async function PUT(
         phone: true,
         companyName: true,
         taxId: true,
-        address: true,
-        city: true,
-        state: true,
-        zipCode: true,
+        fiscalRegime: true,
+        cfdiUse: true,
+        deliveryAddress: true,
+        billingAddress: true,
         country: true,
         role: true,
         status: true,
@@ -169,10 +239,8 @@ export async function DELETE(
     if (!session) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
-
-    if (session.user.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Acceso denegado' }, { status: 403 })
-    }
+    const authGuardResponse = adminAuthGuard(session)
+    if (authGuardResponse) return authGuardResponse
 
     // Prevent self-deletion
     if (session.user.id === params.id) {

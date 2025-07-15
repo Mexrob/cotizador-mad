@@ -1,4 +1,3 @@
-
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -24,19 +23,41 @@ import {
   Settings
 } from 'lucide-react'
 
+interface DeliveryAddress {
+  id?: string;
+  street: string;
+  exteriorNumber: string;
+  interiorNumber?: string;
+  colony: string;
+  zipCode: string;
+  city: string;
+  state: string;
+}
+
+interface BillingAddress {
+  id?: string;
+  street: string;
+  number: string;
+  colony: string;
+  zipCode: string;
+  city: string;
+  state: string;
+}
+
 interface UserProfile {
-  id: string
-  name: string
-  email: string
-  phone?: string
-  companyName?: string
-  taxId?: string
-  address?: string
-  city?: string
-  state?: string
-  zipCode?: string
-  role: string
-  createdAt: string
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  phone2?: string;
+  companyName?: string;
+  taxId?: string;
+  fiscalRegime?: string;
+  cfdiUse?: string;
+  deliveryAddress?: DeliveryAddress;
+  billingAddress?: BillingAddress;
+  role: string;
+  createdAt: string;
 }
 
 export default function ProfilePage() {
@@ -45,6 +66,7 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [useSameAddress, setUseSameAddress] = useState(false); // For "Usar el mismo domicilio de entrega" checkbox
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -65,6 +87,18 @@ export default function ProfilePage() {
         if (response.ok) {
           const userData = await response.json()
           setProfile(userData)
+          // Set useSameAddress checkbox based on loaded data
+          if (userData.deliveryAddress && userData.billingAddress &&
+              userData.deliveryAddress.street === userData.billingAddress.street &&
+              userData.deliveryAddress.exteriorNumber === userData.billingAddress.number &&
+              userData.deliveryAddress.colony === userData.billingAddress.colony &&
+              userData.deliveryAddress.zipCode === userData.billingAddress.zipCode &&
+              userData.deliveryAddress.city === userData.billingAddress.city &&
+              userData.deliveryAddress.state === userData.billingAddress.state) {
+            setUseSameAddress(true);
+          } else {
+            setUseSameAddress(false);
+          }
         }
       } catch (error) {
         console.error('Error loading profile:', error)
@@ -91,12 +125,13 @@ export default function ProfilePage() {
         body: JSON.stringify({
           name: profile.name,
           phone: profile.phone,
+          phone2: profile.phone2,
           companyName: profile.companyName,
           taxId: profile.taxId,
-          address: profile.address,
-          city: profile.city,
-          state: profile.state,
-          zipCode: profile.zipCode,
+          fiscalRegime: profile.fiscalRegime,
+          cfdiUse: profile.cfdiUse,
+          deliveryAddress: profile.deliveryAddress,
+          billingAddress: useSameAddress ? profile.deliveryAddress ? { ...profile.deliveryAddress, number: profile.deliveryAddress.exteriorNumber || '' } : null : profile.billingAddress,
         }),
       })
 
@@ -221,7 +256,7 @@ export default function ProfilePage() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="phone">Teléfono</Label>
+                      <Label htmlFor="phone">Teléfono 1</Label>
                       <Input
                         id="phone"
                         value={profile.phone || ''}
@@ -231,7 +266,20 @@ export default function ProfilePage() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="companyName">Empresa</Label>
+                      <Label htmlFor="phone2">Teléfono 2 (Opcional)</Label>
+                      <Input
+                        id="phone2"
+                        value={profile.phone2 || ''}
+                        onChange={(e) => setProfile({ ...profile, phone2: e.target.value })}
+                        placeholder="Tu número de teléfono secundario"
+                      />
+                    </div>
+                  </div>
+
+                  <h4 className="font-semibold text-lg mt-6 mb-2">Datos Fiscales</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="companyName">Razón Social</Label>
                       <Input
                         id="companyName"
                         value={profile.companyName || ''}
@@ -239,7 +287,6 @@ export default function ProfilePage() {
                         placeholder="Nombre de tu empresa"
                       />
                     </div>
-
                     <div className="space-y-2">
                       <Label htmlFor="taxId">RFC</Label>
                       <Input
@@ -249,49 +296,178 @@ export default function ProfilePage() {
                         placeholder="RFC de la empresa"
                       />
                     </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="space-y-2">
-                      <Label htmlFor="address">Dirección</Label>
+                      <Label htmlFor="fiscalRegime">Régimen Fiscal</Label>
                       <Input
-                        id="address"
-                        value={profile.address || ''}
-                        onChange={(e) => setProfile({ ...profile, address: e.target.value })}
-                        placeholder="Calle y número"
+                        id="fiscalRegime"
+                        value={profile.fiscalRegime || ''}
+                        onChange={(e) => setProfile({ ...profile, fiscalRegime: e.target.value })}
+                        placeholder="601 General de Ley Personas Morales"
                       />
                     </div>
-
                     <div className="space-y-2">
-                      <Label htmlFor="city">Ciudad</Label>
+                      <Label htmlFor="cfdiUse">Uso de CFDI</Label>
                       <Input
-                        id="city"
-                        value={profile.city || ''}
-                        onChange={(e) => setProfile({ ...profile, city: e.target.value })}
-                        placeholder="Ciudad"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="state">Estado</Label>
-                      <Input
-                        id="state"
-                        value={profile.state || ''}
-                        onChange={(e) => setProfile({ ...profile, state: e.target.value })}
-                        placeholder="Estado"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="zipCode">Código Postal</Label>
-                      <Input
-                        id="zipCode"
-                        value={profile.zipCode || ''}
-                        onChange={(e) => setProfile({ ...profile, zipCode: e.target.value })}
-                        placeholder="Código postal"
+                        id="cfdiUse"
+                        value={profile.cfdiUse || ''}
+                        onChange={(e) => setProfile({ ...profile, cfdiUse: e.target.value })}
+                        placeholder="G03 Gastos en general"
                       />
                     </div>
                   </div>
+
+                  <h4 className="font-semibold text-lg mt-6 mb-2">Domicilio de Entrega</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="deliveryStreet">Calle</Label>
+                      <Input
+                        id="deliveryStreet"
+                        value={profile.deliveryAddress?.street || ''}
+                        onChange={(e) => setProfile({ ...profile, deliveryAddress: { ...profile.deliveryAddress, street: e.target.value } as DeliveryAddress })}
+                        placeholder="Av. Reforma"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="deliveryExteriorNumber">Número Exterior</Label>
+                      <Input
+                        id="deliveryExteriorNumber"
+                        value={profile.deliveryAddress?.exteriorNumber || ''}
+                        onChange={(e) => setProfile({ ...profile, deliveryAddress: { ...profile.deliveryAddress, exteriorNumber: e.target.value } as DeliveryAddress })}
+                        placeholder="123"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="deliveryInteriorNumber">Número Interior (Opcional)</Label>
+                      <Input
+                        id="deliveryInteriorNumber"
+                        value={profile.deliveryAddress?.interiorNumber || ''}
+                        onChange={(e) => setProfile({ ...profile, deliveryAddress: { ...profile.deliveryAddress, interiorNumber: e.target.value } as DeliveryAddress })}
+                        placeholder="Piso 5, Depto 101"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="deliveryColony">Colonia</Label>
+                      <Input
+                        id="deliveryColony"
+                        value={profile.deliveryAddress?.colony || ''}
+                        onChange={(e) => setProfile({ ...profile, deliveryAddress: { ...profile.deliveryAddress, colony: e.target.value } as DeliveryAddress })}
+                        placeholder="Juárez"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="deliveryZipCode">Código Postal</Label>
+                      <Input
+                        id="deliveryZipCode"
+                        value={profile.deliveryAddress?.zipCode || ''}
+                        onChange={(e) => setProfile({ ...profile, deliveryAddress: { ...profile.deliveryAddress, zipCode: e.target.value } as DeliveryAddress })}
+                        placeholder="06600"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="deliveryCity">Ciudad</Label>
+                      <Input
+                        id="deliveryCity"
+                        value={profile.deliveryAddress?.city || ''}
+                        onChange={(e) => setProfile({ ...profile, deliveryAddress: { ...profile.deliveryAddress, city: e.target.value } as DeliveryAddress })}
+                        placeholder="Ciudad de México"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="deliveryState">Estado</Label>
+                      <Input
+                        id="deliveryState"
+                        value={profile.deliveryAddress?.state || ''}
+                        onChange={(e) => setProfile({ ...profile, deliveryAddress: { ...profile.deliveryAddress, state: e.target.value } as DeliveryAddress })}
+                        placeholder="CDMX"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center space-x-2 mt-4">
+                    <input
+                      type="checkbox"
+                      id="useSameAddress"
+                      checked={useSameAddress}
+                      onChange={(e) => {
+                        setUseSameAddress(e.target.checked);
+                        if (e.target.checked) {
+                          setProfile(prev => ({
+                            ...prev!,
+                            billingAddress: prev?.deliveryAddress ? {
+                              ...prev.deliveryAddress,
+                              number: prev.deliveryAddress.exteriorNumber || ''
+                            } as BillingAddress : undefined
+                          }));
+                        } else {
+                          setProfile(prev => ({ ...prev!, billingAddress: undefined }));
+                        }
+                      }}
+                      className="form-checkbox h-4 w-4 text-blue-600"
+                    />
+                    <Label htmlFor="useSameAddress">Usar el mismo domicilio de entrega para facturación</Label>
+                  </div>
+
+                  {!useSameAddress && (
+                    <>
+                      <h4 className="font-semibold text-lg mt-6 mb-2">Domicilio Fiscal</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="billingStreet">Calle</Label>
+                          <Input
+                            id="billingStreet"
+                            value={profile.billingAddress?.street || ''}
+                            onChange={(e) => setProfile({ ...profile, billingAddress: { ...profile.billingAddress, street: e.target.value } as BillingAddress })}
+                            placeholder="Av. Insurgentes"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="billingNumber">Número</Label>
+                          <Input
+                            id="billingNumber"
+                            value={profile.billingAddress?.number || ''}
+                            onChange={(e) => setProfile({ ...profile, billingAddress: { ...profile.billingAddress, number: e.target.value } as BillingAddress })}
+                            placeholder="456"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="billingColony">Colonia</Label>
+                          <Input
+                            id="billingColony"
+                            value={profile.billingAddress?.colony || ''}
+                            onChange={(e) => setProfile({ ...profile, billingAddress: { ...profile.billingAddress, colony: e.target.value } as BillingAddress })}
+                            placeholder="Roma Norte"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="billingZipCode">Código Postal</Label>
+                          <Input
+                            id="billingZipCode"
+                            value={profile.billingAddress?.zipCode || ''}
+                            onChange={(e) => setProfile({ ...profile, billingAddress: { ...profile.billingAddress, zipCode: e.target.value } as BillingAddress })}
+                            placeholder="06700"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="billingCity">Ciudad</Label>
+                          <Input
+                            id="billingCity"
+                            value={profile.billingAddress?.city || ''}
+                            onChange={(e) => setProfile({ ...profile, billingAddress: { ...profile.billingAddress, city: e.target.value } as BillingAddress })}
+                            placeholder="Ciudad de México"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="billingState">Estado</Label>
+                          <Input
+                            id="billingState"
+                            value={profile.billingAddress?.state || ''}
+                            onChange={(e) => setProfile({ ...profile, billingAddress: { ...profile.billingAddress, state: e.target.value } as BillingAddress })}
+                            placeholder="CDMX"
+                          />
+                        </div>
+                      </div>
+                    </>
+                  )}
 
                   <Separator />
 
@@ -333,12 +509,119 @@ export default function ProfilePage() {
 
                     <div className="flex items-center justify-between py-3 border-b">
                       <div className="flex items-center space-x-3">
+                        <Phone className="w-5 h-5 text-gray-400" />
+                        <div>
+                          <p className="font-medium">Teléfono 1</p>
+                          <p className="text-sm text-gray-500">{profile.phone || 'No especificado'}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between py-3 border-b">
+                      <div className="flex items-center space-x-3">
+                        <Phone className="w-5 h-5 text-gray-400" />
+                        <div>
+                          <p className="font-medium">Teléfono 2</p>
+                          <p className="text-sm text-gray-500">{profile.phone2 || 'No especificado'}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between py-3 border-b">
+                      <div className="flex items-center space-x-3">
+                        <Building className="w-5 h-5 text-gray-400" />
+                        <div>
+                          <p className="font-medium">Razón Social</p>
+                          <p className="text-sm text-gray-500">{profile.companyName || 'No especificada'}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between py-3 border-b">
+                      <div className="flex items-center space-x-3">
+                        <Building className="w-5 h-5 text-gray-400" />
+                        <div>
+                          <p className="font-medium">RFC</p>
+                          <p className="text-sm text-gray-500">{profile.taxId || 'No especificado'}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between py-3 border-b">
+                      <div className="flex items-center space-x-3">
+                        <Building className="w-5 h-5 text-gray-400" />
+                        <div>
+                          <p className="font-medium">Régimen Fiscal</p>
+                          <p className="text-sm text-gray-500">{profile.fiscalRegime || 'No especificado'}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between py-3 border-b">
+                      <div className="flex items-center space-x-3">
+                        <Building className="w-5 h-5 text-gray-400" />
+                        <div>
+                          <p className="font-medium">Uso de CFDI</p>
+                          <p className="text-sm text-gray-500">{profile.cfdiUse || 'No especificado'}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between py-3 border-b">
+                      <div className="flex items-center space-x-3">
                         <Shield className="w-5 h-5 text-gray-400" />
                         <div>
                           <p className="font-medium">Tipo de Cuenta</p>
                           <Badge className={getRoleBadgeColor(profile.role)}>
                             {getRoleDisplayName(profile.role)}
                           </Badge>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between py-3 border-b">
+                      <div className="flex items-center space-x-3">
+                        <Building className="w-5 h-5 text-gray-400" />
+                        <div>
+                          <p className="font-medium">Domicilio de Entrega</p>
+                          <p className="text-sm text-gray-500">
+                            {profile.deliveryAddress ? (
+                              [
+                                profile.deliveryAddress.street,
+                                profile.deliveryAddress.exteriorNumber,
+                                profile.deliveryAddress.interiorNumber,
+                                profile.deliveryAddress.colony,
+                                profile.deliveryAddress.zipCode,
+                                profile.deliveryAddress.city,
+                                profile.deliveryAddress.state,
+                              ].filter(Boolean).join(', ')
+                            ) : (
+                              'No especificado'
+                            )}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between py-3">
+                      <div className="flex items-center space-x-3">
+                        <Building className="w-5 h-5 text-gray-400" />
+                        <div>
+                          <p className="font-medium">Domicilio Fiscal</p>
+                          <p className="text-sm text-gray-500">
+                            {profile.billingAddress ? (
+                              [
+                                profile.billingAddress.street,
+                                profile.billingAddress.number,
+                                profile.billingAddress.colony,
+                                profile.billingAddress.zipCode,
+                                profile.billingAddress.city,
+                                profile.billingAddress.state,
+                              ].filter(Boolean).join(', ')
+                            ) : (
+                              'No especificado'
+                            )}
+                          </p>
                         </div>
                       </div>
                     </div>

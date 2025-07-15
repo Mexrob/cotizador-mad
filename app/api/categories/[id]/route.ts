@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { UserRole } from '@prisma/client';
+import { adminAuthGuard } from '@/lib/authUtils';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,10 +15,6 @@ export async function GET(
 ) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
-    }
-
     const category = await prisma.category.findUnique({
       where: { id: params.id },
       include: {
@@ -59,9 +56,11 @@ export async function PUT(
 ) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session || session.user.role !== UserRole.ADMIN) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
+    if (!session) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
+    const authGuardResponse = adminAuthGuard(session)
+    if (authGuardResponse) return authGuardResponse
 
     const body = await request.json();
     const { name, description, parentId, image, status } = body;
@@ -128,9 +127,11 @@ export async function DELETE(
 ) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session || session.user.role !== UserRole.ADMIN) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
+    if (!session) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
+    const authGuardResponse = adminAuthGuard(session)
+    if (authGuardResponse) return authGuardResponse
 
     // Check if category exists
     const existingCategory = await prisma.category.findUnique({

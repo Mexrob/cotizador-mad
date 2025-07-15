@@ -8,19 +8,24 @@ async function main() {
 
   console.log('🧹 Cleaning up existing data...')
   // Delete relations first to avoid foreign key constraint errors
-  await prisma.quoteItem.deleteMany()
-  await prisma.productPricing.deleteMany()
-  
-  // Then delete the main entities
-  await prisma.quote.deleteMany()
-  await prisma.product.deleteMany()
-  await prisma.user.deleteMany({ where: { email: { not: 'admin@cocinaslujo.mx' } } }) // Keep admin
-  await prisma.category.deleteMany()
-  await prisma.material.deleteMany()
-  await prisma.hardware.deleteMany()
-  await prisma.taxSettings.deleteMany()
-  await prisma.companySettings.deleteMany()
-  console.log('✅ Cleanup complete.')
+  await prisma.quoteItem.deleteMany();
+  await prisma.productPricing.deleteMany();
+  await prisma.quote.deleteMany();
+  await prisma.product.deleteMany();
+  await prisma.category.deleteMany();
+  await prisma.material.deleteMany();
+  await prisma.hardware.deleteMany();
+  await prisma.taxSettings.deleteMany();
+  await prisma.companySettings.deleteMany();
+  await prisma.doorType.deleteMany();
+  await prisma.doorModel.deleteMany();
+  await prisma.colorTone.deleteMany();
+  await prisma.woodGrain.deleteMany();
+  await prisma.handle.deleteMany();
+  await prisma.deliveryAddress.deleteMany();
+  await prisma.billingAddress.deleteMany();
+  await prisma.user.deleteMany({ where: { email: { not: 'admin@cocinaslujo.mx' } } }); // Keep admin
+  console.log('✅ Cleanup complete.');
 
 
   // Create admin user
@@ -38,13 +43,29 @@ async function main() {
       status: 'ACTIVE',
       companyName: 'Cocinas de Lujo México',
       phone: '+52 55 1234 5678',
-      address: 'Av. Presidente Masaryk 111',
-      city: 'Ciudad de México',
-      state: 'CDMX',
-      zipCode: '11560',
       country: 'Mexico',
+      deliveryAddress: {
+        create: {
+          street: 'Av. Presidente Masaryk',
+          exteriorNumber: '111',
+          colony: 'Polanco',
+          zipCode: '11560',
+          city: 'Ciudad de México',
+          state: 'CDMX',
+        },
+      },
+      billingAddress: {
+        create: {
+          street: 'Av. Presidente Masaryk',
+          number: '111',
+          colony: 'Polanco',
+          zipCode: '11560',
+          city: 'Ciudad de México',
+          state: 'CDMX',
+        },
+      },
     },
-  })
+  });
 
   // Create demo users
   const demoPassword = await hash('demo123', 12)
@@ -61,8 +82,18 @@ async function main() {
       taxId: 'DCO123456789',
       phone: '+52 55 9876 5432',
       discountRate: 15,
+      deliveryAddress: {
+        create: {
+          street: 'Calle Falsa',
+          exteriorNumber: '123',
+          colony: 'Centro',
+          zipCode: '06000',
+          city: 'Ciudad de México',
+          state: 'CDMX',
+        },
+      },
     },
-  })
+  });
 
   const retail = await prisma.user.upsert({
     where: { email: 'cliente@ejemplo.mx' },
@@ -74,8 +105,18 @@ async function main() {
       role: 'RETAIL',
       status: 'ACTIVE',
       phone: '+52 55 5555 1234',
+      deliveryAddress: {
+        create: {
+          street: 'Av. Siempre Viva',
+          exteriorNumber: '742',
+          colony: 'Springfield',
+          zipCode: '00000',
+          city: 'Ciudad de México',
+          state: 'CDMX',
+        },
+      },
     },
-  })
+  });
 
   // Create company settings
   await prisma.companySettings.upsert({
@@ -84,7 +125,7 @@ async function main() {
     create: {
       id: 'default',
       companyName: 'Cocinas de Lujo México',
-      address: 'Av. Presidente Masaryk 111',
+      address: 'Av. Presidente Masaryk 111', // This field is still in CompanySettings
       city: 'Ciudad de México',
       state: 'CDMX',
       zipCode: '11560',
@@ -93,7 +134,7 @@ async function main() {
       website: 'https://cocinaslujo.mx',
       taxId: 'CLM123456789',
     },
-  })
+  });
 
   // Create tax settings
   await prisma.taxSettings.upsert({
@@ -234,6 +275,78 @@ async function main() {
     })
   }
 
+  // Create door types
+  const doorTypes = [
+    { id: 'melamina', name: 'Melamina' },
+    { id: 'vidrio-aluminio', name: 'Vidrio y Marcos de Aluminio' },
+    { id: 'alto-brillo', name: 'Alto Brillo' },
+  ];
+
+  for (const type of doorTypes) {
+    await prisma.doorType.upsert({
+      where: { id: type.id },
+      update: {},
+      create: type,
+    });
+  }
+
+  // Create door models
+  const doorModels = [
+    { id: 'con-moldura', name: 'Con Moldura' },
+    { id: 'liso', name: 'Liso' },
+  ];
+
+  for (const model of doorModels) {
+    await prisma.doorModel.upsert({
+      where: { id: model.id },
+      update: {},
+      create: model,
+    });
+  }
+
+  // Create color tones
+  const colorTones = [
+    { id: 'roble-cenizo', name: 'Roble Cenizo', hexCode: '#A0522D' },
+    { id: 'blanco-polar', name: 'Blanco Polar', hexCode: '#F8F8F8' },
+    { id: 'gris-urbano', name: 'Gris Urbano', hexCode: '#808080' },
+  ];
+
+  for (const tone of colorTones) {
+    await prisma.colorTone.upsert({
+      where: { id: tone.id },
+      update: {},
+      create: tone,
+    });
+  }
+
+  // Create wood grains
+  const woodGrains = [
+    { id: 'veta-vertical', name: 'Veta Vertical', direction: 'Vertical' },
+    { id: 'veta-horizontal', name: 'Veta Horizontal', direction: 'Horizontal' },
+  ];
+
+  for (const grain of woodGrains) {
+    await prisma.woodGrain.upsert({
+      where: { id: grain.id },
+      update: {},
+      create: grain,
+    });
+  }
+
+  // Create handles
+  const handles = [
+    { id: 'barra-30cm', name: 'Barra 30cm', cost: 150 },
+    { id: 'embutida-moderna', name: 'Embutida Moderna', cost: 200 },
+  ];
+
+  for (const handle of handles) {
+    await prisma.handle.upsert({
+      where: { id: handle.id },
+      update: {},
+      create: handle,
+    });
+  }
+
   // Create products with pricing
   const products = [
     // Base Cabinets
@@ -250,6 +363,10 @@ async function main() {
       thumbnail: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=300',
       isCustomizable: true,
       leadTime: 14,
+      doorTypeId: 'melamina',
+      doorModelId: 'liso',
+      colorToneId: 'blanco-polar',
+      woodGrainId: 'veta-vertical',
       basePrices: {
         VIP: 6400,
         DEALER: 5950,
@@ -269,6 +386,10 @@ async function main() {
       thumbnail: 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=300',
       isCustomizable: true,
       leadTime: 14,
+      doorTypeId: 'melamina',
+      doorModelId: 'liso',
+      colorToneId: 'roble-cenizo',
+      woodGrainId: 'veta-horizontal',
       basePrices: {
         VIP: 8400,
         DEALER: 7840,
@@ -288,6 +409,10 @@ async function main() {
       thumbnail: 'https://images.unsplash.com/photo-1556912173-46c336c7fd55?w=300',
       isCustomizable: true,
       leadTime: 21,
+      doorTypeId: 'alto-brillo',
+      doorModelId: 'con-moldura',
+      colorToneId: 'gris-urbano',
+      woodGrainId: 'veta-vertical',
       basePrices: {
         VIP: 13875,
         DEALER: 12950,
@@ -454,8 +579,12 @@ async function main() {
         thumbnail: product.thumbnail,
         isCustomizable: product.isCustomizable,
         leadTime: product.leadTime,
+        doorTypeId: product.doorTypeId,
+        doorModelId: product.doorModelId,
+        colorToneId: product.colorToneId,
+        woodGrainId: product.woodGrainId,
       },
-    })
+    });
 
     // Create pricing for all user roles
     for (const [role, price] of Object.entries(product.basePrices)) {
@@ -492,7 +621,7 @@ async function main() {
       taxAmount: 5600,
       totalAmount: 40600,
       validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
-      status: 'PENDING',
+      status: 'DRAFT', // Changed from PENDING to DRAFT
     },
   })
 
@@ -536,20 +665,25 @@ async function main() {
     }
   }
 
-  console.log('🎉 Database seeding completed successfully!')
-  console.log('\n📊 Summary:')
-  console.log(`👤 Users created: 3 (admin, dealer, retail)`)
-  console.log(`🏢 Company settings: 1`)
-  console.log(`💰 Tax settings: 1`)
-  console.log(`📂 Categories: ${categories.length}`)
-  console.log(`🧱 Materials: ${materials.length}`)
-  console.log(`🔧 Hardware: ${hardware.length}`)
-  console.log(`📦 Products: ${products.length}`)
-  console.log(`📋 Sample quotes: 1`)
-  console.log('\n🔑 Demo credentials:')
-  console.log('Admin: admin@cocinaslujo.mx / admin123')
-  console.log('Dealer: dealer@ejemplo.mx / demo123')
-  console.log('Retail: cliente@ejemplo.mx / demo123')
+  console.log('🎉 Database seeding completed successfully!');
+  console.log('\n📊 Summary:');
+  console.log(`👤 Users created: 3 (admin, dealer, retail)`);
+  console.log(`🏢 Company settings: 1`);
+  console.log(`💰 Tax settings: 1`);
+  console.log(`📂 Categories: ${categories.length}`);
+  console.log(`🧱 Materials: ${materials.length}`);
+  console.log(`🔧 Hardware: ${hardware.length}`);
+  console.log(`🚪 Door Types: ${doorTypes.length}`);
+  console.log(`🚪 Door Models: ${doorModels.length}`);
+  console.log(`🎨 Color Tones: ${colorTones.length}`);
+  console.log(`🌳 Wood Grains: ${woodGrains.length}`);
+  console.log(`✋ Handles: ${handles.length}`);
+  console.log(`📦 Products: ${products.length}`);
+  console.log(`📋 Sample quotes: 1`);
+  console.log('\n🔑 Demo credentials:');
+  console.log('Admin: admin@cocinaslujo.mx / admin123');
+  console.log('Dealer: dealer@ejemplo.mx / demo123');
+  console.log('Retail: cliente@ejemplo.mx / demo123');
 }
 
 main()

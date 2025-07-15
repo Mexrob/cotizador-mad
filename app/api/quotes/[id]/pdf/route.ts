@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
+import { adminAuthGuard } from '@/lib/authUtils'
 import { formatMXN, formatDate } from '@/lib/utils'
 
 export const dynamic = 'force-dynamic'
@@ -15,11 +16,12 @@ export async function GET(
     const session = await getServerSession(authOptions)
     
     if (!session) {
-      return NextResponse.json(
-        { error: 'No autorizado' },
-        { status: 401 }
-      )
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
+
+    // Check if user has access to this quote
+    // The previous logic (session.user.role !== 'ADMIN' && quote.userId !== session.user.id) is correct.
+    // adminAuthGuard only checks for Admin role, which is not sufficient here.
 
     // Obtener datos en paralelo
     const [quote, companySettings] = await Promise.all([

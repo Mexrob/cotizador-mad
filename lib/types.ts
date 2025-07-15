@@ -1,54 +1,128 @@
 
-import { UserRole, UserStatus, QuoteStatus, ProductStatus } from '@prisma/client'
-export { UserRole, UserStatus, QuoteStatus, ProductStatus }
+import { UserRole, UserStatus, QuoteStatus, ProductStatus } from '@prisma/client';
+export { UserRole, UserStatus, QuoteStatus, ProductStatus };
+
+export interface DeliveryAddress {
+  id?: string;
+  street: string;
+  exteriorNumber: string;
+  interiorNumber?: string | null;
+  colony: string;
+  zipCode: string;
+  city: string;
+  state: string;
+}
+
+export interface BillingAddress {
+  id?: string;
+  street: string;
+  number: string;
+  colony: string;
+  zipCode: string;
+  city: string;
+  state: string;
+}
+
+export interface DoorType {
+  id: string;
+  name: string;
+  description?: string | null;
+  status: ProductStatus;
+}
+
+export interface DoorModel {
+  id: string;
+  name: string;
+  description?: string | null;
+  status: ProductStatus;
+}
+
+export interface ColorTone {
+  id: string;
+  name: string;
+  hexCode?: string | null;
+  imageUrl?: string | null;
+  status: ProductStatus;
+}
+
+export interface WoodGrain {
+  id: string;
+  name: string;
+  direction?: string | null;
+  imageUrl?: string | null;
+  status: ProductStatus;
+}
+
+export interface Handle {
+  id: string;
+  name: string;
+  description?: string | null;
+  imageUrl?: string | null;
+  cost: number;
+  status: ProductStatus;
+}
 
 export interface User {
   id: string
   name?: string | null
   email: string
   role: UserRole
-  status: UserStatus
-  companyName?: string | null
-  taxId?: string | null
-  phone?: string | null
-  address?: string | null
-  city?: string | null
-  state?: string | null
-  zipCode?: string | null
-  country: string
-  discountRate: number
-  creditLimit: number
-  createdAt: Date
-  updatedAt: Date
+  status: UserStatus;
+  companyName?: string | null;
+  taxId?: string | null;
+  fiscalRegime?: string | null;
+  cfdiUse?: string | null;
+  phone?: string | null;
+  phone2?: string | null;
+  deliveryAddress?: DeliveryAddress | null;
+  billingAddress?: BillingAddress | null;
+  country: string;
+  discountRate: number;
+  creditLimit: number;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface Product {
   id: string
   name: string
   description?: string | null
-  sku: string
-  categoryId: string
-  status: ProductStatus
-  width?: number | null
-  height?: number | null
-  dimensionUnit: string
-  basePrice: number
-  currency: string
-  images: string[]
-  model3d?: string | null
-  thumbnail?: string | null
-  isCustomizable: boolean
-  leadTime: number
-  minQuantity: number
-  maxQuantity?: number | null
-  tags: string[]
-  featured: boolean
-  category?: Category
-  materials?: Material[]
-  hardware?: Hardware[]
-  pricing?: ProductPricing[]
-  createdAt: Date
-  updatedAt: Date
+  sku: string;
+  categoryId: string;
+  status: ProductStatus;
+  width?: number | null;
+  height?: number | null;
+  depth?: number | null; // Added depth
+  dimensionUnit: string;
+  basePrice: number;
+  currency: string;
+  images: string[];
+  model3d?: string | null;
+  thumbnail?: string | null;
+  isCustomizable: boolean;
+  leadTime: number;
+  minQuantity: number;
+  maxQuantity?: number | null;
+  tags: string[];
+  featured: boolean;
+  
+  // New fields for door configuration
+  doorTypeId?: string | null;
+  doorModelId?: string | null;
+  colorToneId?: string | null;
+  woodGrainId?: string | null;
+
+  doorType?: DoorType | null;
+  doorModel?: DoorModel | null;
+  colorTone?: ColorTone | null;
+  woodGrain?: WoodGrain | null;
+
+  category?: Category;
+  materials?: Material[];
+  hardware?: Hardware[];
+  pricing?: ProductPricing[];
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface Category {
@@ -116,21 +190,32 @@ export interface Quote {
   customerAddress?: string | null
   projectName: string
   projectAddress?: string | null
-  roomDimensions?: any
-  subtotal: number
-  taxAmount: number
-  discountAmount: number
-  totalAmount: number
-  validUntil: Date
-  deliveryDate?: Date | null
-  notes?: string | null
-  attachments: string[]
-  design3d?: any
-  floorPlan?: string | null
-  user?: User
-  items?: QuoteItem[]
-  createdAt: Date
-  updatedAt: Date
+  roomDimensions?: any;
+  subtotal: number;
+  taxAmount: number;
+  discountAmount: number;
+  totalAmount: number;
+  
+  isExpressOrder: boolean;
+  isExhibitionOrder: boolean;
+
+  validUntil: Date;
+  deliveryDate?: Date | null;
+  validationDate?: Date | null;
+  productionEndDate?: Date | null;
+
+  notes?: string | null;
+  attachments: string[];
+  paymentProof?: string | null;
+  invoicePdf?: string | null;
+  invoiceXml?: string | null;
+
+  design3d?: any;
+  floorPlan?: string | null;
+  user?: User;
+  items?: QuoteItem[];
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface QuoteItem {
@@ -138,17 +223,30 @@ export interface QuoteItem {
   quoteId: string
   productId: string
   quantity: number
-  customWidth?: number | null
-  customHeight?: number | null
-  customDepth?: number | null
-  selectedMaterial?: string | null
-  selectedHardware?: string | null
-  customOptions?: any
-  unitPrice: number
-  totalPrice: number
-  product?: Product
-  createdAt: Date
-  updatedAt: Date
+  customWidth?: number | null;
+  customHeight?: number | null;
+  customDepth?: number | null;
+  
+  doorTypeId?: string | null;
+  doorModelId?: string | null;
+  colorToneId?: string | null;
+  woodGrainId?: string | null;
+  handleId?: string | null;
+  isTwoSided?: boolean | null;
+
+  doorType?: DoorType | null;
+  doorModel?: DoorModel | null;
+  colorTone?: ColorTone | null;
+  woodGrain?: WoodGrain | null;
+  handle?: Handle | null;
+
+  unitPrice: number;
+  totalPrice: number;
+  packagingCost: number; // Costo de Empaque calculado por Alto × Ancho
+
+  product?: Product;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface CompanySettings {

@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
+import { adminAuthGuard } from '@/lib/authUtils'
 
 export const dynamic = 'force-dynamic'
 
@@ -36,11 +37,9 @@ export async function PUT(
       )
     }
 
-    if (session.user.role !== 'ADMIN' && quote.userId !== session.user.id) {
-      return NextResponse.json(
-        { error: 'No autorizado' },
-        { status: 403 }
-      )
+    const isAdmin = adminAuthGuard(session) == null;
+    if (!isAdmin && quote.userId !== session.user.id) {
+      return NextResponse.json({ error: 'Acceso denegado' }, { status: 403 })
     }
 
     // Get current quote item
@@ -121,11 +120,9 @@ export async function DELETE(
       )
     }
 
-    if (session.user.role !== 'ADMIN' && quote.userId !== session.user.id) {
-      return NextResponse.json(
-        { error: 'No autorizado' },
-        { status: 403 }
-      )
+    const isAdmin = adminAuthGuard(session) == null;
+    if (!isAdmin && quote.userId !== session.user.id) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
     }
 
     // Check if item belongs to this quote

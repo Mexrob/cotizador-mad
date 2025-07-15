@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { writeFile, mkdir } from 'fs/promises'
+import { adminAuthGuard } from '@/lib/authUtils'
 import path from 'path'
 import { v4 as uuidv4 } from 'uuid'
 
@@ -16,12 +17,11 @@ export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     
-    if (!session || session.user.role !== 'ADMIN') {
-      return NextResponse.json(
-        { error: 'No autorizado' },
-        { status: 401 }
-      )
+    if (!session) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
+    const authGuardResponse = adminAuthGuard(session)
+    if (authGuardResponse) return authGuardResponse
 
     const formData = await request.formData()
     const file = formData.get('logo') as File
@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
     
-    await writeFile(filePath, buffer)
+    await writeFile(filePath, new Uint8Array(buffer))
 
     // Return the public URL
     const publicUrl = `/uploads/logos/${fileName}`

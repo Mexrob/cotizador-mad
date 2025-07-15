@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { generateQuoteNumber } from '@/lib/utils'
+import { adminAuthGuard } from '@/lib/authUtils'
 
 export const dynamic = 'force-dynamic'
 
@@ -40,7 +41,8 @@ export async function GET(request: NextRequest) {
     const where: any = {}
 
     // Regular users can only see their own quotes
-    if (session.user.role !== 'ADMIN') {
+    const authGuardResponse = adminAuthGuard(session);
+    if (authGuardResponse) { // If not admin, restrict to own quotes
       where.userId = session.user.id
     }
 
@@ -134,6 +136,11 @@ export async function GET(request: NextRequest) {
                   sku: true,
                 },
               },
+              doorType: { select: { id: true, name: true } },
+              doorModel: { select: { id: true, name: true } },
+              colorTone: { select: { id: true, name: true } },
+              woodGrain: { select: { id: true, name: true } },
+              handle: { select: { id: true, name: true, cost: true } },
             },
           },
           _count: {
@@ -163,7 +170,7 @@ export async function GET(request: NextRequest) {
     // Get status counts
     const statusCounts = await prisma.quote.groupBy({
       by: ['status'],
-      where: session.user.role !== 'ADMIN' ? { userId: session.user.id } : {},
+      where: adminAuthGuard(session) ? { userId: session.user.id } : {},
       _count: {
         _all: true,
       },
@@ -220,21 +227,50 @@ export async function POST(request: NextRequest) {
       items,
       notes,
       deliveryDate,
+      isExpressOrder,
+      isExhibitionOrder,
     } = body
 
     // Calculate totals
-    let subtotal = 0
+    let subtotal = 0;
     const validItems = items.map((item: any) => {
-      const itemTotal = item.unitPrice * item.quantity
-      subtotal += itemTotal
-      return {
-        ...item,
-        totalPrice: itemTotal,
-      }
-    })
+      const itemTotal = (item.unitPrice * item.quantity) + (item.packagingCost || 0);
+      subtotal += itemTotal;
 
-    const taxAmount = subtotal * 0.16 // 16% IVA
-    const totalAmount = subtotal + taxAmount
+      // Build base item data
+      const itemData: any = {
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        customWidth: item.customWidth,
+        customHeight: item.customHeight,
+        customDepth: item.customDepth,
+        doorTypeId: item.doorTypeId,
+        doorModelId: item.doorModelId,
+        colorToneId: item.colorToneId,
+        woodGrainId: item.woodGrainId,
+        handleId: item.handleId,
+        isTwoSided: item.isTwoSided,
+        packagingCost: item.packagingCost || 0,
+        totalPrice: itemTotal,
+      };
+
+      // Only add productId if it exists
+      if (item.productId) {
+        itemData.productId = item.productId;
+      }
+
+      return itemData;
+    });
+
+    const taxAmount = subtotal * 0.16; // 16% IVA
+    let totalAmount = subtotal + taxAmount;
+
+    // Apply express order or exhibition order adjustments
+    if (isExpressOrder) {
+      totalAmount *= 1.10; // 10% increase for express order (configurable)
+    } else if (isExhibitionOrder) {
+      totalAmount *= 0.90; // 10% discount for exhibition order (configurable)
+    }
 
     // Create quote
     const quote = await prisma.quote.create({
@@ -251,9 +287,11 @@ export async function POST(request: NextRequest) {
         subtotal,
         taxAmount,
         totalAmount,
-        validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+        validUntil: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000), // 180 days validity
         deliveryDate: deliveryDate ? new Date(deliveryDate) : null,
         notes,
+        isExpressOrder: (isExpressOrder as boolean) || false,
+        isExhibitionOrder: (isExhibitionOrder as boolean) || false,
         items: {
           create: validItems,
         },
@@ -262,10 +300,12 @@ export async function POST(request: NextRequest) {
         items: {
           include: {
             product: true,
+            // These relations belong to QuoteItem, not Quote directly
+            // They are included in the QuoteItem creation
           },
         },
       },
-    })
+    });
 
     return NextResponse.json({
       success: true,

@@ -5,7 +5,8 @@ import { NextResponse } from 'next/server'
 export default withAuth(
   function middleware(req) {
     const { pathname } = req.nextUrl
-    const token = req.nextauth.token
+    const token = req.nextauth.token;
+
 
     // Handle root path redirection
     if (pathname === '/') {
@@ -24,6 +25,7 @@ export default withAuth(
     callbacks: {
       authorized: ({ token, req }) => {
         const { pathname } = req.nextUrl
+
 
         // Public routes (very limited now)
         const publicRoutes = [
@@ -44,11 +46,13 @@ export default withAuth(
         // Admin routes
         const adminRoutes = ['/admin']
         if (adminRoutes.some(route => pathname.startsWith(route))) {
-          return token?.role === 'ADMIN'
+          const isAdmin = token?.role === 'ADMIN';
+          return isAdmin;
         }
 
         // Protected routes require authentication
-        return !!token
+        const isAuthenticated = !!token;
+        return isAuthenticated;
       },
     },
   }

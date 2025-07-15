@@ -1,4 +1,3 @@
-
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -13,8 +12,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { toast } from '@/hooks/use-toast'
-import { 
-  Users, 
+import {
+  Users,
   UserPlus,
   Search,
   Filter,
@@ -32,46 +31,54 @@ import {
   Eye,
   Settings
 } from 'lucide-react'
+import { createUserSchema } from '@/lib/validationSchemas'
+import { z } from 'zod'
 
-interface User {
-  id: string
-  name: string | null
-  email: string
-  phone: string | null
-  companyName: string | null
-  taxId: string | null
-  address: string | null
-  city: string | null
-  state: string | null
-  zipCode: string | null
-  country: string
-  role: 'ADMIN' | 'DEALER' | 'RETAIL' | 'VIP' | 'WHOLESALE'
-  status: 'ACTIVE' | 'INACTIVE' | 'PENDING'
-  discountRate: number
-  creditLimit: number
-  createdAt: string
-  updatedAt: string
-  _count: {
-    quotes: number
-  }
+type UserFormData = z.infer<typeof createUserSchema>;
+
+export interface DeliveryAddress {
+  id?: string;
+  street: string;
+  exteriorNumber: string;
+  interiorNumber?: string;
+  colony: string;
+  zipCode: string;
+  city: string;
+  state: string;
 }
 
-interface UserFormData {
-  name: string
-  email: string
-  password: string
-  phone: string
-  companyName: string
-  taxId: string
-  address: string
-  city: string
-  state: string
-  zipCode: string
-  country: string
-  role: string
-  status: string
-  discountRate: number
-  creditLimit: number
+export interface BillingAddress {
+  id?: string;
+  street: string;
+  number: string;
+  colony: string;
+  zipCode: string;
+  city: string;
+  state: string;
+}
+
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  phone2: string | null;
+  companyName: string;
+  taxId: string;
+  fiscalRegime: string | null;
+  cfdiUse: string | null;
+  deliveryAddress: DeliveryAddress;
+  billingAddress: BillingAddress | null;
+  country: string;
+  role: 'ADMIN' | 'DEALER' | 'RETAIL' | 'VIP' | 'WHOLESALE';
+  status: 'ACTIVE' | 'INACTIVE' | 'PENDING';
+  discountRate: number;
+  creditLimit: number;
+  createdAt: string;
+  updatedAt: string;
+  _count: {
+    quotes: number;
+  };
 }
 
 const initialFormData: UserFormData = {
@@ -79,29 +86,48 @@ const initialFormData: UserFormData = {
   email: '',
   password: '',
   phone: '',
+  phone2: '',
   companyName: '',
   taxId: '',
-  address: '',
-  city: '',
-  state: '',
-  zipCode: '',
+  fiscalRegime: '',
+  cfdiUse: '',
+  // Initialize deliveryAddress with default empty values as it's now required
+  deliveryAddress: {
+    street: '',
+    exteriorNumber: '',
+    interiorNumber: '',
+    colony: '',
+    zipCode: '',
+    city: '',
+    state: '',
+  },
+  billingAddress: {
+    street: '',
+    number: '',
+    colony: '',
+    zipCode: '',
+    city: '',
+    state: '',
+  },
   country: 'Mexico',
   role: 'RETAIL',
   status: 'ACTIVE',
   discountRate: 0,
-  creditLimit: 0
-}
+  creditLimit: 0,
+};
 
 export default function UserManagement() {
-  const [users, setUsers] = useState<User[]>([])
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 10,
     total: 0,
-    pages: 0
-  })
+    pages: 0,
+  });
+
+  const [useSameAddress, setUseSameAddress] = useState(false); // For "Usar el mismo domicilio de entrega" checkbox
 
   // Filters
   const [search, setSearch] = useState('')
@@ -162,14 +188,24 @@ export default function UserManagement() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    // Basic validation
-    const errors: any = {}
-    if (!formData.email) errors.email = 'Email es requerido'
-    if (!formData.password && !selectedUser) errors.password = 'Contraseña es requerida'
-    
-    if (Object.keys(errors).length > 0) {
-      setFormErrors(errors)
-      return
+    const result = createUserSchema.safeParse(formData);
+
+    if (!result.success) {
+      const fieldErrors: { [key: string]: string } = {};
+      result.error.errors.forEach((err) => {
+        if (err.path.length > 0) {
+          // Flatten nested errors for simplicity, e.g., deliveryAddress.street -> deliveryAddress.street
+          const path = err.path.join('.');
+          fieldErrors[path] = err.message;
+        }
+      });
+      setFormErrors(fieldErrors);
+      toast({
+        title: "Error de validación",
+        description: "Por favor, corrige los errores en el formulario.",
+        variant: "destructive",
+      });
+      return;
     }
 
     setSaving(true)
@@ -318,30 +354,51 @@ export default function UserManagement() {
     setFormData(initialFormData)
     setFormErrors({})
     setSelectedUser(null)
+    setUseSameAddress(false); // Reset checkbox state
   }
 
   // Open edit modal
   const openEditModal = (user: User) => {
-    setSelectedUser(user)
+    setSelectedUser(user);
     setFormData({
-      name: user.name || '',
+      name: user.name,
       email: user.email,
-      password: '',
-      phone: user.phone || '',
-      companyName: user.companyName || '',
-      taxId: user.taxId || '',
-      address: user.address || '',
-      city: user.city || '',
-      state: user.state || '',
-      zipCode: user.zipCode || '',
+      password: '', // Password is not pre-filled for security
+      phone: user.phone,
+      phone2: user.phone2 || undefined,
+      companyName: user.companyName,
+      taxId: user.taxId,
+      fiscalRegime: user.fiscalRegime || undefined,
+      cfdiUse: user.cfdiUse || undefined,
+      deliveryAddress: user.deliveryAddress,
+      billingAddress: user.billingAddress || {
+        street: '',
+        number: '',
+        colony: '',
+        zipCode: '',
+        city: '',
+        state: '',
+      }, // Provide a default empty object if null
       country: user.country,
       role: user.role,
       status: user.status,
       discountRate: user.discountRate,
-      creditLimit: user.creditLimit
-    })
-    setShowEditModal(true)
-  }
+      creditLimit: user.creditLimit,
+    });
+    // If billing address is identical to delivery address, set checkbox
+    if (user.deliveryAddress && user.billingAddress &&
+        user.deliveryAddress.street === user.billingAddress.street &&
+        user.deliveryAddress.exteriorNumber === user.billingAddress.number && // Note: exteriorNumber vs number
+        user.deliveryAddress.colony === user.billingAddress.colony &&
+        user.deliveryAddress.zipCode === user.billingAddress.zipCode &&
+        user.deliveryAddress.city === user.billingAddress.city &&
+        user.deliveryAddress.state === user.billingAddress.state) {
+      setUseSameAddress(true);
+    } else {
+      setUseSameAddress(false);
+    }
+    setShowEditModal(true);
+  };
 
   // Open view modal
   const openViewModal = (user: User) => {
@@ -391,17 +448,22 @@ export default function UserManagement() {
                 <DialogDescription>
                   Completa la información para crear un nuevo usuario en el sistema.
                 </DialogDescription>
+                <DialogDescription className="text-sm text-gray-500">
+                  Los campos marcados con * son obligatorios.
+                </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="name">Nombre Completo</Label>
+                    <Label htmlFor="name">Nombre Completo *</Label>
                     <Input
                       id="name"
-                      value={formData.name}
+                      value={formData.name || ''}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       placeholder="Juan Pérez"
+                      className={formErrors.name ? 'border-red-500' : ''}
                     />
+                    {formErrors.name && <p className="text-red-500 text-sm">{formErrors.name}</p>}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="email">Email *</Label>
@@ -428,36 +490,270 @@ export default function UserManagement() {
                     {formErrors.password && <p className="text-red-500 text-sm">{formErrors.password}</p>}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="phone">Teléfono</Label>
+                    <Label htmlFor="phone">Teléfono 1 *</Label>
                     <Input
                       id="phone"
-                      value={formData.phone}
+                      value={formData.phone || ''}
                       onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                       placeholder="+52 55 1234 5678"
+                      className={formErrors.phone ? 'border-red-500' : ''}
                     />
+                    {formErrors.phone && <p className="text-red-500 text-sm">{formErrors.phone}</p>}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="companyName">Empresa</Label>
+                    <Label htmlFor="phone2">Teléfono 2 (Opcional)</Label>
+                    <Input
+                      id="phone2"
+                      value={formData.phone2}
+                      onChange={(e) => setFormData({ ...formData, phone2: e.target.value })}
+                      placeholder="+52 55 8765 4321"
+                    />
+                  </div>
+                </div>
+
+                <h4 className="font-semibold text-lg mt-6 mb-2">Datos Fiscales</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="companyName">Razón Social *</Label>
                     <Input
                       id="companyName"
-                      value={formData.companyName}
+                      value={formData.companyName || ''}
                       onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
                       placeholder="Empresa S.A. de C.V."
+                      className={formErrors.companyName ? 'border-red-500' : ''}
                     />
+                    {formErrors.companyName && <p className="text-red-500 text-sm">{formErrors.companyName}</p>}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="taxId">RFC</Label>
+                    <Label htmlFor="taxId">RFC *</Label>
                     <Input
                       id="taxId"
-                      value={formData.taxId}
+                      value={formData.taxId || ''}
                       onChange={(e) => setFormData({ ...formData, taxId: e.target.value })}
                       placeholder="ABC123456789"
+                      className={formErrors.taxId ? 'border-red-500' : ''}
+                    />
+                    {formErrors.taxId && <p className="text-red-500 text-sm">{formErrors.taxId}</p>}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="fiscalRegime">Régimen Fiscal</Label>
+                    <Input
+                      id="fiscalRegime"
+                      value={formData.fiscalRegime}
+                      onChange={(e) => setFormData({ ...formData, fiscalRegime: e.target.value })}
+                      placeholder="601 General de Ley Personas Morales"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="role">Rol</Label>
-                    <Select value={formData.role} onValueChange={(value) => setFormData({ ...formData, role: value })}>
-                      <SelectTrigger>
+                    <Label htmlFor="cfdiUse">Uso de CFDI</Label>
+                    <Input
+                      id="cfdiUse"
+                      value={formData.cfdiUse}
+                      onChange={(e) => setFormData({ ...formData, cfdiUse: e.target.value })}
+                      placeholder="G03 Gastos en general"
+                    />
+                  </div>
+                </div>
+
+                <h4 className="font-semibold text-lg mt-6 mb-2">Domicilio de Entrega</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="deliveryStreet">Calle *</Label>
+                    <Input
+                      id="deliveryStreet"
+                      value={formData.deliveryAddress?.street || ''}
+                      onChange={(e) => setFormData({ ...formData, deliveryAddress: { ...formData.deliveryAddress!, street: e.target.value } })}
+                      placeholder="Av. Reforma"
+                      className={formErrors['deliveryAddress.street'] ? 'border-red-500' : ''}
+                    />
+                    {formErrors['deliveryAddress.street'] && <p className="text-red-500 text-sm">{formErrors['deliveryAddress.street']}</p>}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="deliveryExteriorNumber">Número Exterior *</Label>
+                    <Input
+                      id="deliveryExteriorNumber"
+                      value={formData.deliveryAddress?.exteriorNumber || ''}
+                      onChange={(e) => setFormData({ ...formData, deliveryAddress: { ...formData.deliveryAddress!, exteriorNumber: e.target.value } })}
+                      placeholder="123"
+                      className={formErrors['deliveryAddress.exteriorNumber'] ? 'border-red-500' : ''}
+                    />
+                    {formErrors['deliveryAddress.exteriorNumber'] && <p className="text-red-500 text-sm">{formErrors['deliveryAddress.exteriorNumber']}</p>}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="deliveryInteriorNumber">Número Interior (Opcional)</Label>
+                    <Input
+                      id="deliveryInteriorNumber"
+                      value={formData.deliveryAddress?.interiorNumber || ''}
+                      onChange={(e) => setFormData({ ...formData, deliveryAddress: { ...formData.deliveryAddress, interiorNumber: e.target.value } as DeliveryAddress })}
+                      placeholder="Piso 5, Depto 101"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="deliveryColony">Colonia *</Label>
+                    <Input
+                      id="deliveryColony"
+                      value={formData.deliveryAddress?.colony || ''}
+                      onChange={(e) => setFormData({ ...formData, deliveryAddress: { ...formData.deliveryAddress!, colony: e.target.value } })}
+                      placeholder="Juárez"
+                      className={formErrors['deliveryAddress.colony'] ? 'border-red-500' : ''}
+                    />
+                    {formErrors['deliveryAddress.colony'] && <p className="text-red-500 text-sm">{formErrors['deliveryAddress.colony']}</p>}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="deliveryZipCode">Código Postal *</Label>
+                    <Input
+                      id="deliveryZipCode"
+                      value={formData.deliveryAddress?.zipCode || ''}
+                      onChange={(e) => setFormData({ ...formData, deliveryAddress: { ...formData.deliveryAddress!, zipCode: e.target.value } })}
+                      placeholder="06600"
+                      className={formErrors['deliveryAddress.zipCode'] ? 'border-red-500' : ''}
+                    />
+                    {formErrors['deliveryAddress.zipCode'] && <p className="text-red-500 text-sm">{formErrors['deliveryAddress.zipCode']}</p>}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="deliveryCity">Ciudad *</Label>
+                    <Input
+                      id="deliveryCity"
+                      value={formData.deliveryAddress?.city || ''}
+                      onChange={(e) => setFormData({ ...formData, deliveryAddress: { ...formData.deliveryAddress!, city: e.target.value } })}
+                      placeholder="Ciudad de México"
+                      className={formErrors['deliveryAddress.city'] ? 'border-red-500' : ''}
+                    />
+                    {formErrors['deliveryAddress.city'] && <p className="text-red-500 text-sm">{formErrors['deliveryAddress.city']}</p>}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="deliveryState">Estado *</Label>
+                    <Input
+                      id="deliveryState"
+                      value={formData.deliveryAddress?.state || ''}
+                      onChange={(e) => setFormData({ ...formData, deliveryAddress: { ...formData.deliveryAddress!, state: e.target.value } })}
+                      placeholder="CDMX"
+                      className={formErrors['deliveryAddress.state'] ? 'border-red-500' : ''}
+                    />
+                    {formErrors['deliveryAddress.state'] && <p className="text-red-500 text-sm">{formErrors['deliveryAddress.state']}</p>}
+                  </div>
+                </div>
+
+                <div className="flex items-center space-x-2 mt-4">
+                  <input
+                    type="checkbox"
+                    id="useSameAddress"
+                    checked={useSameAddress}
+                    onChange={(e) => {
+                      setUseSameAddress(e.target.checked);
+                      if (e.target.checked) {
+                        setFormData(prev => ({
+                          ...prev,
+                          billingAddress: {
+                            street: prev.deliveryAddress?.street || '',
+                            number: prev.deliveryAddress?.exteriorNumber || '', // Map exteriorNumber to number for billing
+                            colony: prev.deliveryAddress?.colony || '',
+                            zipCode: prev.deliveryAddress?.zipCode || '',
+                            city: prev.deliveryAddress?.city || '',
+                            state: prev.deliveryAddress?.state || '',
+                          },
+                        }));
+                      } else {
+                        setFormData(prev => ({
+                          ...prev,
+                          billingAddress: {
+                            street: '',
+                            number: '',
+                            colony: '',
+                            zipCode: '',
+                            city: '',
+                            state: '',
+                          },
+                        }));
+                      }
+                    }}
+                    className="form-checkbox h-4 w-4 text-blue-600"
+                  />
+                  <Label htmlFor="useSameAddress">Usar el mismo domicilio de entrega para facturación</Label>
+                </div>
+
+                {!useSameAddress && (
+                  <>
+                    <h4 className="font-semibold text-lg mt-6 mb-2">Domicilio Fiscal</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="billingStreet">Calle *</Label>
+                        <Input
+                          id="billingStreet"
+                          value={formData.billingAddress?.street || ''}
+                          onChange={(e) => setFormData({ ...formData, billingAddress: { ...formData.billingAddress!, street: e.target.value } })}
+                          placeholder="Av. Insurgentes"
+                          className={formErrors['billingAddress.street'] ? 'border-red-500' : ''}
+                        />
+                        {formErrors['billingAddress.street'] && <p className="text-red-500 text-sm">{formErrors['billingAddress.street']}</p>}
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="billingNumber">Número *</Label>
+                        <Input
+                          id="billingNumber"
+                          value={formData.billingAddress?.number || ''}
+                          onChange={(e) => setFormData({ ...formData, billingAddress: { ...formData.billingAddress!, number: e.target.value } })}
+                          placeholder="456"
+                          className={formErrors['billingAddress.number'] ? 'border-red-500' : ''}
+                        />
+                        {formErrors['billingAddress.number'] && <p className="text-red-500 text-sm">{formErrors['billingAddress.number']}</p>}
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="billingColony">Colonia *</Label>
+                        <Input
+                          id="billingColony"
+                          value={formData.billingAddress?.colony || ''}
+                          onChange={(e) => setFormData({ ...formData, billingAddress: { ...formData.billingAddress!, colony: e.target.value } })}
+                          placeholder="Roma Norte"
+                          className={formErrors['billingAddress.colony'] ? 'border-red-500' : ''}
+                        />
+                        {formErrors['billingAddress.colony'] && <p className="text-red-500 text-sm">{formErrors['billingAddress.colony']}</p>}
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="billingZipCode">Código Postal *</Label>
+                        <Input
+                          id="billingZipCode"
+                          value={formData.billingAddress?.zipCode || ''}
+                          onChange={(e) => setFormData({ ...formData, billingAddress: { ...formData.billingAddress!, zipCode: e.target.value } })}
+                          placeholder="06700"
+                          className={formErrors['billingAddress.zipCode'] ? 'border-red-500' : ''}
+                        />
+                        {formErrors['billingAddress.zipCode'] && <p className="text-red-500 text-sm">{formErrors['billingAddress.zipCode']}</p>}
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="billingCity">Ciudad *</Label>
+                        <Input
+                          id="billingCity"
+                          value={formData.billingAddress?.city || ''}
+                          onChange={(e) => setFormData({ ...formData, billingAddress: { ...formData.billingAddress!, city: e.target.value } })}
+                          placeholder="Ciudad de México"
+                          className={formErrors['billingAddress.city'] ? 'border-red-500' : ''}
+                        />
+                        {formErrors['billingAddress.city'] && <p className="text-red-500 text-sm">{formErrors['billingAddress.city']}</p>}
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="billingState">Estado *</Label>
+                        <Input
+                          id="billingState"
+                          value={formData.billingAddress?.state || ''}
+                          onChange={(e) => setFormData({ ...formData, billingAddress: { ...formData.billingAddress!, state: e.target.value } })}
+                          placeholder="CDMX"
+                          className={formErrors['billingAddress.state'] ? 'border-red-500' : ''}
+                        />
+                        {formErrors['billingAddress.state'] && <p className="text-red-500 text-sm">{formErrors['billingAddress.state']}</p>}
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                <h4 className="font-semibold text-lg mt-6 mb-2">Configuración de Usuario</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="role">Rol *</Label>
+                    <Select value={formData.role} onValueChange={(value: "ADMIN" | "DEALER" | "RETAIL" | "VIP" | "WHOLESALE") => setFormData({ ...formData, role: value })}
+                      name="role"
+                    >
+                      <SelectTrigger className={formErrors.role ? 'border-red-500' : ''}>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -468,11 +764,14 @@ export default function UserManagement() {
                         <SelectItem value="ADMIN">Administrador</SelectItem>
                       </SelectContent>
                     </Select>
+                    {formErrors.role && <p className="text-red-500 text-sm">{formErrors.role}</p>}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="status">Estado</Label>
-                    <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
-                      <SelectTrigger>
+                    <Label htmlFor="status">Estado *</Label>
+                    <Select value={formData.status} onValueChange={(value: "ACTIVE" | "INACTIVE" | "PENDING") => setFormData({ ...formData, status: value })}
+                      name="status"
+                    >
+                      <SelectTrigger className={formErrors.status ? 'border-red-500' : ''}>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -481,49 +780,11 @@ export default function UserManagement() {
                         <SelectItem value="PENDING">Pendiente</SelectItem>
                       </SelectContent>
                     </Select>
+                    {formErrors.status && <p className="text-red-500 text-sm">{formErrors.status}</p>}
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="address">Dirección</Label>
-                    <Input
-                      id="address"
-                      value={formData.address}
-                      onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                      placeholder="Av. Reforma 123"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="city">Ciudad</Label>
-                    <Input
-                      id="city"
-                      value={formData.city}
-                      onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                      placeholder="Ciudad de México"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="state">Estado</Label>
-                    <Input
-                      id="state"
-                      value={formData.state}
-                      onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-                      placeholder="CDMX"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="zipCode">Código Postal</Label>
-                    <Input
-                      id="zipCode"
-                      value={formData.zipCode}
-                      onChange={(e) => setFormData({ ...formData, zipCode: e.target.value })}
-                      placeholder="06600"
-                    />
-                  </div>
                   <div className="space-y-2">
                     <Label htmlFor="discountRate">Descuento (%)</Label>
                     <Input
@@ -794,17 +1055,22 @@ export default function UserManagement() {
               <DialogDescription>
                 Actualiza la información del usuario. Deja la contraseña en blanco para no cambiarla.
               </DialogDescription>
+              <DialogDescription className="text-sm text-gray-500">
+                Los campos marcados con * son obligatorios.
+              </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="edit-name">Nombre Completo</Label>
+                  <Label htmlFor="edit-name">Nombre Completo *</Label>
                   <Input
                     id="edit-name"
-                    value={formData.name}
+                    value={formData.name || ''}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     placeholder="Juan Pérez"
+                    className={formErrors.name ? 'border-red-500' : ''}
                   />
+                  {formErrors.name && <p className="text-red-500 text-sm">{formErrors.name}</p>}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="edit-email">Email</Label>
@@ -814,7 +1080,9 @@ export default function UserManagement() {
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     placeholder="juan@empresa.com"
+                    className={formErrors.email ? 'border-red-500' : ''}
                   />
+                  {formErrors.email && <p className="text-red-500 text-sm">{formErrors.email}</p>}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="edit-password">Nueva Contraseña (opcional)</Label>
@@ -827,36 +1095,270 @@ export default function UserManagement() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="edit-phone">Teléfono</Label>
+                  <Label htmlFor="edit-phone">Teléfono 1 *</Label>
                   <Input
                     id="edit-phone"
-                    value={formData.phone}
+                    value={formData.phone || ''}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                     placeholder="+52 55 1234 5678"
+                    className={formErrors.phone ? 'border-red-500' : ''}
                   />
+                  {formErrors.phone && <p className="text-red-500 text-sm">{formErrors.phone}</p>}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="edit-companyName">Empresa</Label>
+                  <Label htmlFor="edit-phone2">Teléfono 2 (Opcional)</Label>
+                  <Input
+                    id="edit-phone2"
+                    value={formData.phone2}
+                    onChange={(e) => setFormData({ ...formData, phone2: e.target.value })}
+                    placeholder="+52 55 8765 4321"
+                  />
+                </div>
+              </div>
+
+              <h4 className="font-semibold text-lg mt-6 mb-2">Datos Fiscales</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-companyName">Razón Social *</Label>
                   <Input
                     id="edit-companyName"
-                    value={formData.companyName}
+                    value={formData.companyName || ''}
                     onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
                     placeholder="Empresa S.A. de C.V."
+                    className={formErrors.companyName ? 'border-red-500' : ''}
                   />
+                  {formErrors.companyName && <p className="text-red-500 text-sm">{formErrors.companyName}</p>}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="edit-taxId">RFC</Label>
+                  <Label htmlFor="edit-taxId">RFC *</Label>
                   <Input
                     id="edit-taxId"
-                    value={formData.taxId}
+                    value={formData.taxId || ''}
                     onChange={(e) => setFormData({ ...formData, taxId: e.target.value })}
                     placeholder="ABC123456789"
+                    className={formErrors.taxId ? 'border-red-500' : ''}
+                  />
+                  {formErrors.taxId && <p className="text-red-500 text-sm">{formErrors.taxId}</p>}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-fiscalRegime">Régimen Fiscal</Label>
+                  <Input
+                    id="edit-fiscalRegime"
+                    value={formData.fiscalRegime}
+                    onChange={(e) => setFormData({ ...formData, fiscalRegime: e.target.value })}
+                    placeholder="601 General de Ley Personas Morales"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="edit-role">Rol</Label>
-                  <Select value={formData.role} onValueChange={(value) => setFormData({ ...formData, role: value })}>
-                    <SelectTrigger>
+                  <Label htmlFor="edit-cfdiUse">Uso de CFDI</Label>
+                  <Input
+                    id="edit-cfdiUse"
+                    value={formData.cfdiUse}
+                    onChange={(e) => setFormData({ ...formData, cfdiUse: e.target.value })}
+                    placeholder="G03 Gastos en general"
+                  />
+                </div>
+              </div>
+
+              <h4 className="font-semibold text-lg mt-6 mb-2">Domicilio de Entrega</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-deliveryStreet">Calle *</Label>
+                  <Input
+                    id="edit-deliveryStreet"
+                    value={formData.deliveryAddress?.street || ''}
+                    onChange={(e) => setFormData({ ...formData, deliveryAddress: { ...formData.deliveryAddress!, street: e.target.value } })}
+                    placeholder="Av. Reforma"
+                    className={formErrors['deliveryAddress.street'] ? 'border-red-500' : ''}
+                  />
+                  {formErrors['deliveryAddress.street'] && <p className="text-red-500 text-sm">{formErrors['deliveryAddress.street']}</p>}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-deliveryExteriorNumber">Número Exterior *</Label>
+                  <Input
+                    id="edit-deliveryExteriorNumber"
+                    value={formData.deliveryAddress?.exteriorNumber || ''}
+                    onChange={(e) => setFormData({ ...formData, deliveryAddress: { ...formData.deliveryAddress!, exteriorNumber: e.target.value } })}
+                    placeholder="123"
+                    className={formErrors['deliveryAddress.exteriorNumber'] ? 'border-red-500' : ''}
+                  />
+                  {formErrors['deliveryAddress.exteriorNumber'] && <p className="text-red-500 text-sm">{formErrors['deliveryAddress.exteriorNumber']}</p>}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-deliveryInteriorNumber">Número Interior (Opcional)</Label>
+                  <Input
+                    id="edit-deliveryInteriorNumber"
+                    value={formData.deliveryAddress?.interiorNumber || ''}
+                    onChange={(e) => setFormData({ ...formData, deliveryAddress: { ...formData.deliveryAddress, interiorNumber: e.target.value } as DeliveryAddress })}
+                    placeholder="Piso 5, Depto 101"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-deliveryColony">Colonia *</Label>
+                  <Input
+                    id="edit-deliveryColony"
+                    value={formData.deliveryAddress?.colony || ''}
+                    onChange={(e) => setFormData({ ...formData, deliveryAddress: { ...formData.deliveryAddress!, colony: e.target.value } })}
+                    placeholder="Juárez"
+                    className={formErrors['deliveryAddress.colony'] ? 'border-red-500' : ''}
+                  />
+                  {formErrors['deliveryAddress.colony'] && <p className="text-red-500 text-sm">{formErrors['deliveryAddress.colony']}</p>}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-deliveryZipCode">Código Postal *</Label>
+                  <Input
+                    id="edit-deliveryZipCode"
+                    value={formData.deliveryAddress?.zipCode || ''}
+                    onChange={(e) => setFormData({ ...formData, deliveryAddress: { ...formData.deliveryAddress!, zipCode: e.target.value } })}
+                    placeholder="06600"
+                    className={formErrors['deliveryAddress.zipCode'] ? 'border-red-500' : ''}
+                  />
+                  {formErrors['deliveryAddress.zipCode'] && <p className="text-red-500 text-sm">{formErrors['deliveryAddress.zipCode']}</p>}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-deliveryCity">Ciudad *</Label>
+                  <Input
+                    id="edit-deliveryCity"
+                    value={formData.deliveryAddress?.city || ''}
+                    onChange={(e) => setFormData({ ...formData, deliveryAddress: { ...formData.deliveryAddress!, city: e.target.value } })}
+                    placeholder="Ciudad de México"
+                    className={formErrors['deliveryAddress.city'] ? 'border-red-500' : ''}
+                  />
+                  {formErrors['deliveryAddress.city'] && <p className="text-red-500 text-sm">{formErrors['deliveryAddress.city']}</p>}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-deliveryState">Estado *</Label>
+                  <Input
+                    id="edit-deliveryState"
+                    value={formData.deliveryAddress?.state || ''}
+                    onChange={(e) => setFormData({ ...formData, deliveryAddress: { ...formData.deliveryAddress!, state: e.target.value } })}
+                    placeholder="CDMX"
+                    className={formErrors['deliveryAddress.state'] ? 'border-red-500' : ''}
+                  />
+                  {formErrors['deliveryAddress.state'] && <p className="text-red-500 text-sm">{formErrors['deliveryAddress.state']}</p>}
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-2 mt-4">
+                <input
+                  type="checkbox"
+                  id="edit-useSameAddress"
+                  checked={useSameAddress}
+                  onChange={(e) => {
+                    setUseSameAddress(e.target.checked);
+                    if (e.target.checked) {
+                      setFormData(prev => ({
+                        ...prev,
+                        billingAddress: {
+                          street: prev.deliveryAddress?.street || '',
+                          number: prev.deliveryAddress?.exteriorNumber || '', // Map exteriorNumber to number for billing
+                          colony: prev.deliveryAddress?.colony || '',
+                          zipCode: prev.deliveryAddress?.zipCode || '',
+                          city: prev.deliveryAddress?.city || '',
+                          state: prev.deliveryAddress?.state || '',
+                        },
+                      }));
+                    } else {
+                      setFormData(prev => ({
+                        ...prev,
+                        billingAddress: {
+                          street: '',
+                          number: '',
+                          colony: '',
+                          zipCode: '',
+                          city: '',
+                          state: '',
+                        },
+                      }));
+                    }
+                  }}
+                  className="form-checkbox h-4 w-4 text-blue-600"
+                />
+                <Label htmlFor="edit-useSameAddress">Usar el mismo domicilio de entrega para facturación</Label>
+              </div>
+
+              {!useSameAddress && (
+                <>
+                  <h4 className="font-semibold text-lg mt-6 mb-2">Domicilio Fiscal</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-billingStreet">Calle *</Label>
+                      <Input
+                        id="edit-billingStreet"
+                        value={formData.billingAddress?.street || ''}
+                        onChange={(e) => setFormData({ ...formData, billingAddress: { ...formData.billingAddress!, street: e.target.value } })}
+                        placeholder="Av. Insurgentes"
+                        className={formErrors['billingAddress.street'] ? 'border-red-500' : ''}
+                      />
+                      {formErrors['billingAddress.street'] && <p className="text-red-500 text-sm">{formErrors['billingAddress.street']}</p>}
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-billingNumber">Número *</Label>
+                      <Input
+                        id="edit-billingNumber"
+                        value={formData.billingAddress?.number || ''}
+                        onChange={(e) => setFormData({ ...formData, billingAddress: { ...formData.billingAddress!, number: e.target.value } })}
+                        placeholder="456"
+                        className={formErrors['billingAddress.number'] ? 'border-red-500' : ''}
+                      />
+                      {formErrors['billingAddress.number'] && <p className="text-red-500 text-sm">{formErrors['billingAddress.number']}</p>}
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-billingColony">Colonia *</Label>
+                      <Input
+                        id="edit-billingColony"
+                        value={formData.billingAddress?.colony || ''}
+                        onChange={(e) => setFormData({ ...formData, billingAddress: { ...formData.billingAddress!, colony: e.target.value } })}
+                        placeholder="Roma Norte"
+                        className={formErrors['billingAddress.colony'] ? 'border-red-500' : ''}
+                      />
+                      {formErrors['billingAddress.colony'] && <p className="text-red-500 text-sm">{formErrors['billingAddress.colony']}</p>}
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-billingZipCode">Código Postal *</Label>
+                      <Input
+                        id="edit-billingZipCode"
+                        value={formData.billingAddress?.zipCode || ''}
+                        onChange={(e) => setFormData({ ...formData, billingAddress: { ...formData.billingAddress!, zipCode: e.target.value } })}
+                        placeholder="06700"
+                        className={formErrors['billingAddress.zipCode'] ? 'border-red-500' : ''}
+                      />
+                      {formErrors['billingAddress.zipCode'] && <p className="text-red-500 text-sm">{formErrors['billingAddress.zipCode']}</p>}
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-billingCity">Ciudad *</Label>
+                      <Input
+                        id="edit-billingCity"
+                        value={formData.billingAddress?.city || ''}
+                        onChange={(e) => setFormData({ ...formData, billingAddress: { ...formData.billingAddress!, city: e.target.value } })}
+                        placeholder="Ciudad de México"
+                        className={formErrors['billingAddress.city'] ? 'border-red-500' : ''}
+                      />
+                      {formErrors['billingAddress.city'] && <p className="text-red-500 text-sm">{formErrors['billingAddress.city']}</p>}
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-billingState">Estado *</Label>
+                      <Input
+                        id="edit-billingState"
+                        value={formData.billingAddress?.state || ''}
+                        onChange={(e) => setFormData({ ...formData, billingAddress: { ...formData.billingAddress!, state: e.target.value } })}
+                        placeholder="CDMX"
+                        className={formErrors['billingAddress.state'] ? 'border-red-500' : ''}
+                      />
+                      {formErrors['billingAddress.state'] && <p className="text-red-500 text-sm">{formErrors['billingAddress.state']}</p>}
+                    </div>
+                  </div>
+                </>
+              )}
+
+              <h4 className="font-semibold text-lg mt-6 mb-2">Configuración de Usuario</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-role">Rol *</Label>
+                  <Select value={formData.role} onValueChange={(value: "ADMIN" | "DEALER" | "RETAIL" | "VIP" | "WHOLESALE") => setFormData({ ...formData, role: value })}
+                    name="role"
+                  >
+                    <SelectTrigger className={formErrors.role ? 'border-red-500' : ''}>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -867,11 +1369,14 @@ export default function UserManagement() {
                       <SelectItem value="ADMIN">Administrador</SelectItem>
                     </SelectContent>
                   </Select>
+                  {formErrors.role && <p className="text-red-500 text-sm">{formErrors.role}</p>}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="edit-status">Estado</Label>
-                  <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
-                    <SelectTrigger>
+                  <Label htmlFor="edit-status">Estado *</Label>
+                  <Select value={formData.status} onValueChange={(value: "ACTIVE" | "INACTIVE" | "PENDING") => setFormData({ ...formData, status: value })}
+                    name="status"
+                  >
+                    <SelectTrigger className={formErrors.status ? 'border-red-500' : ''}>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -880,49 +1385,11 @@ export default function UserManagement() {
                       <SelectItem value="PENDING">Pendiente</SelectItem>
                     </SelectContent>
                   </Select>
+                  {formErrors.status && <p className="text-red-500 text-sm">{formErrors.status}</p>}
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="edit-address">Dirección</Label>
-                  <Input
-                    id="edit-address"
-                    value={formData.address}
-                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                    placeholder="Av. Reforma 123"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="edit-city">Ciudad</Label>
-                  <Input
-                    id="edit-city"
-                    value={formData.city}
-                    onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                    placeholder="Ciudad de México"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="edit-state">Estado</Label>
-                  <Input
-                    id="edit-state"
-                    value={formData.state}
-                    onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-                    placeholder="CDMX"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="edit-zipCode">Código Postal</Label>
-                  <Input
-                    id="edit-zipCode"
-                    value={formData.zipCode}
-                    onChange={(e) => setFormData({ ...formData, zipCode: e.target.value })}
-                    placeholder="06600"
-                  />
-                </div>
                 <div className="space-y-2">
                   <Label htmlFor="edit-discountRate">Descuento (%)</Label>
                   <Input
@@ -1002,12 +1469,18 @@ export default function UserManagement() {
                     <div className="space-y-2 text-sm">
                       <p><span className="font-medium">Empresa:</span> {selectedUser.companyName || 'No especificada'}</p>
                       <p><span className="font-medium">RFC:</span> {selectedUser.taxId || 'No especificado'}</p>
-                      <p><span className="font-medium">Teléfono:</span> {selectedUser.phone || 'No especificado'}</p>
+                      <p><span className="font-medium">Teléfono 1:</span> {selectedUser.phone || 'No especificado'}</p>
+                      <p><span className="font-medium">Teléfono 2:</span> {selectedUser.phone2 || 'No especificado'}</p>
+                      <p><span className="font-medium">Régimen Fiscal:</span> {selectedUser.fiscalRegime || 'No especificado'}</p>
+                      <p><span className="font-medium">Uso de CFDI:</span> {selectedUser.cfdiUse || 'No especificado'}</p>
                     </div>
                   </div>
 
                   <div>
-                    <h4 className="font-semibold mb-3">Configuración</h4>
+                    <h4 className="font-semibold mb-3 flex items-center">
+                      <Settings className="w-4 h-4 mr-2" />
+                      Configuración
+                    </h4>
                     <div className="space-y-2 text-sm">
                       <p><span className="font-medium">Descuento:</span> {selectedUser.discountRate}%</p>
                       <p><span className="font-medium">Límite de Crédito:</span> ${selectedUser.creditLimit.toLocaleString('es-MX')} MXN</p>
@@ -1016,14 +1489,42 @@ export default function UserManagement() {
                   </div>
 
                   <div className="md:col-span-2">
-                    <h4 className="font-semibold mb-3">Dirección</h4>
+                    <h4 className="font-semibold mb-3">Domicilio de Entrega</h4>
                     <div className="text-sm">
-                      {selectedUser.address || selectedUser.city || selectedUser.state ? (
+                      {selectedUser.deliveryAddress ? (
                         <p>
-                          {[selectedUser.address, selectedUser.city, selectedUser.state, selectedUser.zipCode].filter(Boolean).join(', ')}
+                          {[
+                            selectedUser.deliveryAddress.street,
+                            selectedUser.deliveryAddress.exteriorNumber,
+                            selectedUser.deliveryAddress.interiorNumber,
+                            selectedUser.deliveryAddress.colony,
+                            selectedUser.deliveryAddress.zipCode,
+                            selectedUser.deliveryAddress.city,
+                            selectedUser.deliveryAddress.state,
+                          ].filter(Boolean).join(', ')}
                         </p>
                       ) : (
-                        <p className="text-gray-500">No especificada</p>
+                        <p className="text-gray-500">No especificado</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <h4 className="font-semibold mb-3">Domicilio Fiscal</h4>
+                    <div className="text-sm">
+                      {selectedUser.billingAddress ? (
+                        <p>
+                          {[
+                            selectedUser.billingAddress.street,
+                            selectedUser.billingAddress.number,
+                            selectedUser.billingAddress.colony,
+                            selectedUser.billingAddress.zipCode,
+                            selectedUser.billingAddress.city,
+                            selectedUser.billingAddress.state,
+                          ].filter(Boolean).join(', ')}
+                        </p>
+                      ) : (
+                        <p className="text-gray-500">No especificado</p>
                       )}
                     </div>
                   </div>

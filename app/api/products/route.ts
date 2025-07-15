@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { UserRole } from '@prisma/client';
+import { adminAuthGuard } from '@/lib/authUtils';
 
 export const dynamic = 'force-dynamic';
 
@@ -64,6 +65,10 @@ export async function GET(request: NextRequest) {
 
     const includeOptions: any = {
       category: true,
+      doorType: true,
+      doorModel: true,
+      colorTone: true,
+      woodGrain: true,
       _count: {
         select: { quoteItems: true }
       }
@@ -113,9 +118,11 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session || session.user.role !== UserRole.ADMIN) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
+    if (!session) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
+    const authGuardResponse = adminAuthGuard(session)
+    if (authGuardResponse) return authGuardResponse
 
     const body = await request.json();
     const {
@@ -140,7 +147,11 @@ export async function POST(request: NextRequest) {
       maxQuantity,
       tags,
       featured,
-      status
+      status,
+      doorTypeId,
+      doorModelId,
+      colorToneId,
+      woodGrainId
     } = body;
 
     if (!name || !sku || !categoryId) {
@@ -197,10 +208,18 @@ export async function POST(request: NextRequest) {
         maxQuantity,
         tags: tags || [],
         featured: featured || false,
-        status: status || 'ACTIVE'
+        status: status || 'ACTIVE',
+        doorTypeId,
+        doorModelId,
+        colorToneId,
+        woodGrainId
       },
       include: {
         category: true,
+        doorType: true,
+        doorModel: true,
+        colorTone: true,
+        woodGrain: true,
         pricing: true
       }
     });

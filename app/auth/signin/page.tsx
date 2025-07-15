@@ -1,16 +1,14 @@
-
 'use client'
 
 import { useState, useEffect, Suspense } from 'react'
 import { signIn, getSession } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useToast } from '@/hooks/use-toast'
-import { Eye, EyeOff, Loader2, ArrowLeft } from 'lucide-react'
+import { Loader2 } from 'lucide-react' 
 
 function SignInForm() {
   const [email, setEmail] = useState('admin@cocinaslujo.mx')
@@ -21,22 +19,20 @@ function SignInForm() {
   const searchParams = useSearchParams()
   const { toast } = useToast()
 
-  // Extract callbackUrl from URL parameters - memoize to prevent re-renders
   const callbackUrl = searchParams?.get('callbackUrl') || '/dashboard'
 
   useEffect(() => {
-    // Check if user is already signed in
     getSession().then((session) => {
       if (session) {
-        // Use window.location.href for more reliable redirection in production
         window.location.href = callbackUrl
       }
     })
-  }, [router]) // Remove callbackUrl from dependencies to prevent infinite re-renders
+  }, [router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
+    console.log('Attempting sign in with credentials:', { email, password });
 
     try {
       const result = await signIn('credentials', {
@@ -58,7 +54,6 @@ function SignInForm() {
           description: 'Bienvenido de vuelta',
         })
         
-        // Handle redirection with proper error handling and timeout
         router.push(callbackUrl)
       }
     } catch (error) {
@@ -74,18 +69,12 @@ function SignInForm() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-gray-100 flex items-center justify-center p-4">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="w-full max-w-md"
-      >
+      <div className="w-full max-w-md">
         <Card className="shadow-2xl border-0 bg-white/90 backdrop-blur-sm">
           <CardHeader className="space-y-1 text-center">
             <div className="flex items-center justify-center mb-4">
               <Link href="/">
                 <Button variant="ghost" size="sm">
-                  <ArrowLeft className="w-4 h-4 mr-2" />
                   Volver al inicio
                 </Button>
               </Link>
@@ -136,11 +125,7 @@ function SignInForm() {
                     className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                     onClick={() => setShowPassword(!showPassword)}
                   >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4 text-gray-400" />
-                    ) : (
-                      <Eye className="h-4 w-4 text-gray-400" />
-                    )}
+                   {showPassword ? 'Ocultar' : 'Mostrar'} 
                   </Button>
                 </div>
               </div>
@@ -164,7 +149,7 @@ function SignInForm() {
 
           </CardContent>
         </Card>
-      </motion.div>
+      </div>
     </div>
   )
 }
