@@ -20,8 +20,22 @@ import ProductImageUpload from './product-image-upload';
 
 const productSchema = z.object({
   name: z.string().min(1, 'El nombre es requerido'),
-  description: z.string().optional(),
-  sku: z.string().min(1, 'El SKU es requerido'),
+  modelName: z.string().optional(), // Nuevo campo: Nombre del Modelo o Estilo
+  material: z.string().optional(), // Nuevo campo: Material
+  finishColor: z.string().optional(), // Nuevo campo: Acabado o Color
+  panelStyle: z.enum([ // Nuevo campo: Estilo o Diseño del Panel
+    'Panel Elevado',
+    'Panel Plano o Rebajado',
+    'Liso o Slab',
+    'Con Moldura',
+  ]).optional(),
+  edgeProfile: z.enum([ // Nuevo campo: Perfil del Canto
+    'Canto Recto',
+    'Canto Biselado',
+    'Canto Redondeado',
+  ]).optional(),
+  sku: z.string().min(1, 'El SKU es requerido'), // Movido para evitar duplicado
+  description: z.string().optional(), // Movido para evitar duplicado
   categoryId: z.string().min(1, 'La categoría es requerida'),
   width: z.number().positive().optional(),
   height: z.number().positive().optional(),
@@ -48,7 +62,12 @@ interface Product {
   id: string;
   name: string;
   description?: string;
+  modelName?: string;
   sku: string;
+  material?: string;
+  finishColor?: string;
+  panelStyle?: 'Panel Elevado' | 'Panel Plano o Rebajado' | 'Liso o Slab' | 'Con Moldura';
+  edgeProfile?: 'Canto Recto' | 'Canto Biselado' | 'Canto Redondeado';
   categoryId: string;
   width?: number;
   height?: number;
@@ -91,8 +110,13 @@ export default function ProductForm({ product, onSubmit, onCancel, isLoading }: 
     resolver: zodResolver(productSchema),
     defaultValues: {
       name: product?.name || '',
-      description: product?.description || '',
+      modelName: product?.modelName || '',
+      material: product?.material || '',
+      finishColor: product?.finishColor || '',
+      panelStyle: product?.panelStyle, // Ya es undefined por defecto si product?.panelStyle es undefined/null
+      edgeProfile: product?.edgeProfile, // Ya es undefined por defecto si product?.edgeProfile es undefined/null
       sku: product?.sku || '',
+      description: product?.description || '',
       categoryId: product?.categoryId || '',
       width: product?.width || undefined,
       height: product?.height || undefined,
@@ -233,6 +257,67 @@ export default function ProductForm({ product, onSubmit, onCancel, isLoading }: 
                 />
                 <Label htmlFor="featured">Producto destacado</Label>
               </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Door Characteristics */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Características de la Puerta</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <Label htmlFor="modelName">Nombre del Modelo o Estilo</Label>
+              <Input
+                id="modelName"
+                {...register('modelName')}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="material">Material</Label>
+              <Input
+                id="material"
+                {...register('material')}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="finishColor">Acabado o Color</Label>
+              <Input
+                id="finishColor"
+                {...register('finishColor')}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="panelStyle">Estilo o Diseño del Panel</Label>
+              <Select onValueChange={(value) => setValue('panelStyle', value as ProductFormData["panelStyle"])} value={watch('panelStyle') || ''}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccionar estilo de panel" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Panel Elevado">Panel Elevado</SelectItem>
+                  <SelectItem value="Panel Plano o Rebajado">Panel Plano o Rebajado</SelectItem>
+                  <SelectItem value="Liso o Slab">Liso o Slab</SelectItem>
+                  <SelectItem value="Con Moldura">Con Moldura</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="edgeProfile">Perfil del Canto</Label>
+              <Select onValueChange={(value) => setValue('edgeProfile', value as ProductFormData["edgeProfile"])} value={watch('edgeProfile') || ''}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccionar perfil del canto" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Canto Recto">Canto Recto</SelectItem>
+                  <SelectItem value="Canto Biselado">Canto Biselado</SelectItem>
+                  <SelectItem value="Canto Redondeado">Canto Redondeado</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </CardContent>
         </Card>
