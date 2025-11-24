@@ -667,7 +667,7 @@ export default function UserManagement() {
                         }));
                       }
                     }}
-                    className="form-checkbox h-4 w-4 text-blue-600"
+                    className="form-checkbox h-4 w-4 text-module-black"
                   />
                   <Label htmlFor="useSameAddress">Usar el mismo domicilio de entrega para facturación</Label>
                 </div>
@@ -866,7 +866,7 @@ export default function UserManagement() {
         {/* Users Table */}
         {loading ? (
           <div className="flex items-center justify-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-module-black"></div>
           </div>
         ) : users.length > 0 ? (
           <div className="border rounded-lg overflow-hidden">
@@ -892,14 +892,14 @@ export default function UserManagement() {
                   >
                     <TableCell>
                       <div className="flex items-center space-x-3">
-                        <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                          <span className="text-blue-600 font-medium text-sm">
+                        <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
+                          <span className="text-module-black font-medium text-sm">
                             {user.name?.charAt(0) || user.email.charAt(0).toUpperCase()}
                           </span>
                         </div>
                         <div>
                           <p className="font-medium">{user.name || 'Sin nombre'}</p>
-                          <p className="text-sm text-gray-600">{user.email}</p>
+                          <p className="text-sm text-muted-foreground">{user.email}</p>
                         </div>
                       </div>
                     </TableCell>
@@ -907,7 +907,7 @@ export default function UserManagement() {
                       <div>
                         <p className="font-medium">{user.companyName || 'Sin empresa'}</p>
                         {user.phone && (
-                          <p className="text-sm text-gray-600">{user.phone}</p>
+                          <p className="text-sm text-muted-foreground">{user.phone}</p>
                         )}
                       </div>
                     </TableCell>
@@ -951,7 +951,7 @@ export default function UserManagement() {
                       <span className="text-sm font-medium">{user._count.quotes}</span>
                     </TableCell>
                     <TableCell>
-                      <span className="text-sm text-gray-600">
+                      <span className="text-sm text-muted-foreground">
                         {new Date(user.createdAt).toLocaleDateString('es-MX')}
                       </span>
                     </TableCell>
@@ -1018,7 +1018,7 @@ export default function UserManagement() {
         {/* Pagination */}
         {pagination.pages > 1 && (
           <div className="flex items-center justify-between">
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-muted-foreground">
               Mostrando {((pagination.page - 1) * pagination.limit) + 1} a {Math.min(pagination.page * pagination.limit, pagination.total)} de {pagination.total} usuarios
             </p>
             <div className="flex items-center space-x-2">
@@ -1272,7 +1272,7 @@ export default function UserManagement() {
                       }));
                     }
                   }}
-                  className="form-checkbox h-4 w-4 text-blue-600"
+                  className="form-checkbox h-4 w-4 text-module-black"
                 />
                 <Label htmlFor="edit-useSameAddress">Usar el mismo domicilio de entrega para facturación</Label>
               </div>
@@ -1441,14 +1441,14 @@ export default function UserManagement() {
             {selectedUser && (
               <div className="space-y-6">
                 <div className="flex items-center space-x-4">
-                  <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
-                    <span className="text-blue-600 font-bold text-xl">
+                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
+                    <span className="text-module-black font-bold text-xl">
                       {selectedUser.name?.charAt(0) || selectedUser.email.charAt(0).toUpperCase()}
                     </span>
                   </div>
                   <div>
                     <h3 className="text-xl font-semibold">{selectedUser.name || 'Sin nombre'}</h3>
-                    <p className="text-gray-600">{selectedUser.email}</p>
+                    <p className="text-muted-foreground">{selectedUser.email}</p>
                     <div className="flex items-center space-x-2 mt-1">
                       <Badge variant={getRoleBadgeVariant(selectedUser.role)}>
                         {selectedUser.role}

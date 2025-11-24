@@ -98,7 +98,7 @@ export function ProductCard({ product, onAddToQuote, onQuickView }: ProductCardP
             <div className="flex items-center justify-between">
               <span className="text-xs text-gray-500">SKU: {product.sku}</span>
               {product.leadTime && (
-                <span className="text-xs text-blue-600">
+                <span className="text-xs text-module-black">
                   Entrega: {product.leadTime} días
                 </span>
               )}
@@ -145,7 +145,7 @@ export function ProductCard({ product, onAddToQuote, onQuickView }: ProductCardP
                 <Button 
                   size="sm"
                   variant="outline"
-                  className="border-blue-600 text-blue-600 hover:bg-blue-50"
+                  className="border-module-black text-module-black hover:bg-gray-50"
                 >
                   Iniciar Sesión
                 </Button>

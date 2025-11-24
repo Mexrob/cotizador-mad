@@ -454,11 +454,11 @@ export default function ProductForm({ product, onSubmit, onCancel, isLoading }: 
             </div>
           </div>
 
-          <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-            <p className="text-sm text-blue-800">
+          <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+            <p className="text-sm text-gray-800">
               <strong>Nota:</strong> Las dimensiones estándar son opcionales. Los clientes podrán ingresar dimensiones personalizadas al cotizar.
             </p>
-            <p className="text-sm text-blue-600 mt-1">
+            <p className="text-sm text-module-black mt-1">
               El precio se calculará automáticamente como: <strong>Ancho × Alto × Precio Base</strong>
             </p>
           </div>

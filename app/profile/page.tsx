@@ -12,12 +12,12 @@ import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toast } from '@/hooks/use-toast'
-import { 
-  User, 
-  Mail, 
-  Phone, 
-  Building, 
-  Save, 
+import {
+  User,
+  Mail,
+  Phone,
+  Building,
+  Save,
   Shield,
   Calendar,
   Settings
@@ -81,7 +81,7 @@ export default function ProfilePage() {
   useEffect(() => {
     const loadProfile = async () => {
       if (!session?.user?.id) return
-      
+
       try {
         const response = await fetch(`/api/users/${session.user.id}`)
         if (response.ok) {
@@ -89,12 +89,12 @@ export default function ProfilePage() {
           setProfile(userData)
           // Set useSameAddress checkbox based on loaded data
           if (userData.deliveryAddress && userData.billingAddress &&
-              userData.deliveryAddress.street === userData.billingAddress.street &&
-              userData.deliveryAddress.exteriorNumber === userData.billingAddress.number &&
-              userData.deliveryAddress.colony === userData.billingAddress.colony &&
-              userData.deliveryAddress.zipCode === userData.billingAddress.zipCode &&
-              userData.deliveryAddress.city === userData.billingAddress.city &&
-              userData.deliveryAddress.state === userData.billingAddress.state) {
+            userData.deliveryAddress.street === userData.billingAddress.street &&
+            userData.deliveryAddress.exteriorNumber === userData.billingAddress.number &&
+            userData.deliveryAddress.colony === userData.billingAddress.colony &&
+            userData.deliveryAddress.zipCode === userData.billingAddress.zipCode &&
+            userData.deliveryAddress.city === userData.billingAddress.city &&
+            userData.deliveryAddress.state === userData.billingAddress.state) {
             setUseSameAddress(true);
           } else {
             setUseSameAddress(false);
@@ -159,7 +159,7 @@ export default function ProfilePage() {
       case 'ADMIN': return 'bg-red-100 text-red-800'
       case 'DEALER': return 'bg-purple-100 text-purple-800'
       case 'VIP': return 'bg-yellow-100 text-yellow-800'
-      case 'WHOLESALE': return 'bg-blue-100 text-blue-800'
+      case 'WHOLESALE': return 'bg-gray-100 text-gray-800'
       default: return 'bg-gray-100 text-gray-800'
     }
   }
@@ -179,8 +179,8 @@ export default function ProfilePage() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Cargando perfil...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-module-black mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">Cargando perfil...</p>
         </div>
       </div>
     )
@@ -191,7 +191,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+    <div className="min-h-screen bg-background">
       <div className="max-w-4xl mx-auto px-4 py-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -200,12 +200,12 @@ export default function ProfilePage() {
         >
           {/* Header */}
           <div className="flex items-center space-x-4">
-            <div className="p-3 bg-blue-600 rounded-lg">
+            <div className="p-3 bg-module-black rounded-lg">
               <User className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Mi Perfil</h1>
-              <p className="text-gray-600">Gestiona tu información personal y configuración</p>
+              <h1 className="text-3xl font-bold text-foreground">Mi Perfil</h1>
+              <p className="text-muted-foreground">Gestiona tu información personal y configuración</p>
             </div>
           </div>
 
@@ -402,7 +402,7 @@ export default function ProfilePage() {
                           setProfile(prev => ({ ...prev!, billingAddress: undefined }));
                         }
                       }}
-                      className="form-checkbox h-4 w-4 text-blue-600"
+                      className="form-checkbox h-4 w-4 text-module-black"
                     />
                     <Label htmlFor="useSameAddress">Usar el mismo domicilio de entrega para facturación</Label>
                   </div>
@@ -667,20 +667,20 @@ export default function ProfilePage() {
                           </div>
                         </>
                       )}
-                      
+
                       {profile.role === 'DEALER' && (
                         <>
-                          <div className="flex items-center space-x-2 text-blue-600">
-                            <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
+                          <div className="flex items-center space-x-2 text-module-black">
+                            <div className="w-2 h-2 bg-module-black rounded-full"></div>
                             <span>Precios especiales para distribuidores</span>
                           </div>
-                          <div className="flex items-center space-x-2 text-blue-600">
-                            <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
+                          <div className="flex items-center space-x-2 text-module-black">
+                            <div className="w-2 h-2 bg-module-black rounded-full"></div>
                             <span>Descuentos por volumen</span>
                           </div>
                         </>
                       )}
-                      
+
                       {profile.role === 'VIP' && (
                         <>
                           <div className="flex items-center space-x-2 text-yellow-600">
@@ -693,12 +693,12 @@ export default function ProfilePage() {
                           </div>
                         </>
                       )}
-                      
-                      <div className="flex items-center space-x-2 text-gray-600">
+
+                      <div className="flex items-center space-x-2 text-muted-foreground">
                         <div className="w-2 h-2 bg-gray-600 rounded-full"></div>
                         <span>Configurador de cocinas personalizado</span>
                       </div>
-                      <div className="flex items-center space-x-2 text-gray-600">
+                      <div className="flex items-center space-x-2 text-muted-foreground">
                         <div className="w-2 h-2 bg-gray-600 rounded-full"></div>
                         <span>Historial de cotizaciones</span>
                       </div>

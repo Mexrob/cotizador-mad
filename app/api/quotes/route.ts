@@ -11,7 +11,7 @@ export const dynamic = 'force-dynamic'
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
-    
+
     if (!session) {
       return NextResponse.json(
         { error: 'No autorizado' },
@@ -204,119 +204,4 @@ export async function GET(request: NextRequest) {
   }
 }
 
-export async function POST(request: NextRequest) {
-  try {
-    const session = await getServerSession(authOptions)
-    
-    if (!session) {
-      return NextResponse.json(
-        { error: 'No autorizado' },
-        { status: 401 }
-      )
-    }
-
-    const body = await request.json()
-    const {
-      customerName,
-      customerEmail,
-      customerPhone,
-      customerAddress,
-      projectName,
-      projectAddress,
-      roomDimensions,
-      items,
-      notes,
-      deliveryDate,
-      isExpressOrder,
-      isExhibitionOrder,
-    } = body
-
-    // Calculate totals
-    let subtotal = 0;
-    const validItems = items.map((item: any) => {
-      const itemTotal = (item.unitPrice * item.quantity) + (item.packagingCost || 0);
-      subtotal += itemTotal;
-
-      // Build base item data
-      const itemData: any = {
-        quantity: item.quantity,
-        unitPrice: item.unitPrice,
-        customWidth: item.customWidth,
-        customHeight: item.customHeight,
-        customDepth: item.customDepth,
-        doorTypeId: item.doorTypeId,
-        doorModelId: item.doorModelId,
-        colorToneId: item.colorToneId,
-        woodGrainId: item.woodGrainId,
-        handleId: item.handleId,
-        isTwoSided: item.isTwoSided,
-        packagingCost: item.packagingCost || 0,
-        totalPrice: itemTotal,
-      };
-
-      // Only add productId if it exists
-      if (item.productId) {
-        itemData.productId = item.productId;
-      }
-
-      return itemData;
-    });
-
-    const taxAmount = subtotal * 0.16; // 16% IVA
-    let totalAmount = subtotal + taxAmount;
-
-    // Apply express order or exhibition order adjustments
-    if (isExpressOrder) {
-      totalAmount *= 1.10; // 10% increase for express order (configurable)
-    } else if (isExhibitionOrder) {
-      totalAmount *= 0.90; // 10% discount for exhibition order (configurable)
-    }
-
-    // Create quote
-    const quote = await prisma.quote.create({
-      data: {
-        quoteNumber: generateQuoteNumber(),
-        userId: session.user.id,
-        customerName,
-        customerEmail,
-        customerPhone,
-        customerAddress,
-        projectName,
-        projectAddress,
-        roomDimensions,
-        subtotal,
-        taxAmount,
-        totalAmount,
-        validUntil: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000), // 180 days validity
-        deliveryDate: deliveryDate ? new Date(deliveryDate) : null,
-        notes,
-        isExpressOrder: (isExpressOrder as boolean) || false,
-        isExhibitionOrder: (isExhibitionOrder as boolean) || false,
-        items: {
-          create: validItems,
-        },
-      },
-      include: {
-        items: {
-          include: {
-            product: true,
-            // These relations belong to QuoteItem, not Quote directly
-            // They are included in the QuoteItem creation
-          },
-        },
-      },
-    });
-
-    return NextResponse.json({
-      success: true,
-      data: quote,
-      message: 'Cotización creada exitosamente',
-    })
-  } catch (error) {
-    console.error('Quote creation error:', error)
-    return NextResponse.json(
-      { error: 'Error al crear cotización' },
-      { status: 500 }
-    )
-  }
-}
+// Método POST eliminado para restringir creación de cotizaciones

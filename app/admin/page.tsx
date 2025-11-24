@@ -13,14 +13,14 @@ import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toast } from '@/hooks/use-toast'
-import { 
-  Settings, 
-  Users, 
-  Package, 
-  BarChart3, 
-  Building, 
-  Mail, 
-  Phone, 
+import {
+  Settings,
+  Users,
+  Package,
+  BarChart3,
+  Building,
+  Mail,
+  Phone,
   MapPin,
   Save,
   AlertTriangle,
@@ -130,9 +130,9 @@ export default function AdminPage() {
   }, [session])
 
   const handleLogoChange = (logoUrl: string | null) => {
-    setCompanySettings({ 
-      ...companySettings, 
-      logo: logoUrl || undefined 
+    setCompanySettings({
+      ...companySettings,
+      logo: logoUrl || undefined
     })
   }
 
@@ -170,8 +170,8 @@ export default function AdminPage() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Cargando panel de administración...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-module-black mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">Cargando panel de administración...</p>
         </div>
       </div>
     )
@@ -182,7 +182,7 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+    <div className="min-h-screen bg-background">
       <div className="max-w-7xl mx-auto px-4 py-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -195,8 +195,8 @@ export default function AdminPage() {
               <Settings className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Panel de Administración</h1>
-              <p className="text-gray-600">Gestiona la configuración del sistema y monitorea la actividad</p>
+              <h1 className="text-3xl font-bold text-foreground">Panel de Administración</h1>
+              <p className="text-muted-foreground">Gestiona la configuración del sistema y monitorea la actividad</p>
             </div>
           </div>
 
@@ -206,12 +206,12 @@ export default function AdminPage() {
               <Card>
                 <CardContent className="p-6">
                   <div className="flex items-center space-x-4">
-                    <div className="p-2 bg-blue-100 rounded-lg">
-                      <Users className="w-6 h-6 text-blue-600" />
+                    <div className="p-2 bg-gray-100 rounded-lg">
+                      <Users className="w-6 h-6 text-module-black" />
                     </div>
                     <div>
-                      <p className="text-2xl font-bold text-gray-900">{stats.totalUsers}</p>
-                      <p className="text-sm text-gray-600">Usuarios Totales</p>
+                      <p className="text-2xl font-bold text-foreground">{stats.totalUsers}</p>
+                      <p className="text-sm text-muted-foreground">Usuarios Totales</p>
                     </div>
                   </div>
                 </CardContent>
@@ -224,8 +224,8 @@ export default function AdminPage() {
                       <Package className="w-6 h-6 text-green-600" />
                     </div>
                     <div>
-                      <p className="text-2xl font-bold text-gray-900">{stats.totalProducts}</p>
-                      <p className="text-sm text-gray-600">Productos</p>
+                      <p className="text-2xl font-bold text-foreground">{stats.totalProducts}</p>
+                      <p className="text-sm text-muted-foreground">Productos</p>
                     </div>
                   </div>
                 </CardContent>
@@ -238,8 +238,8 @@ export default function AdminPage() {
                       <BarChart3 className="w-6 h-6 text-purple-600" />
                     </div>
                     <div>
-                      <p className="text-2xl font-bold text-gray-900">{stats.totalQuotes}</p>
-                      <p className="text-sm text-gray-600">Cotizaciones</p>
+                      <p className="text-2xl font-bold text-foreground">{stats.totalQuotes}</p>
+                      <p className="text-sm text-muted-foreground">Cotizaciones</p>
                     </div>
                   </div>
                 </CardContent>
@@ -252,8 +252,8 @@ export default function AdminPage() {
                       <Clock className="w-6 h-6 text-yellow-600" />
                     </div>
                     <div>
-                      <p className="text-2xl font-bold text-gray-900">{stats.activeQuotes}</p>
-                      <p className="text-sm text-gray-600">Cotizaciones Activas</p>
+                      <p className="text-2xl font-bold text-foreground">{stats.activeQuotes}</p>
+                      <p className="text-sm text-muted-foreground">Cotizaciones Activas</p>
                     </div>
                   </div>
                 </CardContent>
@@ -413,23 +413,23 @@ export default function AdminPage() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <p className="text-gray-600">
+                    <p className="text-muted-foreground">
                       Administra el catálogo completo de productos, categorías y sus características.
                     </p>
                     <div className="space-y-3">
                       <div className="flex items-center justify-between p-3 border rounded-lg">
                         <div>
                           <h4 className="font-medium">Productos del Catálogo</h4>
-                          <p className="text-sm text-gray-600">
+                          <p className="text-sm text-muted-foreground">
                             {stats?.totalProducts || 0} productos registrados
                           </p>
                         </div>
-                        <Package className="w-8 h-8 text-blue-600" />
+                        <Package className="w-8 h-8 text-module-black" />
                       </div>
                       <div className="flex items-center justify-between p-3 border rounded-lg">
                         <div>
                           <h4 className="font-medium">Categorías</h4>
-                          <p className="text-sm text-gray-600">Organización del inventario</p>
+                          <p className="text-sm text-muted-foreground">Organización del inventario</p>
                         </div>
                         <Folder className="w-8 h-8 text-green-600" />
                       </div>
@@ -454,19 +454,19 @@ export default function AdminPage() {
                   <CardContent>
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">Productos Activos</span>
+                        <span className="text-sm text-muted-foreground">Productos Activos</span>
                         <Badge variant="default" className="bg-green-600">
                           {stats?.totalProducts || 0}
                         </Badge>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">En Cotizaciones</span>
+                        <span className="text-sm text-muted-foreground">En Cotizaciones</span>
                         <Badge variant="outline">
                           {stats?.activeQuotes || 0}
                         </Badge>
                       </div>
                       <div className="pt-4 border-t">
-                        <p className="text-sm text-gray-600 mb-3">Acciones Rápidas:</p>
+                        <p className="text-sm text-muted-foreground mb-3">Acciones Rápidas:</p>
                         <div className="space-y-2">
                           <Link href="/admin/products">
                             <Button variant="outline" size="sm" className="w-full justify-start">
@@ -513,7 +513,7 @@ export default function AdminPage() {
                             </div>
                             <div>
                               <p className="font-medium">Cotización #{quote.id.slice(-6)}</p>
-                              <p className="text-sm text-gray-600">
+                              <p className="text-sm text-muted-foreground">
                                 Cliente: {quote.customerName}
                               </p>
                             </div>

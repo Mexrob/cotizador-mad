@@ -12,8 +12,8 @@ import { QuoteSummaryStats } from '@/components/quote-summary-stats'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
-import { 
-  Plus, 
+import {
+  Plus,
   FileText,
   Loader2,
   RefreshCw
@@ -47,11 +47,11 @@ export default function QuotesPage() {
     setLoading(true)
     try {
       const params = new URLSearchParams()
-      
+
       // Pagination
       params.set('page', resetPage ? '1' : pagination.page.toString())
       params.set('limit', pagination.limit.toString())
-      
+
       // Filters
       Object.entries(filters).forEach(([key, value]) => {
         if (value !== undefined && value !== null && value !== '') {
@@ -69,13 +69,13 @@ export default function QuotesPage() {
 
       const response = await fetch(`/api/quotes?${params}`)
       const data = await response.json()
-      
+
       if (data.success) {
         setQuotes(data.data)
         setPagination(data.pagination)
         setSummary(data.summary)
         setStatusCounts(data.statusCounts || {})
-        
+
         // Reset selection when filters change
         setSelectedIds([])
       } else {
@@ -116,8 +116,8 @@ export default function QuotesPage() {
   }
 
   const handleSelectQuote = (quoteId: string, checked: boolean) => {
-    setSelectedIds(prev => 
-      checked 
+    setSelectedIds(prev =>
+      checked
         ? [...prev, quoteId]
         : prev.filter(id => id !== quoteId)
     )
@@ -162,13 +162,13 @@ export default function QuotesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <section className="bg-gradient-to-r from-blue-600 to-blue-800 text-white py-16">
+      <section className="bg-gradient-to-r from-module-black to-module-dark text-white py-16">
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <motion.h1 
+              <motion.h1
                 className="text-4xl md:text-6xl font-bold mb-4"
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -176,13 +176,13 @@ export default function QuotesPage() {
               >
                 {session?.user?.role === 'ADMIN' ? 'Todas las Cotizaciones' : 'Mis Cotizaciones'}
               </motion.h1>
-              <motion.p 
-                className="text-xl md:text-2xl text-blue-100"
+              <motion.p
+                className="text-xl md:text-2xl text-gray-100"
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8, delay: 0.2 }}
               >
-                {session?.user?.role === 'ADMIN' 
+                {session?.user?.role === 'ADMIN'
                   ? 'Gestiona todas las cotizaciones del sistema'
                   : 'Gestiona y revisa todas tus cotizaciones'
                 }
@@ -208,12 +208,7 @@ export default function QuotesPage() {
                 )}
                 Actualizar
               </Button>
-              <Link href="/configurator">
-                <Button size="lg" className="bg-white text-blue-600 hover:bg-gray-100">
-                  <Plus className="w-5 h-5 mr-2" />
-                  Nueva Cotización
-                </Button>
-              </Link>
+              {/* Botón de Nueva Cotización eliminado */}
             </motion.div>
           </div>
         </div>
@@ -224,7 +219,7 @@ export default function QuotesPage() {
         <QuoteSummaryStats summary={summary} isLoading={loading} />
 
         {/* Advanced Filters */}
-        <motion.div 
+        <motion.div
           className="mb-8"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -241,55 +236,50 @@ export default function QuotesPage() {
         {/* Content */}
         {loading ? (
           <div className="flex items-center justify-center py-20">
-            <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+            <Loader2 className="w-8 h-8 animate-spin text-module-black" />
             <span className="ml-2 text-lg">Cargando cotizaciones...</span>
           </div>
         ) : quotes.length === 0 ? (
-          <motion.div 
+          <motion.div
             className="text-center py-20"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <Card className="max-w-md mx-auto bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+            <Card className="max-w-md mx-auto bg-card dark:bg-card backdrop-blur-sm border dark:border-border shadow-lg dark:shadow-2xl">
               <CardContent className="p-8">
                 <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-2xl font-semibold text-gray-900 mb-2">
+                <h3 className="text-2xl font-semibold text-foreground mb-2">
                   No hay cotizaciones
                 </h3>
-                <p className="text-gray-600 mb-6">
+                <p className="text-muted-foreground mb-6">
                   {Object.keys(filters).some(key => {
                     const value = filters[key as keyof FilterType]
-                    return value !== undefined && value !== '' && 
-                           !(Array.isArray(value) && value.length === 0) &&
-                           !(key === 'sortBy' && value === 'createdAt') &&
-                           !(key === 'sortOrder' && value === 'desc')
+                    return value !== undefined && value !== '' &&
+                      !(Array.isArray(value) && value.length === 0) &&
+                      !(key === 'sortBy' && value === 'createdAt') &&
+                      !(key === 'sortOrder' && value === 'desc')
                   })
                     ? 'No se encontraron cotizaciones con los filtros aplicados'
                     : 'Comienza creando tu primera cotización'
                   }
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                  <Link href="/configurator">
-                    <Button size="lg">
-                      <Plus className="w-5 h-5 mr-2" />
-                      Nueva Cotización
-                    </Button>
-                  </Link>
+                  {/* Botón de Nueva Cotización eliminado */}
                   {Object.keys(filters).some(key => {
                     const value = filters[key as keyof FilterType]
-                    return value !== undefined && value !== '' && 
-                           !(Array.isArray(value) && value.length === 0) &&
-                           !(key === 'sortBy' && value === 'createdAt') &&
-                           !(key === 'sortOrder' && value === 'desc')
+                    return value !== undefined && value !== '' &&
+                      !(Array.isArray(value) && value.length === 0) &&
+                      !(key === 'sortBy' && value === 'createdAt') &&
+                      !(key === 'sortOrder' && value === 'desc')
                   }) && (
-                    <Button 
-                      variant="outline" 
-                      onClick={handleClearFilters}
-                    >
-                      Limpiar Filtros
-                    </Button>
-                  )}
+                      <Button
+                        variant="outline"
+                        onClick={handleClearFilters}
+                      >
+                        Limpiar Filtros
+                      </Button>
+                    )}
                 </div>
               </CardContent>
             </Card>
@@ -311,7 +301,7 @@ export default function QuotesPage() {
                       onCheckedChange={handleSelectAll}
                       className="h-5 w-5"
                     />
-                    <span className="text-sm text-gray-600">
+                    <span className="text-sm text-muted-foreground">
                       Seleccionar todas las cotizaciones en esta página
                     </span>
                   </div>
@@ -323,7 +313,7 @@ export default function QuotesPage() {
             )}
 
             {/* Quotes Grid */}
-            <motion.div 
+            <motion.div
               className="space-y-4"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -356,7 +346,7 @@ export default function QuotesPage() {
 
             {/* Pagination */}
             {pagination.totalPages > 1 && (
-              <motion.div 
+              <motion.div
                 className="mt-8 flex justify-center"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -370,7 +360,7 @@ export default function QuotesPage() {
                   >
                     Anterior
                   </Button>
-                  <span className="flex items-center px-4 text-sm text-gray-600">
+                  <span className="flex items-center px-4 text-sm text-muted-foreground">
                     Página {pagination.page} de {pagination.totalPages}
                   </span>
                   <Button

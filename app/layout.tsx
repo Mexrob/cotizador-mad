@@ -10,23 +10,23 @@ import { Toaster } from '@/components/ui/toaster'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Cocinas de Lujo México - Muebles de Cocina Premium',
-  description: 'Transformamos espacios en cocinas extraordinarias con muebles de la más alta calidad. Configurador 3D, cotizaciones instantáneas y diseños personalizados.',
-  keywords: 'cocinas de lujo, muebles de cocina, configurador 3D, cotizaciones, México',
-  authors: [{ name: 'Cocinas de Lujo México' }],
-  creator: 'Cocinas de Lujo México',
+  title: 'Module al Dente - Cotizador de Cocinas y Closets',
+  description: 'Sistema de cotización para muebles de cocina, baños y closets a la medida. Fabricantes en Guadalajara con materiales de primera calidad.',
+  keywords: 'module al dente, cocinas, closets, muebles a medida, Guadalajara, Zapopan, cotizador, carpintería',
+  authors: [{ name: 'Module al Dente' }],
+  creator: 'Module al Dente',
   openGraph: {
     type: 'website',
     locale: 'es_MX',
-    url: 'https://cocinaslujo.mx',
-    title: 'Cocinas de Lujo México',
-    description: 'Muebles de cocina premium con configurador 3D y cotizaciones instantáneas',
-    siteName: 'Cocinas de Lujo México',
+    url: 'https://module.com.mx',
+    title: 'Module al Dente - Cotizador',
+    description: 'Sistema de cotización para muebles de cocina, baños y closets a la medida',
+    siteName: 'Module al Dente',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Cocinas de Lujo México',
-    description: 'Muebles de cocina premium con configurador 3D y cotizaciones instantáneas',
+    title: 'Module al Dente - Cotizador',
+    description: 'Sistema de cotización para muebles de cocina, baños y closets a la medida',
   },
   robots: {
     index: true,
@@ -50,7 +50,7 @@ export default function RootLayout({
     <html lang="es" suppressHydrationWarning>
       <body className={inter.className} suppressHydrationWarning>
         <Providers>
-          <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
+          <div className="min-h-screen bg-background text-foreground">
             <Header />
             <main className="flex-1">
               {children}

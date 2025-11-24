@@ -8,10 +8,10 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useToast } from '@/hooks/use-toast'
-import { Loader2 } from 'lucide-react' 
+import { Loader2 } from 'lucide-react'
 
 function SignInForm() {
-  const [email, setEmail] = useState('admin@cocinaslujo.mx')
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -53,7 +53,7 @@ function SignInForm() {
           title: 'Inicio de sesión exitoso',
           description: 'Bienvenido de vuelta',
         })
-        
+
         router.push(callbackUrl)
       }
     } catch (error) {
@@ -68,9 +68,9 @@ function SignInForm() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-gray-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        <Card className="shadow-2xl border-0 bg-white/90 backdrop-blur-sm">
+        <Card className="shadow-2xl border-0 bg-card dark:bg-card backdrop-blur-sm">
           <CardHeader className="space-y-1 text-center">
             <div className="flex items-center justify-center mb-4">
               <Link href="/">
@@ -79,10 +79,10 @@ function SignInForm() {
                 </Button>
               </Link>
             </div>
-            <CardTitle className="text-3xl font-bold text-gray-900">
+            <CardTitle className="text-3xl font-bold text-foreground">
               Iniciar Sesión
             </CardTitle>
-            <p className="text-gray-600">
+            <p className="text-muted-foreground">
               Accede a tu cuenta para gestionar tus cotizaciones
             </p>
           </CardHeader>
@@ -125,7 +125,7 @@ function SignInForm() {
                     className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                     onClick={() => setShowPassword(!showPassword)}
                   >
-                   {showPassword ? 'Ocultar' : 'Mostrar'} 
+                    {showPassword ? 'Ocultar' : 'Mostrar'}
                   </Button>
                 </div>
               </div>
@@ -157,12 +157,12 @@ function SignInForm() {
 export default function SignInPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-gray-100 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-4">
         <div className="w-full max-w-md">
-          <Card className="shadow-2xl border-0 bg-white/90 backdrop-blur-sm">
+          <Card className="shadow-2xl border-0 bg-card dark:bg-card backdrop-blur-sm">
             <CardContent className="p-8">
               <div className="flex items-center justify-center">
-                <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+                <Loader2 className="h-8 w-8 animate-spin text-module-black" />
               </div>
             </CardContent>
           </Card>

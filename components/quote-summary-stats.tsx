@@ -28,9 +28,9 @@ export function QuoteSummaryStats({ summary, isLoading = false }: QuoteSummarySt
       title: 'Total de Cotizaciones',
       value: summary.totalCount.toString(),
       icon: FileText,
-      color: 'bg-blue-500',
-      textColor: 'text-blue-600',
-      bgColor: 'bg-blue-50',
+      color: 'bg-gray-500',
+      textColor: 'text-module-black',
+      bgColor: 'bg-gray-50',
     },
     {
       title: 'Valor Total',

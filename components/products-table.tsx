@@ -243,7 +243,7 @@ export default function ProductsTable({ onAddProduct, onEditProduct, onViewProdu
         <CardContent>
           {loading ? (
             <div className="flex justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-module-black"></div>
             </div>
           ) : !products || products.length === 0 ? (
             <div className="text-center py-8">

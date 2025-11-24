@@ -65,7 +65,7 @@ export const config = {
     '/admin/:path*',
     '/quotes/:path*',
     '/profile/:path*',
-    '/configurator/:path*',
+    // '/configurator/:path*', // Ruta eliminada
     '/products/:path*',
   ],
 }

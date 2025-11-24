@@ -11,7 +11,7 @@ export function Footer() {
     companyName: string
     logo?: string
   }>({
-    companyName: 'Cocinas de Lujo', // Fallback
+    companyName: 'Module al Dente', // Fallback
     logo: undefined
   })
 
@@ -53,7 +53,7 @@ export function Footer() {
                   />
                 </div>
               ) : (
-                <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg flex items-center justify-center">
+                <div className="w-10 h-10 bg-gradient-to-br from-module-black to-module-dark rounded-lg flex items-center justify-center">
                   <Package className="w-6 h-6 text-white" />
                 </div>
               )}
@@ -78,11 +78,7 @@ export function Footer() {
                   Productos
                 </Link>
               </li>
-              <li>
-                <Link href="/configurator" className="text-gray-400 hover:text-white transition-colors">
-                  Configurador
-                </Link>
-              </li>
+              {/* Enlace a Configurador eliminado */}
             </ul>
           </div>
 
@@ -104,15 +100,15 @@ export function Footer() {
             <div className="space-y-2 text-sm text-gray-400">
               <div className="flex items-center space-x-2">
                 <Phone className="w-4 h-4" />
-                <span>+52 55 1234 5678</span>
+                <span>+52 33 1234 5678</span>
               </div>
               <div className="flex items-center space-x-2">
                 <Mail className="w-4 h-4" />
-                <span>contacto@cocinaslujo.mx</span>
+                <span>contacto@module.com.mx</span>
               </div>
               <div className="flex items-center space-x-2">
                 <MapPin className="w-4 h-4" />
-                <span>Ciudad de México, México</span>
+                <span>Zapopan, Jalisco, México</span>
               </div>
             </div>
           </div>

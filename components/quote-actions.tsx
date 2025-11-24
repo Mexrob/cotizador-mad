@@ -62,7 +62,7 @@ interface QuoteActionsProps {
 }
 
 const QUOTE_STATUSES = [
-  { key: 'DRAFT', label: 'Borrador', color: 'bg-blue-100 text-blue-800' },
+  { key: 'DRAFT', label: 'Borrador', color: 'bg-gray-100 text-gray-800' },
   { key: 'PENDING', label: 'Pendiente', color: 'bg-yellow-100 text-yellow-800' },
   { key: 'APPROVED', label: 'Aprobada', color: 'bg-green-100 text-green-800' },
   { key: 'REJECTED', label: 'Rechazada', color: 'bg-red-100 text-red-800' },

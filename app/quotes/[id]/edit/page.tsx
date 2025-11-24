@@ -14,7 +14,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useToast } from '@/hooks/use-toast'
 import { formatMXN } from '@/lib/utils'
-import { 
+import {
   ArrowLeft,
   Save,
   Loader2,
@@ -58,12 +58,12 @@ export default function EditQuotePage({ params }: { params: { id: string } }) {
   const { data: session } = useSession()
   const router = useRouter()
   const { toast } = useToast()
-  
+
   const [quote, setQuote] = useState<Quote | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  
+
   const [formData, setFormData] = useState({
     customerName: '',
     customerEmail: '',
@@ -87,10 +87,10 @@ export default function EditQuotePage({ params }: { params: { id: string } }) {
     try {
       setLoading(true)
       setError(null)
-      
+
       const response = await fetch(`/api/quotes/${params.id}`)
       const data = await response.json()
-      
+
       if (data.success) {
         const quoteData = data.data
         setQuote(quoteData)
@@ -120,7 +120,7 @@ export default function EditQuotePage({ params }: { params: { id: string } }) {
   const handleSave = async () => {
     try {
       setSaving(true)
-      
+
       const response = await fetch(`/api/quotes/${params.id}`, {
         method: 'PUT',
         headers: {
@@ -128,9 +128,9 @@ export default function EditQuotePage({ params }: { params: { id: string } }) {
         },
         body: JSON.stringify(formData),
       })
-      
+
       const data = await response.json()
-      
+
       if (data.success) {
         toast({
           title: 'Cotización actualizada',
@@ -161,10 +161,10 @@ export default function EditQuotePage({ params }: { params: { id: string } }) {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <Loader2 className="w-12 h-12 animate-spin text-blue-600 mx-auto mb-4" />
-          <p className="text-lg text-gray-600">Cargando cotización...</p>
+          <Loader2 className="w-12 h-12 animate-spin text-module-black mx-auto mb-4" />
+          <p className="text-lg text-muted-foreground">Cargando cotización...</p>
         </div>
       </div>
     )
@@ -172,14 +172,14 @@ export default function EditQuotePage({ params }: { params: { id: string } }) {
 
   if (error || !quote) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-50 flex items-center justify-center">
         <Card className="max-w-md mx-auto">
           <CardContent className="p-8 text-center">
             <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-            <h2 className="text-2xl font-semibold text-gray-900 mb-2">
+            <h2 className="text-2xl font-semibold text-foreground mb-2">
               Error al cargar cotización
             </h2>
-            <p className="text-gray-600 mb-6">
+            <p className="text-muted-foreground mb-6">
               {error || 'La cotización no fue encontrada'}
             </p>
             <div className="space-x-2">
@@ -198,9 +198,9 @@ export default function EditQuotePage({ params }: { params: { id: string } }) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <section className="bg-gradient-to-r from-blue-600 to-blue-800 text-white py-8">
+      <section className="bg-gradient-to-r from-module-black to-module-dark text-white py-8">
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-center space-x-4">
@@ -211,7 +211,7 @@ export default function EditQuotePage({ params }: { params: { id: string } }) {
                 </Button>
               </Link>
               <div>
-                <motion.h1 
+                <motion.h1
                   className="text-2xl md:text-3xl font-bold"
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -219,8 +219,8 @@ export default function EditQuotePage({ params }: { params: { id: string } }) {
                 >
                   Editar Cotización
                 </motion.h1>
-                <motion.p 
-                  className="text-blue-100 flex items-center gap-2"
+                <motion.p
+                  className="text-gray-100 flex items-center gap-2"
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: 0.1 }}
@@ -386,8 +386,8 @@ export default function EditQuotePage({ params }: { params: { id: string } }) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="status">Estado de la Cotización</Label>
-                    <Select 
-                      value={formData.status} 
+                    <Select
+                      value={formData.status}
                       onValueChange={(value: Quote['status']) => handleInputChange('status', value)}
                     >
                       <SelectTrigger>
@@ -413,10 +413,10 @@ export default function EditQuotePage({ params }: { params: { id: string } }) {
                     />
                   </div>
                 </div>
-                
+
                 {/* Price Summary */}
                 <div className="bg-gray-50 p-4 rounded-lg">
-                  <h4 className="font-medium text-gray-900 mb-3">Resumen de Precios</h4>
+                  <h4 className="font-medium text-foreground mb-3">Resumen de Precios</h4>
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
                       <span>Subtotal:</span>

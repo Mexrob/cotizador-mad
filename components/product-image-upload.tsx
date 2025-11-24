@@ -98,14 +98,14 @@ export default function ProductImageUpload({
               {...getRootProps()}
               className={`
                 border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors
-                ${isDragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-gray-400'}
+                ${isDragActive ? 'border-gray-500 bg-gray-50' : 'border-gray-300 hover:border-gray-400'}
                 ${uploading ? 'opacity-50 cursor-not-allowed' : ''}
               `}
             >
               <input {...getInputProps()} />
               <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
               {isDragActive ? (
-                <p className="text-blue-600">Suelta las imágenes aquí...</p>
+                <p className="text-module-black">Suelta las imágenes aquí...</p>
               ) : (
                 <div>
                   <p className="text-gray-600 mb-2">
@@ -141,7 +141,7 @@ export default function ProductImageUpload({
                   
                   {/* Primary badge */}
                   {index === 0 && (
-                    <div className="absolute top-2 left-2 bg-blue-600 text-white px-2 py-1 rounded text-xs font-medium">
+                    <div className="absolute top-2 left-2 bg-module-black text-white px-2 py-1 rounded text-xs font-medium">
                       Principal
                     </div>
                   )}

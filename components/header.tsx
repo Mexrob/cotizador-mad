@@ -9,12 +9,13 @@ import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { 
-  Menu, 
-  X, 
-  User, 
-  LogOut, 
-  Settings, 
+import { ModeToggle } from '@/components/mode-toggle'
+import {
+  Menu,
+  X,
+  User,
+  LogOut,
+  Settings,
   ShoppingCart,
   Home,
   Package,
@@ -31,7 +32,7 @@ export function Header() {
     companyName: string
     logo?: string
   }>({
-    companyName: 'Cocinas de Lujo', // Fallback
+    companyName: 'Module al Dente', // Fallback
     logo: undefined
   })
 
@@ -64,9 +65,9 @@ export function Header() {
 
     try {
       // Intentar logout con NextAuth
-      await signOut({ 
+      await signOut({
         redirect: false, // Evitar redirección automática para manejarla manualmente
-        callbackUrl: '/' 
+        callbackUrl: '/'
       })
 
       // Pequeño delay para asegurar que la sesión se limpie
@@ -82,7 +83,7 @@ export function Header() {
 
     } catch (error) {
       console.error('Error during logout:', error)
-      
+
       // Fallback: intentar redirección directa
       try {
         window.location.href = '/'
@@ -106,7 +107,6 @@ export function Header() {
   // Enlaces que requieren autenticación
   const authRequiredNavigation = session ? [
     { name: 'Productos', href: '/products', icon: Package },
-    { name: 'Configurador', href: '/configurator', icon: Settings },
   ] : []
 
   // Combinar navegación base con la que requiere autenticación
@@ -140,7 +140,7 @@ export function Header() {
                 />
               </div>
             ) : (
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg flex items-center justify-center">
+              <div className="w-12 h-12 bg-gradient-to-br from-module-black to-module-dark rounded-lg flex items-center justify-center">
                 <Package className="w-7 h-7 text-white" />
               </div>
             )}
@@ -155,12 +155,17 @@ export function Header() {
               <Link
                 key={item.name}
                 href={item.href}
-                className="text-gray-700 hover:text-blue-600 transition-colors font-medium"
+                className="text-gray-700 hover:text-module-black transition-colors font-medium"
               >
                 {item.name}
               </Link>
             ))}
           </nav>
+
+          {/* Theme Toggle */}
+          <div className="hidden lg:flex items-center ml-4">
+            <ModeToggle />
+          </div>
 
           {/* User Menu / Auth Buttons */}
           <div className="flex items-center space-x-4">
@@ -172,16 +177,16 @@ export function Header() {
                     <Link
                       key={item.name}
                       href={item.href}
-                      className="text-gray-700 hover:text-blue-600 transition-colors"
+                      className="text-gray-700 hover:text-module-black transition-colors"
                     >
                       <item.icon className="w-5 h-5" />
                     </Link>
                   ))}
-                  
+
                   {session.user.role === 'ADMIN' && (
                     <Link
                       href="/admin"
-                      className="text-gray-700 hover:text-blue-600 transition-colors"
+                      className="text-gray-700 hover:text-module-black transition-colors"
                     >
                       <Settings className="w-5 h-5" />
                     </Link>
@@ -254,7 +259,7 @@ export function Header() {
                   <span>{item.name}</span>
                 </Link>
               ))}
-              
+
               {session ? (
                 <Button
                   variant="ghost"

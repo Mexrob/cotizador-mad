@@ -18,7 +18,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useToast } from '@/hooks/use-toast'
 import { formatMXN, formatDate } from '@/lib/utils'
-import { 
+import {
   ArrowLeft,
   Download,
   Edit,
@@ -128,19 +128,19 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
   const { data: session } = useSession()
   const router = useRouter()
   const { toast } = useToast()
-  
+
   const [quote, setQuote] = useState<Quote | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [companySettings, setCompanySettings] = useState<any>(null)
   const [isEditing, setIsEditing] = useState(false)
   const [saving, setSaving] = useState(false)
-  
+
   // Edit form states
   const [editedQuote, setEditedQuote] = useState<Partial<Quote>>({})
   const [editingItemId, setEditingItemId] = useState<string | null>(null)
   const [itemQuantities, setItemQuantities] = useState<{ [key: string]: number }>({})
-  
+
   // Add product modal states
   const [showAddProductModal, setShowAddProductModal] = useState(false)
   const [availableProducts, setAvailableProducts] = useState<Product[]>([])
@@ -169,7 +169,7 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
         notes: quote.notes,
         discountAmount: quote.discountAmount,
       })
-      
+
       // Initialize item quantities
       const quantities: { [key: string]: number } = {}
       quote.items.forEach(item => {
@@ -183,10 +183,10 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
     try {
       setLoading(true)
       setError(null)
-      
+
       const response = await fetch(`/api/quotes/${params.id}`)
       const data = await response.json()
-      
+
       if (data.success) {
         setQuote(data.data)
       } else {
@@ -204,7 +204,7 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
     try {
       const response = await fetch('/api/products?limit=100')
       const data = await response.json()
-      
+
       if (data.success) {
         setAvailableProducts(data.data)
       }
@@ -217,7 +217,7 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
     try {
       const response = await fetch('/api/settings/company')
       const data = await response.json()
-      
+
       if (data.success) {
         setCompanySettings(data.data)
       }
@@ -245,7 +245,7 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
         notes: quote.notes,
         discountAmount: quote.discountAmount,
       })
-      
+
       const quantities: { [key: string]: number } = {}
       quote.items.forEach(item => {
         quantities[item.id] = item.quantity
@@ -256,10 +256,10 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
 
   const saveChanges = async () => {
     if (!quote) return
-    
+
     try {
       setSaving(true)
-      
+
       // Update quote information
       const response = await fetch(`/api/quotes/${params.id}`, {
         method: 'PUT',
@@ -268,9 +268,9 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
         },
         body: JSON.stringify(editedQuote),
       })
-      
+
       const data = await response.json()
-      
+
       if (data.success) {
         // Update item quantities
         for (const itemId in itemQuantities) {
@@ -279,7 +279,7 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
             await updateItemQuantity(itemId, itemQuantities[itemId])
           }
         }
-        
+
         await fetchQuote()
         setIsEditing(false)
         toast({
@@ -310,7 +310,7 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
         },
         body: JSON.stringify({ quantity }),
       })
-      
+
       if (!response.ok) {
         throw new Error('Error al actualizar cantidad')
       }
@@ -325,9 +325,9 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
       const response = await fetch(`/api/quotes/${params.id}/items/${itemId}`, {
         method: 'DELETE',
       })
-      
+
       const data = await response.json()
-      
+
       if (data.success) {
         await fetchQuote()
         toast({
@@ -354,15 +354,15 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
       console.log('No selected product found for ID:', selectedProductId)
       return 0
     }
-    
+
     console.log('Selected product:', selectedProduct)
-    
+
     // First try to use pricing if available and populated
     if (selectedProduct.pricing && selectedProduct.pricing.length > 0) {
       console.log('Using pricing[0].finalPrice:', selectedProduct.pricing[0].finalPrice)
       return selectedProduct.pricing[0].finalPrice
     }
-    
+
     // Fallback to basePrice
     console.log('Using basePrice fallback:', selectedProduct.basePrice)
     return selectedProduct.basePrice || 0
@@ -387,10 +387,10 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
       console.log('Price per unit = 0 because selectedProductPrice is 0')
       return 0
     }
-    
+
     // Get the selected product to check if it's sold by area or by unit
     const selectedProduct = availableProducts.find(p => p.id === selectedProductId)
-    
+
     let unitPrice = 0
     if (selectedProduct) {
       // Check if product has dimension-based pricing (for custom products)
@@ -400,16 +400,16 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
         // We need to determine if selectedProductPrice is per m² or per unit
         // Based on the seed data, prices are per unit, not per m²
         // So we need to convert the unit price to a per-area price
-        
+
         // Standard product dimensions in m²
         const standardArea = (selectedProduct.width / 1000) * (selectedProduct.height / 1000)
-        
+
         // Price per m² based on standard dimensions
         const pricePerSquareMeter = selectedProductPrice / standardArea
-        
+
         // Calculate price for custom dimensions
         unitPrice = areaInSquareMeters * pricePerSquareMeter
-        
+
         console.log('Customizable product calculation:', {
           selectedProductPrice,
           standardArea,
@@ -431,7 +431,7 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
         unitPrice
       })
     }
-    
+
     return unitPrice
   }, [areaInSquareMeters, selectedProductPrice, availableProducts, selectedProductId])
 
@@ -468,14 +468,14 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
 
     // Calculate subtotal based on current items and quantities with recalculated unit prices
     const subtotal = quote.items.reduce((sum, item) => {
-      const currentQuantity = itemQuantities[item.id] !== undefined 
-        ? itemQuantities[item.id] 
+      const currentQuantity = itemQuantities[item.id] !== undefined
+        ? itemQuantities[item.id]
         : item.quantity
 
       // Recalculate unit price based on product data and custom dimensions
       let unitPrice = 0
       const product = item.product
-      
+
       if (product) {
         // Get base price (try pricing first, then basePrice)
         let basePrice = 0
@@ -489,13 +489,13 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
         if (product.isCustomizable && item.customWidth && item.customHeight && product.width && product.height) {
           // Standard product dimensions in m²
           const standardArea = (product.width / 1000) * (product.height / 1000)
-          
+
           // Custom dimensions area in m²
           const customArea = (item.customWidth / 1000) * (item.customHeight / 1000)
-          
+
           // Price per m² based on standard dimensions
           const pricePerSquareMeter = standardArea > 0 ? basePrice / standardArea : 0
-          
+
           // Calculate price for custom dimensions
           unitPrice = customArea * pricePerSquareMeter
         } else {
@@ -529,7 +529,7 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
 
   const addProduct = async () => {
     if (!selectedProductId) return
-    
+
     try {
       const response = await fetch(`/api/quotes/${params.id}/items`, {
         method: 'POST',
@@ -545,9 +545,9 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
           }
         }),
       })
-      
+
       const data = await response.json()
-      
+
       if (data.success) {
         await fetchQuote()
         setShowAddProductModal(false)
@@ -579,11 +579,11 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
         title: 'Abriendo PDF...',
         description: 'El PDF se abrirá en una nueva pestaña',
       })
-      
+
       // Open the PDF in a new window/tab
       const pdfUrl = `/api/quotes/${params.id}/pdf`
       window.open(pdfUrl, '_blank')
-      
+
       toast({
         title: 'PDF abierto',
         description: 'La cotización se ha abierto en una nueva pestaña',
@@ -610,7 +610,7 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
         return {
           label: 'Borrador',
           icon: Edit,
-          color: 'bg-blue-100 text-blue-800 border-blue-200',
+          color: 'bg-gray-100 text-gray-800 border-gray-200',
         }
       case 'PENDING':
         return {
@@ -641,10 +641,10 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <Loader2 className="w-12 h-12 animate-spin text-blue-600 mx-auto mb-4" />
-          <p className="text-lg text-gray-600">Cargando cotización...</p>
+          <Loader2 className="w-12 h-12 animate-spin text-module-black mx-auto mb-4" />
+          <p className="text-lg text-muted-foreground">Cargando cotización...</p>
         </div>
       </div>
     )
@@ -652,14 +652,14 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
 
   if (error || !quote) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <Card className="max-w-md mx-auto">
           <CardContent className="p-8 text-center">
             <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-            <h2 className="text-2xl font-semibold text-gray-900 mb-2">
+            <h2 className="text-2xl font-semibold text-foreground mb-2">
               Error al cargar cotización
             </h2>
-            <p className="text-gray-600 mb-6">
+            <p className="text-muted-foreground mb-6">
               {error || 'La cotización no fue encontrada'}
             </p>
             <div className="space-x-2">
@@ -681,9 +681,9 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
   const StatusIcon = statusConfig.icon
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <section className="bg-gradient-to-r from-blue-600 to-blue-800 text-white py-8">
+      <section className="bg-gradient-to-r from-module-black to-module-dark text-white py-8">
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-center space-x-4">
@@ -693,7 +693,7 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
                   Volver a Cotizaciones
                 </Button>
               </Link>
-              
+
               {/* Company Logo */}
               {companySettings?.logo && (
                 <motion.div
@@ -713,9 +713,9 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
                   </div>
                 </motion.div>
               )}
-              
+
               <div>
-                <motion.h1 
+                <motion.h1
                   className="text-2xl md:text-3xl font-bold"
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -723,8 +723,8 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
                 >
                   {quote.projectName}
                 </motion.h1>
-                <motion.p 
-                  className="text-blue-100 flex items-center gap-2"
+                <motion.p
+                  className="text-gray-100 flex items-center gap-2"
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: 0.1 }}
@@ -747,8 +747,8 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
               transition={{ duration: 0.5, delay: 0.2 }}
               className="mt-4 lg:mt-0 flex flex-col sm:flex-row gap-2"
             >
-              <Badge 
-                variant="secondary" 
+              <Badge
+                variant="secondary"
                 className={`${statusConfig.color} flex items-center gap-1 px-3 py-1`}
               >
                 <StatusIcon className="w-4 h-4" />
@@ -877,24 +877,24 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
                   {quote.roomDimensions && (
                     <div>
                       <p className="text-sm text-gray-500 mb-2">Dimensiones de la Cocina</p>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-blue-50 rounded-lg">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-gray-50 rounded-lg">
                         <div className="text-center">
-                          <Ruler className="w-5 h-5 text-blue-600 mx-auto mb-1" />
+                          <Ruler className="w-5 h-5 text-module-black mx-auto mb-1" />
                           <p className="text-sm text-gray-500">Ancho</p>
                           <p className="font-semibold">{quote.roomDimensions.width}m</p>
                         </div>
                         <div className="text-center">
-                          <Ruler className="w-5 h-5 text-blue-600 mx-auto mb-1" />
+                          <Ruler className="w-5 h-5 text-module-black mx-auto mb-1" />
                           <p className="text-sm text-gray-500">Alto</p>
                           <p className="font-semibold">{quote.roomDimensions.height}m</p>
                         </div>
                         <div className="text-center">
-                          <Ruler className="w-5 h-5 text-blue-600 mx-auto mb-1" />
+                          <Ruler className="w-5 h-5 text-module-black mx-auto mb-1" />
                           <p className="text-sm text-gray-500">Profundidad</p>
                           <p className="font-semibold">{quote.roomDimensions.depth}m</p>
                         </div>
                         <div className="text-center">
-                          <Ruler className="w-5 h-5 text-blue-600 mx-auto mb-1" />
+                          <Ruler className="w-5 h-5 text-module-black mx-auto mb-1" />
                           <p className="text-sm text-gray-500">Área Total</p>
                           <p className="font-semibold">
                             {(quote.roomDimensions.width * quote.roomDimensions.depth).toFixed(1)}m²
@@ -966,7 +966,7 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
                                 />
                               </div>
                             </div>
-                            
+
                             <div>
                               <Label>Seleccionar Producto</Label>
                               <Select value={selectedProductId} onValueChange={setSelectedProductId}>
@@ -975,8 +975,8 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
                                 </SelectTrigger>
                                 <SelectContent>
                                   {availableProducts
-                                    .filter(product => 
-                                      productSearch === '' || 
+                                    .filter(product =>
+                                      productSearch === '' ||
                                       product.name.toLowerCase().includes(productSearch.toLowerCase()) ||
                                       product.sku.toLowerCase().includes(productSearch.toLowerCase())
                                     )
@@ -991,7 +991,7 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
                                 </SelectContent>
                               </Select>
                             </div>
-                            
+
                             {/* Quantity and Dimensions */}
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                               <div>
@@ -1014,7 +1014,7 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
                                   <p className="text-red-500 text-xs mt-1">Entre 1 y 1,000 unidades</p>
                                 )}
                               </div>
-                              
+
                               <div>
                                 <Label htmlFor="width">Ancho (mm)</Label>
                                 <Input
@@ -1035,7 +1035,7 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
                                   <p className="text-red-500 text-xs mt-1">Entre 10mm y 50,000mm</p>
                                 )}
                               </div>
-                              
+
                               <div>
                                 <Label htmlFor="height">Alto (mm)</Label>
                                 <Input
@@ -1060,13 +1060,13 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
 
                             {/* Price Calculation Preview */}
                             {selectedProductId && (
-                              <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                                <h4 className="font-medium text-blue-900 mb-2">Vista Previa del Cálculo</h4>
+                              <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                                <h4 className="font-medium text-foreground mb-2">Vista Previa del Cálculo</h4>
                                 <div className="grid grid-cols-2 gap-4 text-sm">
                                   <div>
-                                    <p className="text-gray-600">Cantidad: <span className="font-medium">{newProductQuantity} unidades</span></p>
-                                    <p className="text-gray-600">Dimensiones: <span className="font-medium">{newProductWidth || '0'}mm × {newProductHeight || '0'}mm</span></p>
-                                    <p className="text-gray-600">Área por unidad: <span className="font-medium">{areaInSquareMeters.toFixed(4)} m²</span></p>
+                                    <p className="text-muted-foreground">Cantidad: <span className="font-medium">{newProductQuantity} unidades</span></p>
+                                    <p className="text-muted-foreground">Dimensiones: <span className="font-medium">{newProductWidth || '0'}mm × {newProductHeight || '0'}mm</span></p>
+                                    <p className="text-muted-foreground">Área por unidad: <span className="font-medium">{areaInSquareMeters.toFixed(4)} m²</span></p>
                                   </div>
                                   <div>
                                     {(() => {
@@ -1076,17 +1076,17 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
                                         const pricePerSquareMeter = selectedProductPrice / standardArea;
                                         return (
                                           <>
-                                            <p className="text-gray-600">Precio base por unidad estándar: <span className="font-medium">{formatBasePriceMXN(selectedProductPrice)}</span></p>
-                                            <p className="text-gray-600">Dimensión estándar: <span className="font-medium">{selectedProduct.width}mm × {selectedProduct.height}mm ({standardArea.toFixed(4)} m²)</span></p>
-                                            <p className="text-gray-600">Precio por m²: <span className="font-medium">{formatMXN(pricePerSquareMeter)}</span></p>
+                                            <p className="text-muted-foreground">Precio base por unidad estándar: <span className="font-medium">{formatBasePriceMXN(selectedProductPrice)}</span></p>
+                                            <p className="text-muted-foreground">Dimensión estándar: <span className="font-medium">{selectedProduct.width}mm × {selectedProduct.height}mm ({standardArea.toFixed(4)} m²)</span></p>
+                                            <p className="text-muted-foreground">Precio por m²: <span className="font-medium">{formatMXN(pricePerSquareMeter)}</span></p>
                                           </>
                                         );
                                       } else {
-                                        return <p className="text-gray-600">Precio base: <span className="font-medium">{formatBasePriceMXN(selectedProductPrice)} / unidad</span></p>;
+                                        return <p className="text-muted-foreground">Precio base: <span className="font-medium">{formatBasePriceMXN(selectedProductPrice)} / unidad</span></p>;
                                       }
                                     })()}
-                                    <p className="text-gray-600">Precio por unidad: <span className="font-medium">{formatMXN(pricePerUnit)}</span></p>
-                                    <p className="text-blue-900 font-semibold text-lg">Precio Total: {formatMXN(totalPrice)}</p>
+                                    <p className="text-muted-foreground">Precio por unidad: <span className="font-medium">{formatMXN(pricePerUnit)}</span></p>
+                                    <p className="text-foreground font-semibold text-lg">Precio Total: {formatMXN(totalPrice)}</p>
                                   </div>
                                 </div>
                                 {selectedProductPrice === 0 && (
@@ -1096,13 +1096,13 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
                                 )}
                               </div>
                             )}
-                            
+
                             <div className="flex justify-end gap-2">
                               <Button variant="outline" onClick={() => setShowAddProductModal(false)}>
                                 Cancelar
                               </Button>
-                              <Button 
-                                onClick={addProduct} 
+                              <Button
+                                onClick={addProduct}
                                 disabled={!selectedProductId || newProductQuantity < 1 || newProductQuantity > 1000 || !newProductWidth || !newProductHeight || parseFloat(newProductWidth) < 10 || parseFloat(newProductWidth) > 50000 || parseFloat(newProductHeight) < 10 || parseFloat(newProductHeight) > 50000}
                               >
                                 Agregar Producto
@@ -1137,26 +1137,26 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
                             <Package className="w-8 h-8 text-gray-400" />
                           )}
                         </div>
-                        
+
                         <div className="flex-1">
-                          <h4 className="font-medium text-gray-900">{item.product.name}</h4>
+                          <h4 className="font-medium text-foreground">{item.product.name}</h4>
                           <p className="text-sm text-gray-500">SKU: {item.product.sku}</p>
                           {item.product.category && (
-                            <p className="text-xs text-blue-600">{item.product.category.name}</p>
+                            <p className="text-xs text-module-black">{item.product.category.name}</p>
                           )}
-                          
+
                           {/* Custom Dimensions Display */}
                           <div className="mt-2 space-y-1">
                             {(item.customWidth && item.customHeight) ? (
                               <>
-                                <div className="flex items-center gap-2 text-xs text-gray-600">
+                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
                                   <Ruler className="w-3 h-3" />
                                   <span className="font-medium">Dimensiones:</span>
-                                  <span className="bg-blue-50 px-2 py-0.5 rounded">
+                                  <span className="bg-gray-50 px-2 py-0.5 rounded">
                                     {item.customWidth}mm × {item.customHeight}mm
                                   </span>
                                 </div>
-                                <div className="flex items-center gap-2 text-xs text-gray-600">
+                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
                                   <span className="w-3 h-3"></span>
                                   <span className="font-medium">Área:</span>
                                   <span className="bg-green-50 px-2 py-0.5 rounded">
@@ -1165,7 +1165,7 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
                                 </div>
                               </>
                             ) : (
-                              <div className="flex items-center gap-2 text-xs text-gray-600">
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
                                 <Ruler className="w-3 h-3" />
                                 <span className="font-medium">Dimensiones estándar:</span>
                                 <span className="bg-gray-50 px-2 py-0.5 rounded">
@@ -1175,7 +1175,7 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
                             )}
                           </div>
                         </div>
-                        
+
                         <div className="flex items-center gap-2">
                           {isEditing ? (
                             <div className="flex items-center gap-2">
@@ -1189,7 +1189,7 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
                               >
                                 <Minus className="w-4 h-4" />
                               </Button>
-                              
+
                               <Input
                                 type="number"
                                 min="1"
@@ -1200,7 +1200,7 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
                                 }}
                                 className="w-20 text-center"
                               />
-                              
+
                               <Button
                                 variant="outline"
                                 size="sm"
@@ -1211,7 +1211,7 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
                               >
                                 <Plus className="w-4 h-4" />
                               </Button>
-                              
+
                               <Button
                                 variant="destructive"
                                 size="sm"
@@ -1277,7 +1277,7 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
                       <p className="font-medium">{quote.customerName}</p>
                     )}
                   </div>
-                  
+
                   <div>
                     <Label htmlFor="customerEmail" className="text-sm text-gray-500">
                       Email
@@ -1297,7 +1297,7 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
                       </p>
                     )}
                   </div>
-                  
+
                   <div>
                     <Label htmlFor="customerPhone" className="text-sm text-gray-500">
                       Teléfono
@@ -1319,7 +1319,7 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
                       <p className="text-gray-400 italic">No especificado</p>
                     )}
                   </div>
-                  
+
                   <div>
                     <Label htmlFor="customerAddress" className="text-sm text-gray-500">
                       Dirección
@@ -1361,14 +1361,14 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Subtotal:</span>
+                    <span className="text-muted-foreground">Subtotal:</span>
                     <span className="font-medium">{formatMXN(calculatedSummary.subtotal)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">IVA (16%):</span>
+                    <span className="text-muted-foreground">IVA (16%):</span>
                     <span className="font-medium">{formatMXN(calculatedSummary.taxAmount)}</span>
                   </div>
-                  
+
                   <div className="flex justify-between text-green-600">
                     <span>Descuento:</span>
                     {isEditing ? (
@@ -1379,23 +1379,23 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
                           min="0"
                           step="0.01"
                           value={editedQuote.discountAmount || 0}
-                          onChange={(e) => setEditedQuote({ 
-                            ...editedQuote, 
-                            discountAmount: parseFloat(e.target.value) || 0 
+                          onChange={(e) => setEditedQuote({
+                            ...editedQuote,
+                            discountAmount: parseFloat(e.target.value) || 0
                           })}
                           className="w-24 text-right text-sm"
                         />
                       </div>
                     ) : (
                       <span className="font-medium">
-                        {calculatedSummary.discountAmount && calculatedSummary.discountAmount > 0 
+                        {calculatedSummary.discountAmount && calculatedSummary.discountAmount > 0
                           ? `-${formatMXN(calculatedSummary.discountAmount)}`
                           : formatMXN(0)
                         }
                       </span>
                     )}
                   </div>
-                  
+
                   <Separator />
                   <div className="flex justify-between text-lg font-bold">
                     <span>Total:</span>

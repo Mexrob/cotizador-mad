@@ -118,11 +118,11 @@ export function BulkActions({
                   <Checkbox
                     checked={isAllSelected}
                     onCheckedChange={onSelectAll}
-                    className={isSomeSelected ? "data-[state=checked]:bg-blue-500" : ""}
+                    className={isSomeSelected ? "data-[state=checked]:bg-gray-500" : ""}
                   />
                   {isSomeSelected && (
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="w-2 h-2 bg-blue-500 rounded-sm" />
+                      <div className="w-2 h-2 bg-gray-500 rounded-sm" />
                     </div>
                   )}
                 </div>

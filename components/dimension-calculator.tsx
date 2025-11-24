@@ -169,7 +169,7 @@ export default function DimensionCalculator({
     <Card className={`bg-white/90 backdrop-blur-sm border-0 shadow-lg ${className}`}>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Calculator className="w-5 h-5 text-blue-600" />
+          <Calculator className="w-5 h-5 text-module-black" />
           Agregar Producto a la Cotización
         </CardTitle>
         <p className="text-sm text-gray-600">
@@ -284,7 +284,7 @@ export default function DimensionCalculator({
 
           <div className="flex items-center justify-between text-sm">
             <span className="text-gray-600">Precio por unidad:</span>
-            <span className="font-medium text-blue-600">
+            <span className="font-medium text-module-black">
               {calculation?.formattedUnitPrice || '$0.00 MXN'}
             </span>
           </div>
@@ -294,7 +294,7 @@ export default function DimensionCalculator({
           <div className="flex items-center justify-between">
             <span className="text-lg font-semibold text-gray-900">Precio Total:</span>
             <div className="text-right">
-              <div className="text-2xl font-bold text-blue-600">
+              <div className="text-2xl font-bold text-module-black">
                 {calculation?.formattedTotalPrice || '$0.00 MXN'}
               </div>
               {calculation?.isValid && (
@@ -307,15 +307,15 @@ export default function DimensionCalculator({
         </div>
 
         {/* Formula Explanation */}
-        <div className="bg-blue-50 rounded-lg p-4">
-          <h4 className="text-sm font-semibold text-blue-900 mb-2">Fórmula de Cálculo:</h4>
-          <p className="text-sm text-blue-800">
+        <div className="bg-gray-50 rounded-lg p-4">
+          <h4 className="text-sm font-semibold text-gray-900 mb-2">Fórmula de Cálculo:</h4>
+          <p className="text-sm text-gray-800">
             <strong>Precio Total = Cantidad × Ancho × Alto × Precio Base</strong>
           </p>
-          <p className="text-xs text-blue-600 mt-1">
+          <p className="text-xs text-module-black mt-1">
             Ejemplo: {quantity || '1'} × {width || '1000'}mm × {height || '900'}mm × {basePrice.toFixed(6)} = {calculation?.formattedTotalPrice || '$0.00 MXN'}
           </p>
-          <div className="text-xs text-blue-500 mt-2 space-y-1">
+          <div className="text-xs text-gray-500 mt-2 space-y-1">
             <p>• Precio por unidad = {width || '1000'} × {height || '900'} × {basePrice.toFixed(6)} = {calculation?.formattedUnitPrice || '$0.00 MXN'}</p>
             <p>• Precio total = {quantity || '1'} unidades × {calculation?.formattedUnitPrice || '$0.00 MXN'} = {calculation?.formattedTotalPrice || '$0.00 MXN'}</p>
           </div>
@@ -325,7 +325,7 @@ export default function DimensionCalculator({
         {onAddToQuote && productId && (
           <Button 
             onClick={handleAddToQuote}
-            className="w-full h-12 text-lg bg-blue-600 hover:bg-blue-700"
+            className="w-full h-12 text-lg bg-module-black hover:bg-module-dark"
             disabled={!calculation?.isValid || isCalculating}
           >
             <ShoppingCart className="w-5 h-5 mr-2" />

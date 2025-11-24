@@ -31,37 +31,37 @@ async function main() {
   // Create admin user
   const adminPassword = await hash('admin123', 12)
   const admin = await prisma.user.upsert({
-    where: { email: 'admin@cocinaslujo.mx' },
+    where: { email: 'admin@module.com.mx' },
     update: {
-        password: adminPassword
+      password: adminPassword
     },
     create: {
-      name: 'Administrador',
-      email: 'admin@cocinaslujo.mx',
+      name: 'Administrador Module',
+      email: 'admin@module.com.mx',
       password: adminPassword,
       role: 'ADMIN',
       status: 'ACTIVE',
-      companyName: 'Cocinas de Lujo México',
-      phone: '+52 55 1234 5678',
+      companyName: 'Module al Dente',
+      phone: '+52 33 1234 5678',
       country: 'Mexico',
       deliveryAddress: {
         create: {
-          street: 'Av. Presidente Masaryk',
-          exteriorNumber: '111',
-          colony: 'Polanco',
-          zipCode: '11560',
-          city: 'Ciudad de México',
-          state: 'CDMX',
+          street: 'Calle Puerto todos los Santos',
+          exteriorNumber: '2956',
+          colony: 'Miramar',
+          zipCode: '45060',
+          city: 'Zapopan',
+          state: 'Jalisco',
         },
       },
       billingAddress: {
         create: {
-          street: 'Av. Presidente Masaryk',
-          number: '111',
-          colony: 'Polanco',
-          zipCode: '11560',
-          city: 'Ciudad de México',
-          state: 'CDMX',
+          street: 'Calle Puerto todos los Santos',
+          number: '2956',
+          colony: 'Miramar',
+          zipCode: '45060',
+          city: 'Zapopan',
+          state: 'Jalisco',
         },
       },
     },
@@ -121,18 +121,25 @@ async function main() {
   // Create company settings
   await prisma.companySettings.upsert({
     where: { id: 'default' },
-    update: {},
+    update: {
+      logo: '/logo-mad.png',
+      companyName: 'Module al Dente',
+    },
     create: {
       id: 'default',
-      companyName: 'Cocinas de Lujo México',
-      address: 'Av. Presidente Masaryk 111', // This field is still in CompanySettings
-      city: 'Ciudad de México',
-      state: 'CDMX',
-      zipCode: '11560',
-      phone: '+52 55 1234 5678',
-      email: 'contacto@cocinaslujo.mx',
-      website: 'https://cocinaslujo.mx',
-      taxId: 'CLM123456789',
+      companyName: 'Module al Dente',
+      logo: '/logo-mad.png',
+      address: 'Calle Puerto todos los Santos 2956',
+      city: 'Zapopan',
+      state: 'Jalisco',
+      zipCode: '45060',
+      phone: '+52 33 1234 5678',
+      email: 'contacto@module.com.mx',
+      website: 'https://module.com.mx',
+      taxId: 'MAD123456789',
+      primaryColor: '#111111',
+      secondaryColor: '#333333',
+      tertiaryColor: '#F0F0F0',
     },
   });
 
@@ -564,7 +571,7 @@ async function main() {
 
   for (let i = 0; i < products.length; i++) {
     const product = products[i]
-    
+
     const createdProduct = await prisma.product.create({
       data: {
         name: product.name,
@@ -631,16 +638,16 @@ async function main() {
     const pricing = await prisma.productPricing.findFirst({
       where: { productId: product.id, userRole: 'RETAIL' },
     })
-    
+
     if (pricing) {
       const quantity = Math.floor(Math.random() * 3) + 1
-      
+
       // Generate realistic custom dimensions (varying from standard by ±20%)
       const productWidth = product.width || 600 // default width if null
       const productHeight = product.height || 600 // default height if null
       const customWidth = Math.round(productWidth * (0.8 + Math.random() * 0.4))
       const customHeight = Math.round(productHeight * (0.8 + Math.random() * 0.4))
-      
+
       // Calculate area-based pricing for customizable products
       let unitPrice = pricing.finalPrice
       if (product.isCustomizable && productWidth && productHeight) {
@@ -649,7 +656,7 @@ async function main() {
         const pricePerSquareMeter = pricing.finalPrice / standardArea
         unitPrice = customArea * pricePerSquareMeter
       }
-      
+
       await prisma.quoteItem.create({
         data: {
           quoteId: sampleQuote.id,
@@ -681,7 +688,7 @@ async function main() {
   console.log(`📦 Products: ${products.length}`);
   console.log(`📋 Sample quotes: 1`);
   console.log('\n🔑 Demo credentials:');
-  console.log('Admin: admin@cocinaslujo.mx / admin123');
+  console.log('Admin: admin@module.com.mx / admin123');
   console.log('Dealer: dealer@ejemplo.mx / demo123');
   console.log('Retail: cliente@ejemplo.mx / demo123');
 }

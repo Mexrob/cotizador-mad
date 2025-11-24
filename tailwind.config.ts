@@ -20,6 +20,15 @@ const config: Config = {
         sm: 'calc(var(--radius) - 4px)',
       },
       colors: {
+        // Module al Dente Brand Colors
+        'module': {
+          'black': '#111111',
+          'dark': '#333333',
+          'medium': '#666666',
+          'light': '#F0F0F0',
+          'lighter': '#FAFAFA',
+        },
+        // Shadcn UI Colors (usando variables CSS)
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
         card: {

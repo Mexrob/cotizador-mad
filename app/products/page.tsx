@@ -8,10 +8,10 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { 
-  Search, 
-  Filter, 
-  Grid3X3, 
+import {
+  Search,
+  Filter,
+  Grid3X3,
   List,
   SlidersHorizontal,
   ChevronDown,
@@ -48,7 +48,7 @@ export default function ProductsPage() {
 
       const response = await fetch(`/api/products?${params}`)
       const data = await response.json()
-      
+
       if (data.success) {
         setProducts(data.data)
       }
@@ -63,7 +63,7 @@ export default function ProductsPage() {
     try {
       const response = await fetch('/api/categories')
       const data = await response.json()
-      
+
       if (data.success) {
         setCategories(data.data)
       }
@@ -77,9 +77,9 @@ export default function ProductsPage() {
   }
 
   const handleCategoryFilter = (categoryId: string) => {
-    setFilters(prev => ({ 
-      ...prev, 
-      categoryId: categoryId === prev.categoryId ? '' : categoryId 
+    setFilters(prev => ({
+      ...prev,
+      categoryId: categoryId === prev.categoryId ? '' : categoryId
     }))
   }
 
@@ -102,11 +102,11 @@ export default function ProductsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
+    <div className="min-h-screen bg-background">
       {/* Hero Section */}
-      <section className="bg-gradient-to-r from-blue-600 to-blue-800 text-white py-16">
+      <section className="bg-gradient-to-r from-module-black to-module-dark text-white py-16">
         <div className="max-w-7xl mx-auto px-4 text-center">
-          <motion.h1 
+          <motion.h1
             className="text-4xl md:text-6xl font-bold mb-6"
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
@@ -114,8 +114,8 @@ export default function ProductsPage() {
           >
             Catálogo de Productos
           </motion.h1>
-          <motion.p 
-            className="text-xl md:text-2xl text-blue-100 max-w-3xl mx-auto"
+          <motion.p
+            className="text-xl md:text-2xl text-gray-100 max-w-3xl mx-auto"
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}
@@ -139,7 +139,7 @@ export default function ProductsPage() {
                 className="pl-10 py-3 text-lg"
               />
             </div>
-            
+
             <div className="flex gap-2">
               <Button
                 variant={showFilters ? "default" : "outline"}
@@ -149,7 +149,7 @@ export default function ProductsPage() {
                 <SlidersHorizontal className="w-4 h-4" />
                 Filtros
               </Button>
-              
+
               <Button
                 variant={viewMode === 'grid' ? "default" : "outline"}
                 onClick={() => setViewMode('grid')}
@@ -157,7 +157,7 @@ export default function ProductsPage() {
               >
                 <Grid3X3 className="w-4 h-4" />
               </Button>
-              
+
               <Button
                 variant={viewMode === 'list' ? "default" : "outline"}
                 onClick={() => setViewMode('list')}
@@ -253,7 +253,7 @@ export default function ProductsPage() {
 
         {/* Results Count */}
         <div className="flex items-center justify-between mb-6">
-          <p className="text-gray-600">
+          <p className="text-muted-foreground">
             {loading ? 'Cargando...' : `${products.length} productos encontrados`}
           </p>
           {filters.search && (
@@ -270,14 +270,14 @@ export default function ProductsPage() {
         {/* Products Grid */}
         {loading ? (
           <div className="flex items-center justify-center py-20">
-            <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+            <Loader2 className="w-8 h-8 animate-spin text-module-black" />
             <span className="ml-2 text-lg">Cargando productos...</span>
           </div>
         ) : products.length === 0 ? (
           <div className="text-center py-20">
             <div className="text-6xl mb-4">🔍</div>
             <h3 className="text-2xl font-semibold mb-2">No se encontraron productos</h3>
-            <p className="text-gray-600 mb-6">
+            <p className="text-muted-foreground mb-6">
               Intenta ajustar tus filtros o realizar una búsqueda diferente
             </p>
             <Button onClick={() => setFilters({ search: '', categoryId: '', sortBy: 'name', sortOrder: 'asc' })}>
@@ -285,12 +285,11 @@ export default function ProductsPage() {
             </Button>
           </div>
         ) : (
-          <motion.div 
-            className={`grid gap-6 ${
-              viewMode === 'grid' 
-                ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4' 
+          <motion.div
+            className={`grid gap-6 ${viewMode === 'grid'
+                ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
                 : 'grid-cols-1'
-            }`}
+              }`}
             layout
           >
             {products.map((product, index) => (

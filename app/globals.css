@@ -1,75 +1,121 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
- 
+
 @layer base {
   :root {
     --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Blanco #FFFFFF */
+    --foreground: 0 0% 6.7%;
+    /* Negro Module #111111 */
 
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
- 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
- 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
- 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
- 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
- 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
- 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    /* Blanco */
+    --card-foreground: 0 0% 6.7%;
+    /* Negro Module */
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
- 
+    --popover: 0 0% 100%;
+    /* Blanco */
+    --popover-foreground: 0 0% 6.7%;
+    /* Negro Module */
+
+    --primary: 0 0% 6.7%;
+    /* Negro Module #111111 */
+    --primary-foreground: 0 0% 100%;
+    /* Blanco */
+
+    --secondary: 0 0% 20%;
+    /* Gris oscuro Module #333333 */
+    --secondary-foreground: 0 0% 100%;
+    /* Blanco */
+
+    --muted: 0 0% 94.1%;
+    /* Gris claro Module #F0F0F0 */
+    --muted-foreground: 0 0% 40%;
+    /* Gris medio Module #666666 */
+
+    --accent: 0 0% 98%;
+    /* Gris muy claro Module #FAFAFA */
+    --accent-foreground: 0 0% 6.7%;
+    /* Negro Module */
+
+    --destructive: 0 84.2% 60.2%;
+    /* Rojo para errores */
+    --destructive-foreground: 0 0% 100%;
+    /* Blanco */
+
+    --border: 0 0% 89.8%;
+    /* Gris claro para bordes */
+    --input: 0 0% 89.8%;
+    /* Gris claro para inputs */
+    --ring: 0 0% 6.7%;
+    /* Negro Module para focus ring */
+
     --radius: 0.5rem;
   }
- 
+
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
- 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
- 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
- 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
- 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
- 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
- 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
- 
+    /* Fondo principal - Similar al footer (gray-900) */
+    --background: 222 47% 11%;
+    /* #171717 - gray-900 */
+    --foreground: 0 0% 98%;
+    /* #fafafa - Texto muy claro */
+
+    /* Tarjetas - Prácticamente el mismo tono que el fondo */
+    --card: 222 47% 11.5%;
+    /* Apenas 0.5% más claro - mínimo contraste */
+    --card-foreground: 0 0% 98%;
+    /* #fafafa */
+
+    /* Popovers y dropdowns */
+    --popover: 222 47% 11%;
+    /* #171717 */
+    --popover-foreground: 0 0% 98%;
+    /* #fafafa */
+
+    /* Primary - Texto claro para contraste */
+    --primary: 0 0% 98%;
+    /* #fafafa */
+    --primary-foreground: 222 47% 11%;
+    /* #171717 */
+
+    /* Secondary - Gris medio */
+    --secondary: 217 19% 27%;
+    /* #3f3f46 - gray-700 */
+    --secondary-foreground: 0 0% 98%;
+    /* #fafafa */
+
+    /* Muted - Para elementos deshabilitados */
+    --muted: 215 28% 17%;
+    /* #1f1f23 */
+    --muted-foreground: 218 11% 65%;
+    /* #a1a1aa - gray-400 */
+
+    /* Accent - Para hover states */
+    --accent: 217 19% 27%;
+    /* #3f3f46 */
+    --accent-foreground: 0 0% 98%;
+    /* #fafafa */
+
+    /* Destructive - Rojo oscuro */
     --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
- 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    --destructive-foreground: 0 0% 98%;
+
+    /* Bordes y inputs - Muy sutiles, apenas visibles */
+    --border: 220 13% 15%;
+    /* Borde muy sutil */
+    --input: 217 19% 27%;
+    /* #3f3f46 */
+    --ring: 224 71% 4%;
+    /* Focus ring */
   }
 }
- 
+
 @layer base {
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
   }

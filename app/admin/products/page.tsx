@@ -74,10 +74,10 @@ export default function ProductsAdminPage() {
   const handleSubmitProduct = async (data: any) => {
     try {
       setIsSubmitting(true);
-      
+
       const url = editingProduct ? `/api/products/${editingProduct.id}` : '/api/products';
       const method = editingProduct ? 'PUT' : 'POST';
-      
+
       const response = await fetch(url, {
         method,
         headers: {
@@ -119,7 +119,7 @@ export default function ProductsAdminPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
@@ -132,8 +132,8 @@ export default function ProductsAdminPage() {
             </Link>
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Gestión de Productos</h1>
-            <p className="text-gray-600 mt-2">
+            <h1 className="text-3xl font-bold text-foreground">Gestión de Productos</h1>
+            <p className="text-muted-foreground mt-2">
               Administra el catálogo completo de productos y sus categorías
             </p>
           </div>

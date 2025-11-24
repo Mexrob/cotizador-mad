@@ -196,7 +196,7 @@ export default function CategoriesManagement() {
         <CardContent>
           {loading ? (
             <div className="flex justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-module-black"></div>
             </div>
           ) : categories.length === 0 ? (
             <div className="text-center py-8">
@@ -213,7 +213,7 @@ export default function CategoriesManagement() {
                   {/* Parent Category */}
                   <div className="flex items-center justify-between p-3 rounded-lg border bg-gray-50">
                     <div className="flex items-center space-x-3">
-                      <FolderOpen className="h-5 w-5 text-blue-600" />
+                      <FolderOpen className="h-5 w-5 text-module-black" />
                       <div>
                         <p className="font-medium">{category.name}</p>
                         {category.description && (
