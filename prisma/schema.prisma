@@ -264,6 +264,19 @@ model Product {
   dimensionUnit   String        @default("mm") // mm, cm, m, in
   weightUnit      String        @default("kg") // kg, g, lb
   
+  // New Product Characteristics
+  modelName       String?       // Modelo
+  colorToneText   String?       // Tono o Color (texto libre)
+  woodGrainText   String?       // Veta (Horizontal/Vertical - texto libre)
+  edgeBanding     String?       // Cubrecanto
+  faces           Int?          // Caras (1 o 2)
+  minWidth        Float?        // Ancho mínimo (mm)
+  maxWidth        Float?        // Ancho máximo (mm)
+  minHeight       Float?        // Alto mínimo (mm)
+  maxHeight       Float?        // Alto máximo (mm)
+  handleType      String?       // Jaladera
+  orientation     String?       // Horizontal o Vertical
+  
   // Pricing
   basePrice       Float         @default(0)
   currency        String        @default("MXN")

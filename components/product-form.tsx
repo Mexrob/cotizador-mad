@@ -20,27 +20,30 @@ import ProductImageUpload from './product-image-upload';
 
 const productSchema = z.object({
   name: z.string().min(1, 'El nombre es requerido'),
-  modelName: z.string().optional(), // Nuevo campo: Nombre del Modelo o Estilo
-  material: z.string().optional(), // Nuevo campo: Material
-  finishColor: z.string().optional(), // Nuevo campo: Acabado o Color
-  panelStyle: z.enum([ // Nuevo campo: Estilo o Diseño del Panel
-    'Panel Elevado',
-    'Panel Plano o Rebajado',
-    'Liso o Slab',
-    'Con Moldura',
-  ]).optional(),
-  edgeProfile: z.enum([ // Nuevo campo: Perfil del Canto
-    'Canto Recto',
-    'Canto Biselado',
-    'Canto Redondeado',
-  ]).optional(),
-  sku: z.string().min(1, 'El SKU es requerido'), // Movido para evitar duplicado
-  description: z.string().optional(), // Movido para evitar duplicado
+  description: z.string().optional(),
   categoryId: z.string().min(1, 'La categoría es requerida'),
+
+  // Nuevas características de producto
+  modelName: z.string().optional(),
+  colorToneText: z.string().optional(),
+  edgeBanding: z.string().optional(),
+  faces: z.number().int().min(1).max(2).optional(),
+  handleType: z.string().optional(),
+  orientation: z.enum(['Horizontal', 'Vertical']).optional(), // Unifica Veta y Orientación
+
+  // Rangos de dimensiones
+  minWidth: z.number().positive().optional(),
+  maxWidth: z.number().positive().optional(),
+  minHeight: z.number().positive().optional(),
+  maxHeight: z.number().positive().optional(),
+
+  // Dimensiones estándar
   width: z.number().positive().optional(),
   height: z.number().positive().optional(),
   dimensionUnit: z.string().default('mm'),
-  basePrice: z.number().min(0, 'El precio debe ser mayor o igual a 0').multipleOf(0.000001, 'El precio base es por mm² - puede tener hasta 6 decimales'),
+
+  // Precio y configuración
+  basePrice: z.number().min(0, 'El precio debe ser mayor o igual a 0'),
   currency: z.string().default('MXN'),
   isCustomizable: z.boolean().default(true),
   leadTime: z.number().int().min(1).default(7),
@@ -62,16 +65,28 @@ interface Product {
   id: string;
   name: string;
   description?: string;
-  modelName?: string;
-  sku: string;
-  material?: string;
-  finishColor?: string;
-  panelStyle?: 'Panel Elevado' | 'Panel Plano o Rebajado' | 'Liso o Slab' | 'Con Moldura';
-  edgeProfile?: 'Canto Recto' | 'Canto Biselado' | 'Canto Redondeado';
   categoryId: string;
+
+  // Nuevas características
+  modelName?: string;
+  colorToneText?: string;
+  edgeBanding?: string;
+  faces?: number;
+  handleType?: string;
+  orientation?: string; // Veta/Orientación unificada
+
+  // Rangos de dimensiones
+  minWidth?: number;
+  maxWidth?: number;
+  minHeight?: number;
+  maxHeight?: number;
+
+  // Dimensiones estándar
   width?: number;
   height?: number;
   dimensionUnit: string;
+
+  // Precio y configuración
   basePrice: number;
   currency: string;
   images: string[];
@@ -110,17 +125,29 @@ export default function ProductForm({ product, onSubmit, onCancel, isLoading }: 
     resolver: zodResolver(productSchema),
     defaultValues: {
       name: product?.name || '',
-      modelName: product?.modelName || '',
-      material: product?.material || '',
-      finishColor: product?.finishColor || '',
-      panelStyle: product?.panelStyle, // Ya es undefined por defecto si product?.panelStyle es undefined/null
-      edgeProfile: product?.edgeProfile, // Ya es undefined por defecto si product?.edgeProfile es undefined/null
-      sku: product?.sku || '',
       description: product?.description || '',
       categoryId: product?.categoryId || '',
+
+      // Nuevas características
+      modelName: product?.modelName || '',
+      colorToneText: product?.colorToneText || '',
+      edgeBanding: product?.edgeBanding || '',
+      faces: product?.faces || undefined,
+      handleType: product?.handleType || '',
+      orientation: product?.orientation as any || undefined,
+
+      // Rangos de dimensiones
+      minWidth: product?.minWidth || undefined,
+      maxWidth: product?.maxWidth || undefined,
+      minHeight: product?.minHeight || undefined,
+      maxHeight: product?.maxHeight || undefined,
+
+      // Dimensiones estándar
       width: product?.width || undefined,
       height: product?.height || undefined,
-      dimensionUnit: product?.dimensionUnit || 'mm',
+      dimensionUnit: product?.dimensionUnit || 'cm',
+
+      // Precio y configuración
       basePrice: product?.basePrice || 0,
       currency: product?.currency || 'MXN',
       isCustomizable: product?.isCustomizable ?? true,
@@ -201,37 +228,23 @@ export default function ProductForm({ product, onSubmit, onCancel, isLoading }: 
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="sku">SKU *</Label>
-                <Input
-                  id="sku"
-                  {...register('sku')}
-                  className={errors.sku ? 'border-red-500' : ''}
-                />
-                {errors.sku && (
-                  <p className="text-sm text-red-600 mt-1">{errors.sku.message}</p>
-                )}
-              </div>
-
-              <div>
-                <Label htmlFor="categoryId">Categoría *</Label>
-                <Select onValueChange={(value) => setValue('categoryId', value)} defaultValue={product?.categoryId}>
-                  <SelectTrigger className={errors.categoryId ? 'border-red-500' : ''}>
-                    <SelectValue placeholder="Seleccionar categoría" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map((category) => (
-                      <SelectItem key={category.id} value={category.id}>
-                        {category.parent ? `${category.parent.name} > ${category.name}` : category.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {errors.categoryId && (
-                  <p className="text-sm text-red-600 mt-1">{errors.categoryId.message}</p>
-                )}
-              </div>
+            <div>
+              <Label htmlFor="categoryId">Categoría *</Label>
+              <Select onValueChange={(value) => setValue('categoryId', value)} defaultValue={product?.categoryId}>
+                <SelectTrigger className={errors.categoryId ? 'border-red-500' : ''}>
+                  <SelectValue placeholder="Seleccionar categoría" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((category) => (
+                    <SelectItem key={category.id} value={category.id}>
+                      {category.parent ? `${category.parent.name} > ${category.name}` : category.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {errors.categoryId && (
+                <p className="text-sm text-red-600 mt-1">{errors.categoryId.message}</p>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -261,63 +274,74 @@ export default function ProductForm({ product, onSubmit, onCancel, isLoading }: 
           </CardContent>
         </Card>
 
-        {/* Door Characteristics */}
+        {/* Product Characteristics */}
         <Card>
           <CardHeader>
-            <CardTitle>Características de la Puerta</CardTitle>
+            <CardTitle>Características del Producto</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label htmlFor="modelName">Nombre del Modelo o Estilo</Label>
+              <Label htmlFor="modelName">Modelo</Label>
               <Input
                 id="modelName"
                 {...register('modelName')}
+                placeholder="Ej: Modelo Premium 2024"
               />
             </div>
 
             <div>
-              <Label htmlFor="material">Material</Label>
+              <Label htmlFor="colorToneText">Tono o Color</Label>
               <Input
-                id="material"
-                {...register('material')}
+                id="colorToneText"
+                {...register('colorToneText')}
+                placeholder="Ej: Nogal oscuro, Blanco mate"
               />
             </div>
 
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="orientation">Veta / Orientación</Label>
+                <Select onValueChange={(value) => setValue('orientation', value as ProductFormData["orientation"])} value={watch('orientation') || ''}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccionar orientación" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Horizontal">Horizontal</SelectItem>
+                    <SelectItem value="Vertical">Vertical</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="faces">Caras</Label>
+                <Select onValueChange={(value) => setValue('faces', parseInt(value))} value={watch('faces')?.toString() || ''}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccionar caras" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">1 Cara</SelectItem>
+                    <SelectItem value="2">2 Caras</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
             <div>
-              <Label htmlFor="finishColor">Acabado o Color</Label>
+              <Label htmlFor="edgeBanding">Cubrecanto</Label>
               <Input
-                id="finishColor"
-                {...register('finishColor')}
+                id="edgeBanding"
+                {...register('edgeBanding')}
+                placeholder="Ej: PVC, Melamina"
               />
             </div>
 
             <div>
-              <Label htmlFor="panelStyle">Estilo o Diseño del Panel</Label>
-              <Select onValueChange={(value) => setValue('panelStyle', value as ProductFormData["panelStyle"])} value={watch('panelStyle') || ''}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccionar estilo de panel" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Panel Elevado">Panel Elevado</SelectItem>
-                  <SelectItem value="Panel Plano o Rebajado">Panel Plano o Rebajado</SelectItem>
-                  <SelectItem value="Liso o Slab">Liso o Slab</SelectItem>
-                  <SelectItem value="Con Moldura">Con Moldura</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label htmlFor="edgeProfile">Perfil del Canto</Label>
-              <Select onValueChange={(value) => setValue('edgeProfile', value as ProductFormData["edgeProfile"])} value={watch('edgeProfile') || ''}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccionar perfil del canto" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Canto Recto">Canto Recto</SelectItem>
-                  <SelectItem value="Canto Biselado">Canto Biselado</SelectItem>
-                  <SelectItem value="Canto Redondeado">Canto Redondeado</SelectItem>
-                </SelectContent>
-              </Select>
+              <Label htmlFor="handleType">Jaladera</Label>
+              <Input
+                id="handleType"
+                {...register('handleType')}
+                placeholder="Ej: Acero inoxidable, Cromada"
+              />
             </div>
           </CardContent>
         </Card>
@@ -330,17 +354,17 @@ export default function ProductForm({ product, onSubmit, onCancel, isLoading }: 
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="basePrice">Precio Base por mm² *</Label>
+                <Label htmlFor="basePrice">Precio Base por m² *</Label>
                 <Input
                   id="basePrice"
                   type="number"
-                  step="0.000001"
+                  step="0.01"
                   {...register('basePrice', { valueAsNumber: true })}
                   className={errors.basePrice ? 'border-red-500' : ''}
-                  placeholder="0.002026"
+                  placeholder="1850.00"
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  Precio por milímetro cuadrado. Ej: 0.002026 para $1823.40 por 1000×900mm
+                  Precio por metro cuadrado (m²). Ej: $1850.00 por m²
                 </p>
                 {errors.basePrice && (
                   <p className="text-sm text-red-600 mt-1">{errors.basePrice.message}</p>
@@ -403,63 +427,125 @@ export default function ProductForm({ product, onSubmit, onCancel, isLoading }: 
         </Card>
       </div>
 
-      {/* Dimensions */}
+      {/* Dimension Ranges */}
       <Card>
         <CardHeader>
-          <CardTitle>Dimensiones Estándar</CardTitle>
+          <CardTitle>Rangos de Dimensiones Permitidas</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <Label htmlFor="width">Ancho (mm)</Label>
-              <Input
-                id="width"
-                type="number"
-                step="1"
-                min="1"
-                max="10000"
-                {...register('width', { valueAsNumber: true })}
-                placeholder="1000"
-              />
-              <p className="text-xs text-gray-500 mt-1">Dimensión estándar en milímetros</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-4">
+              <h4 className="font-medium text-sm">Ancho</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="minWidth">Ancho Mínimo (cm)</Label>
+                  <Input
+                    id="minWidth"
+                    type="number"
+                    step="0.1"
+                    min="0.1"
+                    {...register('minWidth', { valueAsNumber: true })}
+                    placeholder="30"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Centímetros lineales</p>
+                </div>
+                <div>
+                  <Label htmlFor="maxWidth">Ancho Máximo (cm)</Label>
+                  <Input
+                    id="maxWidth"
+                    type="number"
+                    step="0.1"
+                    min="0.1"
+                    {...register('maxWidth', { valueAsNumber: true })}
+                    placeholder="200"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Centímetros lineales</p>
+                </div>
+              </div>
             </div>
 
-            <div>
-              <Label htmlFor="height">Alto (mm)</Label>
-              <Input
-                id="height"
-                type="number"
-                step="1"
-                min="1"
-                max="10000"
-                {...register('height', { valueAsNumber: true })}
-                placeholder="900"
-              />
-              <p className="text-xs text-gray-500 mt-1">Dimensión estándar en milímetros</p>
-            </div>
-
-            <div>
-              <Label htmlFor="dimensionUnit">Unidad de Medida</Label>
-              <Select onValueChange={(value) => setValue('dimensionUnit', value)} defaultValue={product?.dimensionUnit || 'mm'}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="mm">Milímetros (mm)</SelectItem>
-                  <SelectItem value="cm">Centímetros (cm)</SelectItem>
-                  <SelectItem value="m">Metros (m)</SelectItem>
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-gray-500 mt-1">Unidad para mostrar dimensiones</p>
+            <div className="space-y-4">
+              <h4 className="font-medium text-sm">Alto</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="minHeight">Alto Mínimo (cm)</Label>
+                  <Input
+                    id="minHeight"
+                    type="number"
+                    step="0.1"
+                    min="0.1"
+                    {...register('minHeight', { valueAsNumber: true })}
+                    placeholder="30"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Centímetros lineales</p>
+                </div>
+                <div>
+                  <Label htmlFor="maxHeight">Alto Máximo (cm)</Label>
+                  <Input
+                    id="maxHeight"
+                    type="number"
+                    step="0.1"
+                    min="0.1"
+                    {...register('maxHeight', { valueAsNumber: true })}
+                    placeholder="300"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Centímetros lineales</p>
+                </div>
+              </div>
             </div>
           </div>
 
-          <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-            <p className="text-sm text-gray-800">
-              <strong>Nota:</strong> Las dimensiones estándar son opcionales. Los clientes podrán ingresar dimensiones personalizadas al cotizar.
-            </p>
-            <p className="text-sm text-module-black mt-1">
-              El precio se calculará automáticamente como: <strong>Ancho × Alto × Precio Base</strong>
+          <Separator className="my-4" />
+
+          <div>
+            <h4 className="font-medium text-sm mb-4">Dimensiones Estándar (Opcional)</h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <Label htmlFor="width">Ancho (cm)</Label>
+                <Input
+                  id="width"
+                  type="number"
+                  step="0.1"
+                  min="0.1"
+                  max="1000"
+                  {...register('width', { valueAsNumber: true })}
+                  placeholder="100"
+                />
+                <p className="text-xs text-gray-500 mt-1">Dimensión estándar en cm</p>
+              </div>
+
+              <div>
+                <Label htmlFor="height">Alto (cm)</Label>
+                <Input
+                  id="height"
+                  type="number"
+                  step="0.1"
+                  min="0.1"
+                  max="1000"
+                  {...register('height', { valueAsNumber: true })}
+                  placeholder="90"
+                />
+                <p className="text-xs text-gray-500 mt-1">Dimensión estándar en cm</p>
+              </div>
+
+              <div>
+                <Label htmlFor="dimensionUnit">Unidad de Medida</Label>
+                <Select onValueChange={(value) => setValue('dimensionUnit', value)} defaultValue={product?.dimensionUnit || 'cm'}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cm">Centímetros (cm)</SelectItem>
+                    <SelectItem value="m">Metros (m)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+            <p className="text-sm text-gray-800 dark:text-gray-200">
+              <strong>Nota:</strong> Los rangos de dimensiones se expresan en centímetros lineales (cm). Las dimensiones estándar son opcionales y sirven como referencia.
             </p>
           </div>
         </CardContent>
@@ -489,8 +575,8 @@ export default function ProductForm({ product, onSubmit, onCancel, isLoading }: 
                 {tags.map((tag) => (
                   <Badge key={tag} variant="secondary" className="flex items-center gap-1">
                     {tag}
-                    <X 
-                      className="h-3 w-3 cursor-pointer" 
+                    <X
+                      className="h-3 w-3 cursor-pointer"
                       onClick={() => removeTag(tag)}
                     />
                   </Badge>
