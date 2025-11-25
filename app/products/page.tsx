@@ -8,6 +8,11 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { useSession } from 'next-auth/react'
+import Link from 'next/link'
+import ProductForm from '@/components/product-form'
+import { toast } from 'sonner'
 import {
   Search,
   Filter,
@@ -15,7 +20,8 @@ import {
   List,
   SlidersHorizontal,
   ChevronDown,
-  Loader2
+  Loader2,
+  Plus
 } from 'lucide-react'
 import { Product, Category, ProductFilters } from '@/lib/types'
 
@@ -31,6 +37,9 @@ export default function ProductsPage() {
     sortOrder: 'asc'
   })
   const [showFilters, setShowFilters] = useState(false)
+  const [showProductForm, setShowProductForm] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const { data: session } = useSession()
 
   useEffect(() => {
     fetchProducts()
@@ -101,6 +110,45 @@ export default function ProductsPage() {
     console.log('Quick view:', product)
   }
 
+  const handleAddProduct = () => {
+    setShowProductForm(true)
+  }
+
+  const handleCloseProductForm = () => {
+    setShowProductForm(false)
+  }
+
+  const handleSubmitProduct = async (data: any) => {
+    try {
+      setIsSubmitting(true)
+
+      const response = await fetch('/api/products', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      })
+
+      if (response.ok) {
+        toast.success('Producto creado exitosamente')
+        handleCloseProductForm()
+        // Refresh the products list
+        fetchProducts()
+      } else {
+        const error = await response.json()
+        toast.error(error.error || 'Error al guardar el producto')
+      }
+    } catch (error) {
+      console.error('Error saving product:', error)
+      toast.error('Error al guardar el producto')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const isAdmin = (session?.user as any)?.role === 'ADMIN'
+
   return (
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
@@ -141,6 +189,16 @@ export default function ProductsPage() {
             </div>
 
             <div className="flex gap-2">
+              {isAdmin && (
+                <Button
+                  onClick={handleAddProduct}
+                  className="flex items-center gap-2 bg-module-black hover:bg-module-dark text-white"
+                >
+                  <Plus className="w-4 h-4" />
+                  Agregar Producto
+                </Button>
+              )}
+
               <Button
                 variant={showFilters ? "default" : "outline"}
                 onClick={() => setShowFilters(!showFilters)}
@@ -181,7 +239,7 @@ export default function ProductsPage() {
                     {/* Categories */}
                     <div>
                       <h3 className="font-semibold mb-3">Categorías</h3>
-                      <div className="space-y-2">
+                      <div className="flex flex-wrap gap-2">
                         <Badge
                           variant={!filters.categoryId ? "default" : "outline"}
                           className="cursor-pointer"
@@ -193,7 +251,7 @@ export default function ProductsPage() {
                           <Badge
                             key={category.id}
                             variant={filters.categoryId === category.id ? "default" : "outline"}
-                            className="cursor-pointer mr-2 mb-2"
+                            className="cursor-pointer"
                             onClick={() => handleCategoryFilter(category.id)}
                           >
                             {category.name}
@@ -287,8 +345,8 @@ export default function ProductsPage() {
         ) : (
           <motion.div
             className={`grid gap-6 ${viewMode === 'grid'
-                ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
-                : 'grid-cols-1'
+              ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
+              : 'grid-cols-1'
               }`}
             layout
           >
@@ -310,6 +368,20 @@ export default function ProductsPage() {
           </motion.div>
         )}
       </div>
+
+      {/* Product Form Dialog */}
+      <Dialog open={showProductForm} onOpenChange={setShowProductForm}>
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Nuevo Producto</DialogTitle>
+          </DialogHeader>
+          <ProductForm
+            onSubmit={handleSubmitProduct}
+            onCancel={handleCloseProductForm}
+            isLoading={isSubmitting}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

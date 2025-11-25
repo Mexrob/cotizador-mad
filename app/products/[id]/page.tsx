@@ -360,7 +360,7 @@ export default function ProductDetailPage() {
                     <span className="text-gray-700">Precio Base</span>
                   </div>
                   <span className="font-medium">
-                    ${product.basePrice?.toFixed(6) || '0.000000'} MXN/mm²
+                    ${product.basePrice?.toFixed(2) || '0.00'} MXN/mm²
                   </span>
                 </div>
               </CardContent>

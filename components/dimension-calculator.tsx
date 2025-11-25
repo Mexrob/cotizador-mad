@@ -74,16 +74,16 @@ export default function DimensionCalculator({
 
   const calculatePrice = () => {
     setIsCalculating(true);
-    
+
     // Validate inputs
     const quantityNum = parseFloat(quantity) || 0;
     const widthNum = parseFloat(width) || 0;
     const heightNum = parseFloat(height) || 0;
-    
+
     const isQuantityValid = quantityNum > 0 && quantityNum <= 1000; // Max 1000 units
     const isWidthValid = validateDimension(widthNum, 10, 50000); // 10mm to 50m
     const isHeightValid = validateDimension(heightNum, 10, 50000);
-    
+
     if (!isQuantityValid || !isWidthValid || !isHeightValid || basePrice <= 0) {
       setCalculation({
         quantity: quantityNum,
@@ -105,7 +105,7 @@ export default function DimensionCalculator({
     const area = widthNum * heightNum; // area in mm²
     const unitPrice = area * basePrice; // price per unit
     const totalPrice = quantityNum * unitPrice; // total price
-    
+
     setCalculation({
       quantity: quantityNum,
       width: widthNum,
@@ -118,7 +118,7 @@ export default function DimensionCalculator({
       formattedArea: formatArea(area), // Use utility function
       isValid: true
     });
-    
+
     setIsCalculating(false);
   };
 
@@ -267,18 +267,18 @@ export default function DimensionCalculator({
               {width || '0'} × {height || '0'} mm
             </span>
           </div>
-          
+
           <div className="flex items-center justify-between text-sm">
             <span className="text-gray-600">Área por unidad:</span>
             <span className="font-medium">
               {calculation?.formattedArea || '0 mm²'}
             </span>
           </div>
-          
+
           <div className="flex items-center justify-between text-sm">
             <span className="text-gray-600">Precio base:</span>
             <span className="font-medium">
-              ${basePrice.toFixed(6)} {currency} por mm²
+              ${basePrice.toFixed(2)} {currency} por mm²
             </span>
           </div>
 
@@ -288,9 +288,9 @@ export default function DimensionCalculator({
               {calculation?.formattedUnitPrice || '$0.00 MXN'}
             </span>
           </div>
-          
+
           <Separator />
-          
+
           <div className="flex items-center justify-between">
             <span className="text-lg font-semibold text-gray-900">Precio Total:</span>
             <div className="text-right">
@@ -313,17 +313,17 @@ export default function DimensionCalculator({
             <strong>Precio Total = Cantidad × Ancho × Alto × Precio Base</strong>
           </p>
           <p className="text-xs text-module-black mt-1">
-            Ejemplo: {quantity || '1'} × {width || '1000'}mm × {height || '900'}mm × {basePrice.toFixed(6)} = {calculation?.formattedTotalPrice || '$0.00 MXN'}
+            Ejemplo: {quantity || '1'} × {width || '1000'}mm × {height || '900'}mm × {basePrice.toFixed(2)} = {calculation?.formattedTotalPrice || '$0.00 MXN'}
           </p>
           <div className="text-xs text-gray-500 mt-2 space-y-1">
-            <p>• Precio por unidad = {width || '1000'} × {height || '900'} × {basePrice.toFixed(6)} = {calculation?.formattedUnitPrice || '$0.00 MXN'}</p>
+            <p>• Precio por unidad = {width || '1000'} × {height || '900'} × {basePrice.toFixed(2)} = {calculation?.formattedUnitPrice || '$0.00 MXN'}</p>
             <p>• Precio total = {quantity || '1'} unidades × {calculation?.formattedUnitPrice || '$0.00 MXN'} = {calculation?.formattedTotalPrice || '$0.00 MXN'}</p>
           </div>
         </div>
 
         {/* Action Button */}
         {onAddToQuote && productId && (
-          <Button 
+          <Button
             onClick={handleAddToQuote}
             className="w-full h-12 text-lg bg-module-black hover:bg-module-dark"
             disabled={!calculation?.isValid || isCalculating}

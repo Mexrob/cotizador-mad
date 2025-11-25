@@ -45,7 +45,6 @@ const productSchema = z.object({
   // Precio y configuración
   basePrice: z.number().min(0, 'El precio debe ser mayor o igual a 0'),
   currency: z.string().default('MXN'),
-  isCustomizable: z.boolean().default(true),
   leadTime: z.number().int().min(1).default(7),
   minQuantity: z.number().int().min(1).default(1),
   maxQuantity: z.number().int().positive().optional(),
@@ -90,9 +89,7 @@ interface Product {
   basePrice: number;
   currency: string;
   images: string[];
-  model3d?: string;
   thumbnail?: string;
-  isCustomizable: boolean;
   leadTime: number;
   minQuantity: number;
   maxQuantity?: number;
@@ -150,7 +147,6 @@ export default function ProductForm({ product, onSubmit, onCancel, isLoading }: 
       // Precio y configuración
       basePrice: product?.basePrice || 0,
       currency: product?.currency || 'MXN',
-      isCustomizable: product?.isCustomizable ?? true,
       leadTime: product?.leadTime || 7,
       minQuantity: product?.minQuantity || 1,
       maxQuantity: product?.maxQuantity || undefined,
@@ -413,15 +409,6 @@ export default function ProductForm({ product, onSubmit, onCancel, isLoading }: 
                   {...register('maxQuantity', { valueAsNumber: true })}
                 />
               </div>
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="isCustomizable"
-                checked={watch('isCustomizable')}
-                onCheckedChange={(checked) => setValue('isCustomizable', checked)}
-              />
-              <Label htmlFor="isCustomizable">Producto personalizable</Label>
             </div>
           </CardContent>
         </Card>

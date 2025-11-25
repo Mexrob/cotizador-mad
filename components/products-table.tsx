@@ -160,8 +160,8 @@ export default function ProductsTable({ onAddProduct, onEditProduct, onViewProdu
     return new Intl.NumberFormat('es-MX', {
       style: 'currency',
       currency: currency,
-      minimumFractionDigits: 6,
-      maximumFractionDigits: 6,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
     }).format(price);
   };
 
