@@ -2,6 +2,35 @@
 import { UserRole, UserStatus, QuoteStatus, ProductStatus } from '@prisma/client';
 export { UserRole, UserStatus, QuoteStatus, ProductStatus };
 
+// NextAuth type extensions
+declare module 'next-auth' {
+  interface Session {
+    user: {
+      id: string
+      email: string
+      name?: string | null
+      role: UserRole
+      status: UserStatus
+      image?: string | null
+    }
+  }
+
+  interface User {
+    id: string
+    email: string
+    name?: string | null
+    role: UserRole
+    status: UserStatus
+  }
+}
+
+declare module 'next-auth/jwt' {
+  interface JWT {
+    role: UserRole
+    status: UserStatus
+  }
+}
+
 export interface DeliveryAddress {
   id?: string;
   street: string;
@@ -105,7 +134,7 @@ export interface Product {
   maxQuantity?: number | null;
   tags: string[];
   featured: boolean;
-  
+
   // New fields for door configuration
   doorTypeId?: string | null;
   doorModelId?: string | null;
@@ -195,7 +224,7 @@ export interface Quote {
   taxAmount: number;
   discountAmount: number;
   totalAmount: number;
-  
+
   isExpressOrder: boolean;
   isExhibitionOrder: boolean;
 
@@ -226,7 +255,7 @@ export interface QuoteItem {
   customWidth?: number | null;
   customHeight?: number | null;
   customDepth?: number | null;
-  
+
   doorTypeId?: string | null;
   doorModelId?: string | null;
   colorToneId?: string | null;

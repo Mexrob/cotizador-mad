@@ -308,11 +308,13 @@ model Product {
   doorModelId     String?
   colorToneId     String?
   woodGrainId     String?
+  lineId          String?       // Link to ProductLine for guided configuration
   
-  doorType        DoorType?    @relation(fields: [doorTypeId], references: [id])
-  doorModel       DoorModel?   @relation(fields: [doorModelId], references: [id])
-  colorTone       ColorTone?   @relation(fields: [colorToneId], references: [id])
-  woodGrain       WoodGrain?   @relation(fields: [woodGrainId], references: [id])
+  doorType        DoorType?     @relation(fields: [doorTypeId], references: [id])
+  doorModel       DoorModel?    @relation(fields: [doorModelId], references: [id])
+  colorTone       ColorTone?    @relation(fields: [colorToneId], references: [id])
+  woodGrain       WoodGrain?    @relation(fields: [woodGrainId], references: [id])
+  line            ProductLine?  @relation(fields: [lineId], references: [id])
   
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
@@ -508,6 +510,13 @@ model QuoteItem {
   colorTone       ColorTone?   @relation(fields: [colorToneId], references: [id])
   woodGrain       WoodGrain?   @relation(fields: [woodGrainId], references: [id])
   handle          Handle?      @relation(fields: [handleId], references: [id])
+  // New relation to product line for configured items
+  productLineId   String?
+  productLine     ProductLine? @relation(fields: [productLineId], references: [id])
+  productToneId   String?
+  productTone     ProductTone? @relation(fields: [productToneId], references: [id])
+  handleModelId   String?
+  handleModel     HandleModel? @relation(fields: [handleModelId], references: [id])
   
   // Pricing
   unitPrice     Float
@@ -555,4 +564,86 @@ model AuditLog {
   createdAt DateTime @default(now())
   
   @@map("audit_logs")
+}
+
+// Product Configuration System
+// These models support the guided assistant for product configuration
+
+model ProductLine {
+  id          String        @id @default(cuid())
+  name        String        @unique // "VIDRIO", "LÍNEA CERÁMICA", "LÍNEA ALHÚ", etc.
+  description String?
+  code        String?       @unique // Short code for SKU generation
+  imageUrl    String?       // Main image for the line
+  isActive    Boolean       @default(true)
+  sortOrder   Int           @default(0) // Display order in UI
+  
+  // Relationships
+  products    Product[]
+  tones       ProductTone[]
+  quoteItems  QuoteItem[]  // Back-reference to quote items using this line
+  
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  
+  @@map("product_lines")
+}
+
+model ProductTone {
+  id          String       @id @default(cuid())
+  name        String       // "BLANCO", "DEKTON", "NATURAL", etc.
+  lineId      String
+  line        ProductLine  @relation(fields: [lineId], references: [id], onDelete: Cascade)
+  
+  description String?
+  imageUrl    String?      // Image showing the tone/color
+  hexColor    String?      // Hex color code for preview (if applicable)
+  
+  // Configuration options
+  supportsTwoCars     Boolean  @default(false) // Si soporta 2 caras
+  supportsHorizontalGrain Boolean @default(false) // Si soporta veta horizontal (FOIL)
+  supportsVerticalGrain   Boolean @default(false) // Si soporta veta vertical (FOIL)
+  
+  // Pricing adjustments (optional, can be 0 if no adjustment)
+  priceAdjustment     Decimal  @default(0) @db.Decimal(10, 2) // Ajuste al precio base
+  twoCarsAdjustment   Decimal  @default(0) @db.Decimal(10, 2) // Costo adicional por 2 caras
+  
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  
+  quoteItems  QuoteItem[] // Back-reference to quote items using this tone
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@unique([lineId, name])
+  @@map("product_tones")
+}
+
+model HandleModel {
+  id          String   @id @default(cuid())
+  name        String   @unique // "JALADERA MODELO SORENTO A NEGRO"
+  model       String   // "SORENTO A", "SORENTO L", "SORENTO G"
+  finish      String   // "NEGRO", "ALUMINIO"
+  
+  description String?
+  imageUrl    String?
+  
+  // Pricing
+  price       Decimal  @db.Decimal(10, 2) // Precio de la jaladera
+  priceUnit   String   @default("unit") // "unit" o "ml" (metro lineal)
+  
+  // Specifications
+  length      Int?     // Longitud en mm (si aplica)
+  width       Int?     // Ancho en mm (si aplica)
+  
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  
+  quoteItems  QuoteItem[] // Back-reference to quote items using this handle
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("handle_models")
 }

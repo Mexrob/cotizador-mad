@@ -14,7 +14,7 @@ export async function PUT(
 ) {
   try {
     const session = await getServerSession(authOptions)
-    
+
     if (!session) {
       return NextResponse.json(
         { error: 'No autorizado' },
@@ -57,6 +57,17 @@ export async function PUT(
     // Calculate new total price
     const totalPrice = currentItem.unitPrice * (quantity || currentItem.quantity)
 
+    console.log('Update payload:', {
+      itemId: params.itemId,
+      quantity,
+      customWidth,
+      customHeight,
+      lineId: body.lineId,
+      toneId: body.toneId,
+      handleId: body.handleId,
+      cars: body.cars
+    })
+
     // Update quote item
     const updatedItem = await prisma.quoteItem.update({
       where: { id: params.itemId },
@@ -65,6 +76,10 @@ export async function PUT(
         customWidth,
         customHeight,
         customDepth,
+        productLineId: body.lineId,
+        productToneId: body.toneId,
+        handleModelId: body.handleId,
+        isTwoSided: body.cars === 2,
         totalPrice,
       },
       include: {
@@ -73,8 +88,13 @@ export async function PUT(
             category: true,
           },
         },
+        productLine: true,
+        productTone: true,
+        handleModel: true,
       },
     })
+
+    console.log('Item updated successfully')
 
     // Recalculate quote totals
     await recalculateQuoteTotals(params.id)
@@ -86,8 +106,10 @@ export async function PUT(
     })
   } catch (error) {
     console.error('Update quote item error:', error)
+    // @ts-ignore
+    console.error('Error details:', error?.message || error)
     return NextResponse.json(
-      { error: 'Error al actualizar elemento' },
+      { error: `Error al actualizar elemento: ${(error as Error).message}` },
       { status: 500 }
     )
   }
@@ -100,7 +122,7 @@ export async function DELETE(
 ) {
   try {
     const session = await getServerSession(authOptions)
-    
+
     if (!session) {
       return NextResponse.json(
         { error: 'No autorizado' },
@@ -166,13 +188,13 @@ async function recalculateQuoteTotals(quoteId: string) {
 
   const subtotal = items.reduce((sum, item) => sum + item.totalPrice, 0)
   const taxAmount = subtotal * 0.16 // 16% IVA
-  
+
   // Keep existing discount amount
   const currentQuote = await prisma.quote.findUnique({
     where: { id: quoteId },
     select: { discountAmount: true },
   })
-  
+
   const discountAmount = currentQuote?.discountAmount || 0
   const totalAmount = subtotal + taxAmount - discountAmount
 

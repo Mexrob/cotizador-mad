@@ -34,3 +34,8 @@ export const createUserSchema = z.object({
     state: z.string().min(1, 'El estado fiscal es requerido'),
   }),
 }).strict(); // strict() to disallow unknown keys
+
+// Schema for updating users - password is optional
+export const updateUserSchema = createUserSchema.extend({
+  password: z.string().min(8, 'La contraseña debe tener al menos 8 caracteres').max(255).optional().or(z.literal('')),
+});

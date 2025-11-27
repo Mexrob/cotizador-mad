@@ -105,7 +105,8 @@ export async function GET(
 function generateQuotePDFHTML(quote: any, companySettings: any): string {
   // Preparar datos de la empresa con fallbacks
   const companyName = companySettings?.companyName || quote.user.companyName || 'Cocinas de Lujo'
-  const logoUrl = companySettings?.logo ? `/uploads/logos/${companySettings.logo}` : null
+  // Si el logo ya tiene una ruta completa (empieza con / o http), úsala directamente
+  const logoUrl = companySettings?.logo ? companySettings.logo : null
   const primaryColor = companySettings?.primaryColor || '#2563eb'
   const secondaryColor = companySettings?.secondaryColor || '#1d4ed8'
   

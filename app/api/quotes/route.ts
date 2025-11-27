@@ -134,6 +134,7 @@ export async function GET(request: NextRequest) {
                   name: true,
                   thumbnail: true,
                   sku: true,
+                  lineId: true,
                 },
               },
               doorType: { select: { id: true, name: true } },
@@ -204,4 +205,62 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// Método POST eliminado para restringir creación de cotizaciones
+export async function POST(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions)
+
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { success: false, error: 'No autorizado' },
+        { status: 401 }
+      )
+    }
+
+    const body = await request.json()
+    const { customerName, customerEmail, customerPhone, projectName, validUntil, notes } = body
+
+    // Generate quote number
+    const quoteNumber = await generateQuoteNumber()
+
+    // Create the quote
+    const quote = await prisma.quote.create({
+      data: {
+        quoteNumber,
+        customerName: customerName || 'Cliente Nuevo',
+        customerEmail: customerEmail || '',
+        customerPhone: customerPhone || '',
+        projectName: projectName || 'Nueva Cotización',
+        validUntil: validUntil ? new Date(validUntil) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        notes: notes || '',
+        status: 'DRAFT',
+        userId: session.user.id,
+        subtotal: 0,
+        taxAmount: 0,
+        totalAmount: 0,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+          },
+        },
+        items: true,
+      },
+    })
+
+    return NextResponse.json({
+      success: true,
+      data: quote,
+      message: 'Cotización creada exitosamente',
+    })
+  } catch (error) {
+    console.error('Quote creation error:', error)
+    return NextResponse.json(
+      { success: false, error: 'Error al crear cotización' },
+      { status: 500 }
+    )
+  }
+}

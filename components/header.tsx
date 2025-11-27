@@ -125,13 +125,13 @@ export function Header() {
   const allNavigation = [...navigation, ...userNavigation, ...adminNavigation]
 
   return (
-    <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-200/50 shadow-sm">
+    <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-200/50 shadow-sm dark:bg-gray-900/80 dark:border-gray-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
+        <div className="flex justify-between items-center h-14 sm:h-16">
           {/* Logo */}
-          <Link href="/" className="flex items-center space-x-3">
+          <Link href="/" className="flex items-center space-x-2 sm:space-x-3 min-w-0 flex-shrink">
             {companySettings.logo ? (
-              <div className="relative w-12 h-12 rounded-lg overflow-hidden">
+              <div className="relative w-10 h-10 sm:w-12 sm:h-12 rounded-lg overflow-hidden flex-shrink-0">
                 <Image
                   src={companySettings.logo}
                   alt={`${companySettings.companyName} Logo`}
@@ -140,11 +140,11 @@ export function Header() {
                 />
               </div>
             ) : (
-              <div className="w-12 h-12 bg-gradient-to-br from-module-black to-module-dark rounded-lg flex items-center justify-center">
-                <Package className="w-7 h-7 text-white" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-module-black to-module-dark rounded-lg flex items-center justify-center flex-shrink-0">
+                <Package className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
               </div>
             )}
-            <span className="text-xl font-bold text-gray-900">
+            <span className="text-base sm:text-xl font-bold text-gray-900 dark:text-white truncate hidden xs:block">
               {companySettings.companyName}
             </span>
           </Link>
@@ -168,11 +168,11 @@ export function Header() {
           </div>
 
           {/* User Menu / Auth Buttons */}
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2 sm:space-x-4">
             {session ? (
-              <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2 sm:space-x-4">
                 {/* Desktop User Menu */}
-                <div className="hidden md:flex items-center space-x-4">
+                <div className="hidden md:flex items-center space-x-3 lg:space-x-4">
                   {userNavigation.map((item) => (
                     <Link
                       key={item.name}
@@ -195,7 +195,7 @@ export function Header() {
 
                 {/* User Avatar */}
                 <div className="flex items-center space-x-2">
-                  <Avatar className="w-8 h-8">
+                  <Avatar className="w-8 h-8 sm:w-9 sm:h-9">
                     <AvatarImage src="" />
                     <AvatarFallback>
                       {session.user?.name?.charAt(0) || session.user?.email?.charAt(0) || 'U'}
@@ -245,18 +245,18 @@ export function Header() {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="md:hidden bg-white border-t border-gray-200"
+            className="md:hidden bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800"
           >
-            <div className="px-4 py-4 space-y-2">
+            <div className="px-4 py-3 space-y-1">
               {allNavigation.map((item) => (
                 <Link
                   key={item.name}
                   href={item.href}
-                  className="flex items-center space-x-3 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
+                  className="flex items-center space-x-3 px-3 py-2.5 rounded-lg text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors font-medium"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
-                  <item.icon className="w-5 h-5" />
-                  <span>{item.name}</span>
+                  <item.icon className="w-5 h-5 flex-shrink-0" />
+                  <span className="text-sm sm:text-base">{item.name}</span>
                 </Link>
               ))}
 

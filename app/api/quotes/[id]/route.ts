@@ -13,7 +13,7 @@ export async function GET(
 ) {
   try {
     const session = await getServerSession(authOptions)
-    
+
     if (!session) {
       return NextResponse.json(
         { error: 'No autorizado' },
@@ -42,6 +42,9 @@ export async function GET(
                 pricing: true,
               },
             },
+            productLine: true,
+            productTone: true,
+            handleModel: true,
           },
         },
       },
@@ -81,7 +84,7 @@ export async function PUT(
 ) {
   try {
     const session = await getServerSession(authOptions)
-    
+
     if (!session) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
@@ -174,7 +177,7 @@ export async function DELETE(
 ) {
   try {
     const session = await getServerSession(authOptions)
-    
+
     if (!session) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }

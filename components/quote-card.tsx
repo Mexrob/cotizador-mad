@@ -47,14 +47,14 @@ export function QuoteCard({ quote, onDownloadPDF, onRefresh, showUserInfo = fals
       transition={{ duration: 0.3 }}
       whileHover={{ y: -4 }}
     >
-      <Card className="overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-white/90 backdrop-blur-sm">
-        <CardHeader className="pb-3">
-          <div className="flex items-start justify-between">
-            <div className="space-y-1">
-              <h3 className="font-semibold text-lg text-gray-900">
+      <Card className="overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm">
+        <CardHeader className="pb-3 p-4 sm:p-6">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+            <div className="space-y-1 flex-1 min-w-0">
+              <h3 className="font-semibold text-base sm:text-lg text-gray-900 dark:text-white truncate">
                 {quote.quoteNumber}
               </h3>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-gray-600 dark:text-gray-300 truncate">
                 {quote.projectName}
               </p>
             </div>
@@ -64,19 +64,19 @@ export function QuoteCard({ quote, onDownloadPDF, onRefresh, showUserInfo = fals
           </div>
         </CardHeader>
 
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-3 sm:space-y-4 p-4 sm:p-6">
           {/* Customer Info */}
           <div className="space-y-2">
             <div className="flex items-center gap-2 text-sm">
-              <User className="h-4 w-4 text-gray-500" />
-              <span className="font-medium">{quote.customerName}</span>
+              <User className="h-4 w-4 text-gray-500 flex-shrink-0" />
+              <span className="font-medium truncate dark:text-white">{quote.customerName}</span>
             </div>
-            <div className="flex items-center gap-2 text-sm text-gray-600">
+            <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
               <span>{quote.customerEmail}</span>
             </div>
             {quote.projectAddress && (
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <MapPin className="h-4 w-4 text-gray-500" />
+              <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                <MapPin className="h-4 w-4 text-gray-500 flex-shrink-0" />
                 <span className="line-clamp-1">{quote.projectAddress}</span>
               </div>
             )}
@@ -92,24 +92,24 @@ export function QuoteCard({ quote, onDownloadPDF, onRefresh, showUserInfo = fals
           )}
 
           {/* Quote Details */}
-          <div className="grid grid-cols-2 gap-4 text-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-sm">
             <div className="space-y-1">
               <div className="flex items-center gap-2">
-                <Package className="h-4 w-4 text-gray-500" />
-                <span className="text-gray-600">
+                <Package className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                <span className="text-gray-600 dark:text-gray-300">
                   {quote._count?.items || 0} productos
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4 text-gray-500" />
-                <span className="text-gray-600">
+                <Clock className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                <span className="text-gray-600 dark:text-gray-300 text-xs sm:text-sm">
                   Válida hasta: {formatDate(quote.validUntil)}
                 </span>
               </div>
             </div>
             
-            <div className="text-right">
-              <div className="text-2xl font-bold text-primary">
+            <div className="text-right sm:text-right">
+              <div className="text-xl sm:text-2xl font-bold text-primary">
                 {formatMXN(quote.totalAmount)}
               </div>
               {quote.discountAmount > 0 && (
@@ -128,12 +128,12 @@ export function QuoteCard({ quote, onDownloadPDF, onRefresh, showUserInfo = fals
           )}
 
           {/* Creation date */}
-          <div className="text-xs text-gray-500 border-t pt-2">
+          <div className="text-xs text-gray-500 dark:text-gray-400 border-t dark:border-gray-700 pt-2">
             Creada el {formatDate(quote.createdAt)}
           </div>
         </CardContent>
 
-        <CardFooter className="flex gap-2">
+        <CardFooter className="flex flex-col sm:flex-row gap-2 p-4 sm:p-6 pt-0">
           <QuoteActions
             quote={quote}
             onDownloadPDF={onDownloadPDF}

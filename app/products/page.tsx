@@ -152,10 +152,10 @@ export default function ProductsPage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
-      <section className="bg-gradient-to-r from-module-black to-module-dark text-white py-16">
-        <div className="max-w-7xl mx-auto px-4 text-center">
+      <section className="bg-gradient-to-r from-module-black to-module-dark text-white py-8 sm:py-12 lg:py-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <motion.h1
-            className="text-4xl md:text-6xl font-bold mb-6"
+            className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-4 sm:mb-6"
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
@@ -163,7 +163,7 @@ export default function ProductsPage() {
             Catálogo de Productos
           </motion.h1>
           <motion.p
-            className="text-xl md:text-2xl text-gray-100 max-w-3xl mx-auto"
+            className="text-base sm:text-lg md:text-xl lg:text-2xl text-gray-100 max-w-3xl mx-auto px-4"
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}
@@ -173,45 +173,47 @@ export default function ProductsPage() {
         </div>
       </section>
 
-      <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         {/* Search and Filters */}
-        <div className="mb-8 space-y-4">
+        <div className="mb-6 sm:mb-8 space-y-3 sm:space-y-4">
           {/* Search Bar */}
-          <div className="flex flex-col lg:flex-row gap-4">
+          <div className="flex flex-col lg:flex-row gap-3 sm:gap-4">
             <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 sm:w-5 sm:h-5" />
               <Input
-                placeholder="Buscar productos por nombre, descripción o SKU..."
+                placeholder="Buscar productos..."
                 value={filters.search}
                 onChange={(e) => handleSearch(e.target.value)}
-                className="pl-10 py-3 text-lg"
+                className="pl-9 sm:pl-10 py-2 sm:py-3 text-sm sm:text-base"
               />
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex gap-2 overflow-x-auto pb-2 sm:pb-0">
               {isAdmin && (
                 <Button
                   onClick={handleAddProduct}
-                  className="flex items-center gap-2 bg-module-black hover:bg-module-dark text-white"
+                  className="flex items-center gap-2 bg-module-black hover:bg-module-dark text-white whitespace-nowrap text-sm"
                 >
                   <Plus className="w-4 h-4" />
-                  Agregar Producto
+                  <span className="hidden sm:inline">Agregar Producto</span>
+                  <span className="sm:hidden">Agregar</span>
                 </Button>
               )}
 
               <Button
                 variant={showFilters ? "default" : "outline"}
                 onClick={() => setShowFilters(!showFilters)}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 whitespace-nowrap text-sm"
               >
                 <SlidersHorizontal className="w-4 h-4" />
-                Filtros
+                <span className="hidden sm:inline">Filtros</span>
               </Button>
 
               <Button
                 variant={viewMode === 'grid' ? "default" : "outline"}
                 onClick={() => setViewMode('grid')}
                 size="icon"
+                className="flex-shrink-0"
               >
                 <Grid3X3 className="w-4 h-4" />
               </Button>
@@ -220,6 +222,7 @@ export default function ProductsPage() {
                 variant={viewMode === 'list' ? "default" : "outline"}
                 onClick={() => setViewMode('list')}
                 size="icon"
+                className="flex-shrink-0"
               >
                 <List className="w-4 h-4" />
               </Button>
@@ -234,11 +237,11 @@ export default function ProductsPage() {
               exit={{ opacity: 0, height: 0 }}
             >
               <Card>
-                <CardContent className="p-6">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <CardContent className="p-4 sm:p-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                     {/* Categories */}
                     <div>
-                      <h3 className="font-semibold mb-3">Categorías</h3>
+                      <h3 className="font-semibold text-sm sm:text-base mb-3">Categorías</h3>
                       <div className="flex flex-wrap gap-2">
                         <Badge
                           variant={!filters.categoryId ? "default" : "outline"}
@@ -262,7 +265,7 @@ export default function ProductsPage() {
 
                     {/* Sort Options */}
                     <div>
-                      <h3 className="font-semibold mb-3">Ordenar por</h3>
+                      <h3 className="font-semibold text-sm sm:text-base mb-3">Ordenar por</h3>
                       <div className="space-y-2">
                         {[
                           { key: 'name' as const, label: 'Nombre' },
@@ -289,7 +292,7 @@ export default function ProductsPage() {
 
                     {/* Additional Filters */}
                     <div>
-                      <h3 className="font-semibold mb-3">Filtros adicionales</h3>
+                      <h3 className="font-semibold text-sm sm:text-base mb-3">Filtros adicionales</h3>
                       <div className="space-y-2">
                         <Button variant="outline" size="sm" className="w-full justify-start">
                           Solo personalizables
@@ -310,8 +313,8 @@ export default function ProductsPage() {
         </div>
 
         {/* Results Count */}
-        <div className="flex items-center justify-between mb-6">
-          <p className="text-muted-foreground">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4 sm:mb-6">
+          <p className="text-sm sm:text-base text-muted-foreground">
             {loading ? 'Cargando...' : `${products.length} productos encontrados`}
           </p>
           {filters.search && (
@@ -344,8 +347,8 @@ export default function ProductsPage() {
           </div>
         ) : (
           <motion.div
-            className={`grid gap-6 ${viewMode === 'grid'
-              ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
+            className={`grid gap-4 sm:gap-6 ${viewMode === 'grid'
+              ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
               : 'grid-cols-1'
               }`}
             layout
@@ -371,9 +374,9 @@ export default function ProductsPage() {
 
       {/* Product Form Dialog */}
       <Dialog open={showProductForm} onOpenChange={setShowProductForm}>
-        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
           <DialogHeader>
-            <DialogTitle>Nuevo Producto</DialogTitle>
+            <DialogTitle className="text-lg sm:text-xl">Nuevo Producto</DialogTitle>
           </DialogHeader>
           <ProductForm
             onSubmit={handleSubmitProduct}

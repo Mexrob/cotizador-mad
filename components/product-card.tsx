@@ -85,13 +85,13 @@ export function ProductCard({ product, onAddToQuote, onQuickView }: ProductCardP
           )}
         </div>
 
-        <CardContent className="p-4">
+        <CardContent className="p-3 sm:p-4">
           <div className="space-y-2">
-            <h3 className="font-semibold text-lg line-clamp-2 text-gray-900">
+            <h3 className="font-semibold text-base sm:text-lg line-clamp-2 text-gray-900 dark:text-white">
               {product.name}
             </h3>
             
-            <p className="text-sm text-gray-600 line-clamp-2">
+            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 line-clamp-2">
               {product.description}
             </p>
             
@@ -112,10 +112,10 @@ export function ProductCard({ product, onAddToQuote, onQuickView }: ProductCardP
           </div>
         </CardContent>
 
-        <CardFooter className={`p-4 pt-0 ${isAuthenticated ? 'flex items-center justify-between' : 'flex justify-end'}`}>
+        <CardFooter className={`p-3 sm:p-4 pt-0 ${isAuthenticated ? 'flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3' : 'flex justify-end'}`}>
           {isAuthenticated && (
             <div className="space-y-1">
-              <div className="text-2xl font-bold text-primary">
+              <div className="text-xl sm:text-2xl font-bold text-primary">
                 {formatMXN(price)}
               </div>
               {pricing?.markup && pricing.markup > 0 && (
@@ -126,26 +126,26 @@ export function ProductCard({ product, onAddToQuote, onQuickView }: ProductCardP
             </div>
           )}
           
-          <div className="flex gap-2">
-            <Link href={`/products/${product.id}`}>
-              <Button variant="outline" size="sm">
+          <div className="flex gap-2 w-full sm:w-auto">
+            <Link href={`/products/${product.id}`} className="flex-1 sm:flex-none">
+              <Button variant="outline" size="sm" className="w-full text-xs sm:text-sm">
                 Ver Detalles
               </Button>
             </Link>
             {isAuthenticated ? (
-              <Button 
+              <Button
                 size="sm"
                 onClick={() => onAddToQuote?.(product)}
-                className="bg-primary hover:bg-primary/90"
+                className="bg-primary hover:bg-primary/90 flex-1 sm:flex-none text-xs sm:text-sm"
               >
                 Cotizar
               </Button>
             ) : (
-              <Link href="/auth/signin">
-                <Button 
+              <Link href="/auth/signin" className="flex-1 sm:flex-none">
+                <Button
                   size="sm"
                   variant="outline"
-                  className="border-module-black text-module-black hover:bg-gray-50"
+                  className="border-module-black text-module-black hover:bg-gray-50 w-full text-xs sm:text-sm"
                 >
                   Iniciar Sesión
                 </Button>

@@ -31,7 +31,7 @@ import {
   Eye,
   Settings
 } from 'lucide-react'
-import { createUserSchema } from '@/lib/validationSchemas'
+import { createUserSchema, updateUserSchema } from '@/lib/validationSchemas'
 import { z } from 'zod'
 
 type UserFormData = z.infer<typeof createUserSchema>;
@@ -187,8 +187,22 @@ export default function UserManagement() {
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
-    const result = createUserSchema.safeParse(formData);
+
+    // Sync billing address if using same address
+    let dataToValidate = { ...formData };
+    if (useSameAddress && dataToValidate.deliveryAddress) {
+      dataToValidate.billingAddress = {
+        street: dataToValidate.deliveryAddress.street,
+        number: dataToValidate.deliveryAddress.exteriorNumber,
+        colony: dataToValidate.deliveryAddress.colony,
+        zipCode: dataToValidate.deliveryAddress.zipCode,
+        city: dataToValidate.deliveryAddress.city,
+        state: dataToValidate.deliveryAddress.state,
+      };
+    }
+
+    const schema = selectedUser ? updateUserSchema : createUserSchema;
+    const result = schema.safeParse(dataToValidate);
 
     if (!result.success) {
       const fieldErrors: { [key: string]: string } = {};
@@ -216,14 +230,14 @@ export default function UserManagement() {
         response = await fetch(`/api/users/${selectedUser.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(formData),
+          body: JSON.stringify(result.data),
         })
       } else {
         // Create user
         response = await fetch('/api/users', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(formData),
+          body: JSON.stringify(result.data),
         })
       }
 
@@ -387,12 +401,12 @@ export default function UserManagement() {
     });
     // If billing address is identical to delivery address, set checkbox
     if (user.deliveryAddress && user.billingAddress &&
-        user.deliveryAddress.street === user.billingAddress.street &&
-        user.deliveryAddress.exteriorNumber === user.billingAddress.number && // Note: exteriorNumber vs number
-        user.deliveryAddress.colony === user.billingAddress.colony &&
-        user.deliveryAddress.zipCode === user.billingAddress.zipCode &&
-        user.deliveryAddress.city === user.billingAddress.city &&
-        user.deliveryAddress.state === user.billingAddress.state) {
+      user.deliveryAddress.street === user.billingAddress.street &&
+      user.deliveryAddress.exteriorNumber === user.billingAddress.number && // Note: exteriorNumber vs number
+      user.deliveryAddress.colony === user.billingAddress.colony &&
+      user.deliveryAddress.zipCode === user.billingAddress.zipCode &&
+      user.deliveryAddress.city === user.billingAddress.city &&
+      user.deliveryAddress.state === user.billingAddress.state) {
       setUseSameAddress(true);
     } else {
       setUseSameAddress(false);
