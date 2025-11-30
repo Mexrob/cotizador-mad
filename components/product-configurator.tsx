@@ -42,6 +42,7 @@ interface ProductTone {
     supportsVerticalGrain: boolean
     priceAdjustment: number
     twoCarsAdjustment: number
+    imageUrl?: string
 }
 
 interface HandleModel {
@@ -62,6 +63,10 @@ interface Product {
     width: number
     height: number
     depth: number
+    minWidth?: number
+    maxWidth?: number
+    minHeight?: number
+    maxHeight?: number
     isCustomizable: boolean
     lineId?: string
     category?: { name: string }
@@ -77,6 +82,8 @@ interface ConfigurationState {
     width: number
     height: number
     quantity: number
+    isExhibition?: boolean
+    isExpressDelivery?: boolean
 }
 
 interface PricingBreakdown {
@@ -85,6 +92,8 @@ interface PricingBreakdown {
     carsAdjustment: number
     laborCost: number
     handlePrice: number
+    exhibitionFee?: number
+    expressDeliveryFee?: number
 }
 
 interface PricingCalculation {
@@ -98,6 +107,9 @@ interface ProductConfiguratorProps {
     onCancel: () => void
     initialConfig?: Partial<ConfigurationState>
     mode?: 'create' | 'edit'
+    allowedLines?: string[]
+    allowedHandles?: string[]
+    allowedTones?: string[]
 }
 
 const steps = [
@@ -115,6 +127,9 @@ export default function ProductConfigurator({
     onCancel,
     initialConfig,
     mode = 'create',
+    allowedLines,
+    allowedHandles,
+    allowedTones,
 }: ProductConfiguratorProps) {
     const [currentStep, setCurrentStep] = useState(1)
     const [products, setProducts] = useState<Product[]>([])
@@ -134,6 +149,8 @@ export default function ProductConfigurator({
         width: initialConfig?.width || 700,
         height: initialConfig?.height || 2100,
         quantity: initialConfig?.quantity || 1,
+        isExhibition: initialConfig?.isExhibition || false,
+        isExpressDelivery: initialConfig?.isExpressDelivery || false,
     })
 
     // Fetch products and handles on mount
@@ -151,8 +168,8 @@ export default function ProductConfigurator({
                 setConfig(prev => ({
                     ...prev,
                     lineId: selectedProduct.lineId || prev.lineId,
-                    width: selectedProduct.width || prev.width,
-                    height: selectedProduct.height || prev.height,
+                    width: selectedProduct.minWidth || selectedProduct.width || prev.width,
+                    height: selectedProduct.minHeight || selectedProduct.height || prev.height,
                 }))
             }
         }
@@ -170,7 +187,12 @@ export default function ProductConfigurator({
             const response = await fetch('/api/products?isCustomizable=true&limit=100')
             const data = await response.json()
             if (data.success) {
-                setProducts(data.data)
+                // Filter out "Standard" products as requested
+                const filteredProducts = data.data.filter((p: any) =>
+                    !p.name.toLowerCase().includes('standard') &&
+                    !p.name.toLowerCase().includes('estandard')
+                )
+                setProducts(filteredProducts)
             }
         } catch (error) {
             console.error('Error fetching products:', error)
@@ -221,8 +243,8 @@ export default function ProductConfigurator({
     const selectedTone = tones.find((t) => t.id === config.toneId)
     const selectedHandle = handles.find((h) => h.id === config.handleId)
 
-    const canProceed = () => {
-        switch (currentStep) {
+    const isStepValid = (step: number) => {
+        switch (step) {
             case 1:
                 return !!config.productId
             case 2:
@@ -240,6 +262,31 @@ export default function ProductConfigurator({
         }
     }
 
+    const canProceed = () => {
+        return isStepValid(currentStep)
+    }
+
+    const handleStepClick = (stepIndex: number) => {
+        // Always allow going back
+        if (stepIndex < currentStep) {
+            setCurrentStep(stepIndex)
+            return
+        }
+
+        // Allow going forward only if all previous steps are valid
+        let canJump = true
+        for (let i = 1; i < stepIndex; i++) {
+            if (!isStepValid(i)) {
+                canJump = false
+                break
+            }
+        }
+
+        if (canJump) {
+            setCurrentStep(stepIndex)
+        }
+    }
+
     const handleNext = () => {
         if (canProceed() && currentStep < steps.length) {
             setCurrentStep(currentStep + 1)
@@ -253,28 +300,40 @@ export default function ProductConfigurator({
     }
 
     const calculatePrice = (): PricingCalculation => {
-        // TODO: Move these values to company settings or product configuration
-        const basePrice = 0.05 // $0.05 MXN por mm² (placeholder)
-        const laborCost = 300 // $300 MXN mano de obra (placeholder)
+        // Pricing logic based on CSV data
+        // Base price comes from Tone (priceAdjustment) which is per m²
 
-        const area = config.width * config.height // mm²
-        const toneAdjustment = Number(selectedTone?.priceAdjustment || 0)
+        const widthM = config.width / 1000
+        const heightM = config.height / 1000
+        const areaM2 = widthM * heightM
+
+        const tonePricePerM2 = Number(selectedTone?.priceAdjustment || 0)
+        const basePriceTotal = areaM2 * tonePricePerM2
+
+        // Cars adjustment (if applicable, currently 0 in CSV logic but supported in schema)
         const carsAdjustment =
             config.cars === 2 ? Number(selectedTone?.twoCarsAdjustment || 0) : 0
-        const handlePrice = Number(selectedHandle?.price || 0)
 
-        const unitPrice = area * (basePrice + toneAdjustment) + carsAdjustment + laborCost
-        const totalPrice = unitPrice * config.quantity + handlePrice
+        const handlePrice = Number(selectedHandle?.price || 0)
+        const laborCost = 0 // Not specified in CSV, setting to 0
+
+        const exhibitionFee = config.isExhibition ? 500 : 0
+        const expressDeliveryFee = config.isExpressDelivery ? 500 : 0
+
+        const unitPrice = basePriceTotal + carsAdjustment + laborCost + handlePrice
+        const totalPrice = unitPrice * config.quantity + exhibitionFee + expressDeliveryFee
 
         return {
             unitPrice,
             totalPrice,
             breakdown: {
-                basePrice: area * basePrice,
-                toneAdjustment: area * toneAdjustment,
+                basePrice: basePriceTotal,
+                toneAdjustment: 0, // Included in basePriceTotal
                 carsAdjustment,
                 laborCost,
                 handlePrice,
+                exhibitionFee,
+                expressDeliveryFee,
             },
         }
     }
@@ -292,148 +351,176 @@ export default function ProductConfigurator({
     return (
         <div className="max-w-5xl mx-auto p-4 sm:p-6">
             {/* Header with Steps */}
-            <div className="mb-6 sm:mb-8">
+            <div className="space-y-6">
                 <h2 className="text-2xl sm:text-3xl font-bold mb-2">Configurar Producto</h2>
                 <p className="text-sm sm:text-base text-muted-foreground mb-4 sm:mb-6">
                     Sigue los pasos para configurar tu producto personalizado
                 </p>
 
-                {/* Progress Bar */}
-                <Progress value={progress} className="mb-4 sm:mb-6" />
+
 
                 {/* Steps Indicator */}
-                <div className="flex justify-between items-center overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
-                    {steps.map((step, index) => {
-                        const Icon = step.icon
-                        const isCompleted = currentStep > step.id
-                        const isCurrent = currentStep === step.id
+                <div className="mb-8">
+                    <div className="flex items-start justify-between w-full">
+                        {steps.map((step, index) => {
+                            const stepNumber = index + 1
+                            const isCompleted = stepNumber < currentStep
+                            const isCurrent = stepNumber === currentStep
 
-                        return (
-                            <div key={step.id} className="flex items-center flex-shrink-0">
-                                <div className="flex flex-col items-center">
-                                    <div
-                                        className={`
-                      w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center
-                      transition-all duration-200
-                      ${isCompleted
-                                                ? 'bg-green-600 text-white'
-                                                : isCurrent
-                                                    ? 'bg-module-black text-white'
-                                                    : 'bg-gray-200 text-gray-500'
-                                            }
-                    `}
-                                    >
-                                        {isCompleted ? (
-                                            <Check className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
-                                        ) : (
-                                            <Icon className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
-                                        )}
+                            // Check if this step is reachable
+                            let isReachable = true
+                            for (let i = 1; i < stepNumber; i++) {
+                                if (!isStepValid(i)) {
+                                    isReachable = false
+                                    break
+                                }
+                            }
+
+                            return (
+                                <div key={step.id} className="flex flex-1 last:flex-none">
+                                    <div className="flex flex-col items-center relative z-10">
+                                        <button
+                                            onClick={() => handleStepClick(stepNumber)}
+                                            disabled={!isReachable}
+                                            className={`
+                                            w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center transition-all duration-200
+                                            ${isCurrent
+                                                    ? 'bg-module-black text-white ring-4 ring-gray-100 dark:ring-gray-800 scale-110'
+                                                    : isCompleted
+                                                        ? 'bg-module-black text-white cursor-pointer hover:bg-module-dark'
+                                                        : isReachable
+                                                            ? 'bg-gray-200 text-gray-500 cursor-pointer hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-400'
+                                                            : 'bg-gray-100 text-gray-300 cursor-not-allowed dark:bg-gray-800 dark:text-gray-600'
+                                                }
+                                        `}
+                                        >
+                                            {isCompleted ? (
+                                                <Check className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
+                                            ) : (
+                                                <step.icon className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
+                                            )}
+                                        </button>
+                                        <span
+                                            className={`
+                                            text-xs sm:text-sm mt-1 sm:mt-2 font-medium text-center max-w-[80px] sm:max-w-[100px]
+                                            ${isCurrent ? 'text-module-black dark:text-white' : 'text-gray-500 dark:text-gray-400'}
+                                        `}
+                                        >
+                                            {step.name}
+                                        </span>
                                     </div>
-                                    <span
-                                        className={`
-                      text-xs sm:text-sm mt-1 sm:mt-2 font-medium whitespace-nowrap
-                      ${isCurrent ? 'text-module-black' : 'text-gray-500'}
-                    `}
-                                    >
-                                        {step.name}
-                                    </span>
+                                    {index < steps.length - 1 && (
+                                        <div className="flex-1 flex items-center h-8 sm:h-10 md:h-12 -ml-4 -mr-4">
+                                            <div
+                                                className={`
+                                                h-0.5 sm:h-1 w-full mx-4 transition-all duration-200
+                                                ${isCompleted ? 'bg-green-600' : 'bg-gray-200 dark:bg-gray-700'}
+                                            `}
+                                            />
+                                        </div>
+                                    )}
                                 </div>
-                                {index < steps.length - 1 && (
-                                    <div
-                                        className={`
-                      h-0.5 sm:h-1 w-6 sm:w-8 md:w-12 mx-1 sm:mx-2 mb-4 sm:mb-6 transition-all duration-200
-                      ${isCompleted ? 'bg-green-600' : 'bg-gray-200'}
-                    `}
-                                    />
-                                )}
-                            </div>
-                        )
-                    })}
+                            )
+                        })}
+                    </div>
                 </div>
             </div>
 
             {/* Step Content */}
-            <AnimatePresence mode="wait">
-                <motion.div
-                    key={currentStep}
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
-                    transition={{ duration: 0.3 }}
-                >
-                    <Card>
-                        <CardHeader className="pb-4">
-                            <CardTitle className="text-lg sm:text-xl">{steps[currentStep - 1].name}</CardTitle>
-                            <CardDescription className="text-sm">
-                                {currentStep === 1 && 'Selecciona un producto personalizable del catálogo'}
-                                {currentStep === 2 && 'Selecciona la línea de producto'}
-                                {currentStep === 3 && 'Elige el tono o color'}
-                                {currentStep === 4 && 'Configura las opciones del producto'}
-                                {currentStep === 5 && 'Selecciona un modelo de jaladera (opcional)'}
-                                {currentStep === 6 && 'Define las dimensiones personalizadas'}
-                                {currentStep === 7 && 'Revisa tu configuración'}
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="min-h-[300px] sm:min-h-[400px]">
-                            {/* Step content will be rendered here */}
-                            {currentStep === 1 && (
-                                <StepProductSelection
-                                    products={products}
-                                    selected={config.productId}
-                                    search={productSearch}
-                                    onSearchChange={setProductSearch}
-                                    onSelect={(id) => setConfig({ ...config, productId: id })}
-                                />
-                            )}
-                            {currentStep === 2 && (
-                                <StepProductLine
-                                    lines={lines}
-                                    selected={config.lineId}
-                                    onSelect={(id) => setConfig({ ...config, lineId: id, toneId: undefined })}
-                                />
-                            )}
-                            {currentStep === 3 && (
-                                <StepTone
-                                    tones={tones}
-                                    selected={config.toneId}
-                                    loading={loading}
-                                    onSelect={(id) => setConfig({ ...config, toneId: id })}
-                                />
-                            )}
-                            {currentStep === 4 && (
-                                <StepConfiguration
-                                    config={config}
-                                    tone={selectedTone}
-                                    onUpdate={(updates) => setConfig({ ...config, ...updates })}
-                                />
-                            )}
-                            {currentStep === 5 && (
-                                <StepHandle
-                                    handles={handles}
-                                    selected={config.handleId}
-                                    onSelect={(id) => setConfig({ ...config, handleId: id })}
-                                />
-                            )}
-                            {currentStep === 6 && (
-                                <StepDimensions
-                                    config={config}
-                                    onUpdate={(updates) => setConfig({ ...config, ...updates })}
-                                />
-                            )}
-                            {currentStep === 7 && (
-                                <StepSummary
-                                    config={config}
-                                    product={selectedProduct}
-                                    line={selectedLine}
-                                    tone={selectedTone}
-                                    handle={selectedHandle}
-                                    pricing={calculatePrice()}
-                                />
-                            )}
-                        </CardContent>
-                    </Card>
-                </motion.div>
-            </AnimatePresence>
+            <div className="min-h-[500px] w-full">
+                <AnimatePresence mode="wait">
+                    <motion.div
+                        key={currentStep}
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -20 }}
+                        transition={{ duration: 0.3 }}
+                        className="w-full"
+                    >
+                        <Card className="flex flex-col w-full">
+                            <CardHeader className="pb-4 flex-none">
+                                <CardTitle className="text-lg sm:text-xl">{steps[currentStep - 1].name}</CardTitle>
+                                <CardDescription className="text-sm">
+                                    {currentStep === 1 && 'Selecciona un producto personalizable del catálogo'}
+                                    {currentStep === 2 && 'Selecciona la línea de producto'}
+                                    {currentStep === 3 && 'Elige el tono o color'}
+                                    {currentStep === 4 && 'Configura las opciones del producto'}
+                                    {currentStep === 5 && 'Selecciona un modelo de jaladera (opcional)'}
+                                    {currentStep === 6 && 'Define las dimensiones personalizadas'}
+                                    {currentStep === 7 && 'Revisa tu configuración'}
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="flex-1 pr-2">
+                                {/* Step content will be rendered here */}
+                                {currentStep === 1 && (
+                                    <StepProductSelection
+                                        products={products}
+                                        selected={config.productId}
+                                        search={productSearch}
+                                        onSearchChange={setProductSearch}
+                                        onSelect={(id) => setConfig({ ...config, productId: id })}
+                                    />
+                                )}
+                                {currentStep === 2 && (
+                                    <StepProductLine
+                                        lines={allowedLines
+                                            ? lines.filter(l => allowedLines.includes(l.name))
+                                            : lines
+                                        }
+                                        selected={config.lineId}
+                                        onSelect={(id) => setConfig({ ...config, lineId: id, toneId: undefined })}
+                                    />
+                                )}
+                                {currentStep === 3 && (
+                                    <StepTone
+                                        tones={allowedTones
+                                            ? tones.filter(t => allowedTones.includes(t.name))
+                                            : tones
+                                        }
+                                        selected={config.toneId}
+                                        loading={loading}
+                                        onSelect={(id) => setConfig({ ...config, toneId: id })}
+                                    />
+                                )}
+                                {currentStep === 4 && (
+                                    <StepConfiguration
+                                        config={config}
+                                        tone={selectedTone}
+                                        onUpdate={(updates) => setConfig({ ...config, ...updates })}
+                                    />
+                                )}
+                                {currentStep === 5 && (
+                                    <StepHandle
+                                        handles={allowedHandles
+                                            ? handles.filter(h => allowedHandles.includes(h.name) || allowedHandles.includes(h.model))
+                                            : handles
+                                        }
+                                        selected={config.handleId}
+                                        onSelect={(id) => setConfig({ ...config, handleId: id })}
+                                    />
+                                )}
+                                {currentStep === 6 && (
+                                    <StepDimensions
+                                        config={config}
+                                        product={selectedProduct}
+                                        onUpdate={(updates) => setConfig({ ...config, ...updates })}
+                                    />
+                                )}
+                                {currentStep === 7 && (
+                                    <StepSummary
+                                        config={config}
+                                        product={selectedProduct}
+                                        line={selectedLine}
+                                        tone={selectedTone}
+                                        handle={selectedHandle}
+                                        pricing={calculatePrice()}
+                                    />
+                                )}
+                            </CardContent>
+                        </Card>
+                    </motion.div>
+                </AnimatePresence>
+            </div>
 
             {/* Navigation Buttons */}
             <div className="flex flex-col sm:flex-row justify-between gap-3 mt-4 sm:mt-6">
@@ -523,7 +610,7 @@ function StepProductSelection({
                                 <p className="text-xs text-muted-foreground mb-2">{product.category.name}</p>
                             )}
                             <p className="text-xs text-muted-foreground">
-                                Dimensión estándar: {product.width} × {product.height} mm
+                                Dimensión: {product.minWidth}-{product.maxWidth} × {product.minHeight}-{product.maxHeight} mm
                             </p>
                             {selected === product.id && (
                                 <Badge className="mt-3 bg-green-600">Seleccionado</Badge>
@@ -563,6 +650,16 @@ function StepProductLine({
                     onClick={() => onSelect(line.id)}
                 >
                     <CardContent className="p-4 sm:p-6">
+                        {line.imageUrl && (
+                            <div className="relative w-full h-32 mb-4 rounded-md overflow-hidden bg-white">
+                                <Image
+                                    src={line.imageUrl}
+                                    alt={line.name}
+                                    fill
+                                    className="object-contain p-2"
+                                />
+                            </div>
+                        )}
                         <h3 className="font-semibold text-base sm:text-lg mb-2">{line.name}</h3>
                         <p className="text-xs sm:text-sm text-muted-foreground">{line.description}</p>
                         {selected === line.id && (
@@ -610,12 +707,21 @@ function StepTone({
                     onClick={() => onSelect(tone.id)}
                 >
                     <CardContent className="p-3 sm:p-4">
-                        {tone.hexColor && (
+                        {tone.imageUrl ? (
+                            <div className="relative w-full h-16 sm:h-20 md:h-24 rounded-md mb-2 sm:mb-3 overflow-hidden bg-white">
+                                <Image
+                                    src={tone.imageUrl}
+                                    alt={tone.name}
+                                    fill
+                                    className="object-contain p-1"
+                                />
+                            </div>
+                        ) : tone.hexColor ? (
                             <div
                                 className="w-full h-16 sm:h-20 md:h-24 rounded-md mb-2 sm:mb-3"
                                 style={{ backgroundColor: tone.hexColor }}
                             />
-                        )}
+                        ) : null}
                         <h4 className="font-medium text-xs sm:text-sm">{tone.name}</h4>
                         {selected === tone.id && (
                             <Check className="w-4 h-4 text-green-600 mt-2" />
@@ -662,6 +768,13 @@ function StepConfiguration({
                 </div>
             </div>
 
+            <div>
+                <h4 className="font-semibold text-sm sm:text-base mb-3 sm:mb-4">Cubrecanto</h4>
+                <div className="p-3 border rounded-md bg-gray-50 text-sm text-gray-700">
+                    SIMILAR A TONO DEL VIDRIO
+                </div>
+            </div>
+
             {(tone?.supportsHorizontalGrain || tone?.supportsVerticalGrain) && (
                 <div>
                     <h4 className="font-semibold text-sm sm:text-base mb-3 sm:mb-4">Orientación de Veta</h4>
@@ -687,6 +800,42 @@ function StepConfiguration({
                     </div>
                 </div>
             )}
+
+            <div>
+                <h4 className="font-semibold text-sm sm:text-base mb-3 sm:mb-4">Opciones Adicionales</h4>
+                <div className="space-y-3">
+                    <div
+                        className={`p-3 border rounded-md cursor-pointer transition-all ${config.isExhibition ? 'bg-module-black text-white border-module-black' : 'hover:bg-gray-50'
+                            }`}
+                        onClick={() => onUpdate({ isExhibition: !config.isExhibition })}
+                    >
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <span className="text-sm font-medium">Producto de Exhibición</span>
+                                <Badge variant={config.isExhibition ? "outline" : "secondary"} className={config.isExhibition ? "border-white text-white" : ""}>
+                                    +$500 MXN
+                                </Badge>
+                            </div>
+                            {config.isExhibition && <Check className="w-4 h-4" />}
+                        </div>
+                    </div>
+                    <div
+                        className={`p-3 border rounded-md cursor-pointer transition-all ${config.isExpressDelivery ? 'bg-module-black text-white border-module-black' : 'hover:bg-gray-50'
+                            }`}
+                        onClick={() => onUpdate({ isExpressDelivery: !config.isExpressDelivery })}
+                    >
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <span className="text-sm font-medium">Entrega Express</span>
+                                <Badge variant={config.isExpressDelivery ? "outline" : "secondary"} className={config.isExpressDelivery ? "border-white text-white" : ""}>
+                                    +$500 MXN
+                                </Badge>
+                            </div>
+                            {config.isExpressDelivery && <Check className="w-4 h-4" />}
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     )
 }
@@ -723,6 +872,16 @@ function StepHandle({
                         onClick={() => onSelect(handle.id)}
                     >
                         <CardContent className="p-3 sm:p-4">
+                            {handle.imageUrl && (
+                                <div className="relative w-full h-24 sm:h-28 md:h-32 rounded-md mb-3 overflow-hidden bg-white">
+                                    <Image
+                                        src={handle.imageUrl}
+                                        alt={handle.model}
+                                        fill
+                                        className="object-contain p-2"
+                                    />
+                                </div>
+                            )}
                             <div className="flex justify-between items-start">
                                 <div>
                                     <h4 className="font-medium text-sm mb-1">{handle.model}</h4>
@@ -743,11 +902,20 @@ function StepHandle({
 
 function StepDimensions({
     config,
+    product,
     onUpdate,
 }: {
     config: ConfigurationState
+    product?: Product
     onUpdate: (updates: Partial<ConfigurationState>) => void
 }) {
+    // Need access to products to get min/max limits
+    // Since we don't have products passed here, we need to pass them or use a context/store
+    // For now, let's assume the parent component passes the selected product limits or we change the props
+    // But StepDimensions is used in the render loop where products are available in scope?
+    // No, StepDimensions is a separate function.
+    // I need to update the signature of StepDimensions to accept 'products' or 'selectedProduct'
+    // Let's check the call site.
     return (
         <div className="space-y-6">
             <p className="text-muted-foreground mb-4">
@@ -762,11 +930,13 @@ function StepDimensions({
                         type="number"
                         value={config.width}
                         onChange={(e) => onUpdate({ width: Number(e.target.value) })}
-                        min="300"
-                        max="1500"
+                        min={product?.minWidth || 300}
+                        max={product?.maxWidth || 1500}
                         className="w-full px-3 py-2 border rounded-md"
                     />
-                    <p className="text-xs text-muted-foreground">Rango: 300 - 1500 mm</p>
+                    <p className="text-xs text-muted-foreground">
+                        Rango: {product?.minWidth || 300} - {product?.maxWidth || 1500} mm
+                    </p>
                 </div>
 
                 {/* Height */}
@@ -776,11 +946,13 @@ function StepDimensions({
                         type="number"
                         value={config.height}
                         onChange={(e) => onUpdate({ height: Number(e.target.value) })}
-                        min="500"
-                        max="2400"
+                        min={product?.minHeight || 500}
+                        max={product?.maxHeight || 2400}
                         className="w-full px-3 py-2 border rounded-md"
                     />
-                    <p className="text-xs text-muted-foreground">Rango: 500 - 2400 mm</p>
+                    <p className="text-xs text-muted-foreground">
+                        Rango: {product?.minHeight || 500} - {product?.maxHeight || 2400} mm
+                    </p>
                 </div>
 
                 {/* Quantity */}
@@ -988,6 +1160,20 @@ function StepSummary({
                             <div className="flex justify-between">
                                 <span className="text-muted-foreground">Jaladera</span>
                                 <span className="font-semibold">${pricing.breakdown.handlePrice.toFixed(2)}</span>
+                            </div>
+                        )}
+
+                        {pricing.breakdown.exhibitionFee && pricing.breakdown.exhibitionFee > 0 && (
+                            <div className="flex justify-between">
+                                <span className="text-muted-foreground">Producto de Exhibición</span>
+                                <span className="font-semibold">${pricing.breakdown.exhibitionFee.toFixed(2)}</span>
+                            </div>
+                        )}
+
+                        {pricing.breakdown.expressDeliveryFee && pricing.breakdown.expressDeliveryFee > 0 && (
+                            <div className="flex justify-between">
+                                <span className="text-muted-foreground">Entrega Express</span>
+                                <span className="font-semibold">${pricing.breakdown.expressDeliveryFee.toFixed(2)}</span>
                             </div>
                         )}
 

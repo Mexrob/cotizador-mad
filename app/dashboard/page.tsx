@@ -295,12 +295,6 @@ export default function DashboardPage() {
                   )}
                   Nueva Cotización
                 </Button>
-                <Link href="/products" className="block">
-                  <Button className="w-full justify-start text-sm" variant="outline">
-                    <Package className="w-4 h-4 mr-2" />
-                    Ver Catálogo
-                  </Button>
-                </Link>
                 <Link href="/quotes" className="block">
                   <Button className="w-full justify-start text-sm" variant="outline">
                     <FileText className="w-4 h-4 mr-2" />

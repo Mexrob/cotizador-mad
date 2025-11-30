@@ -198,7 +198,7 @@ export default function QuotesPage() {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <section className="bg-gradient-to-r from-module-black to-module-dark text-white py-8 sm:py-12 lg:py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
             <div className="flex-1">
               <motion.h1
@@ -260,7 +260,7 @@ export default function QuotesPage() {
         </div>
       </section>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         {/* Summary Statistics */}
         <QuoteSummaryStats summary={summary} isLoading={loading} />
 

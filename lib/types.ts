@@ -262,6 +262,8 @@ export interface QuoteItem {
   woodGrainId?: string | null;
   handleId?: string | null;
   isTwoSided?: boolean | null;
+  isExhibition?: boolean | null;
+  isExpressDelivery?: boolean | null;
 
   doorType?: DoorType | null;
   doorModel?: DoorModel | null;

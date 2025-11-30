@@ -503,6 +503,8 @@ model QuoteItem {
   woodGrainId     String?
   handleId        String?
   isTwoSided      Boolean?      @default(false)
+  isExhibition    Boolean       @default(false)
+  isExpressDelivery Boolean     @default(false)
   
   // Relationships for item configuration
   doorType        DoorType?    @relation(fields: [doorTypeId], references: [id])

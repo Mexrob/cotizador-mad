@@ -110,3 +110,30 @@ Desktop.ini
 
 # Prisma
 prisma/migrations/
+prisma/*.db
+prisma/*.db-journal
+*.db
+*.sqlite
+*.sqlite3
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+.venv
+
+# Excel temporary/lock files
+.~lock.*
+~$*
+
+# Uploads and generated files
+uploads/
+public/uploads/
+
+# TypeScript build info
+*.tsbuildinfo

@@ -9,119 +9,122 @@ import { formatMXN, formatDate } from '@/lib/utils'
 export const dynamic = 'force-dynamic'
 
 export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
+    request: NextRequest,
+    { params }: { params: { id: string } }
 ) {
-  try {
-    const session = await getServerSession(authOptions)
-    
-    if (!session) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-    }
+    try {
+        const session = await getServerSession(authOptions)
 
-    // Check if user has access to this quote
-    // The previous logic (session.user.role !== 'ADMIN' && quote.userId !== session.user.id) is correct.
-    // adminAuthGuard only checks for Admin role, which is not sufficient here.
+        if (!session) {
+            return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+        }
 
-    // Obtener datos en paralelo
-    const [quote, companySettings] = await Promise.all([
-      prisma.quote.findUnique({
-        where: { id: params.id },
-        include: {
-          user: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-              role: true,
-              companyName: true,
-            },
-          },
-          items: {
-            include: {
-              product: {
+        // Check if user has access to this quote
+        // The previous logic (session.user.role !== 'ADMIN' && quote.userId !== session.user.id) is correct.
+        // adminAuthGuard only checks for Admin role, which is not sufficient here.
+
+        // Obtener datos en paralelo
+        const [quote, companySettings] = await Promise.all([
+            prisma.quote.findUnique({
+                where: { id: params.id },
                 include: {
-                  category: true,
+                    user: {
+                        select: {
+                            id: true,
+                            name: true,
+                            email: true,
+                            role: true,
+                            companyName: true,
+                        },
+                    },
+                    items: {
+                        include: {
+                            product: {
+                                include: {
+                                    category: true,
+                                },
+                            },
+                            handleModel: true,
+                            productLine: true,
+                            productTone: true,
+                        },
+                    },
                 },
-              },
+            }),
+            prisma.companySettings.findFirst({
+                select: {
+                    companyName: true,
+                    logo: true,
+                    address: true,
+                    city: true,
+                    state: true,
+                    zipCode: true,
+                    country: true,
+                    phone: true,
+                    email: true,
+                    website: true,
+                    primaryColor: true,
+                    secondaryColor: true,
+                    tertiaryColor: true,
+                },
+            })
+        ])
+
+        if (!quote) {
+            return NextResponse.json(
+                { error: 'Cotización no encontrada' },
+                { status: 404 }
+            )
+        }
+
+        // Check if user has access to this quote
+        if (session.user.role !== 'ADMIN' && quote.userId !== session.user.id) {
+            return NextResponse.json(
+                { error: 'No autorizado' },
+                { status: 403 }
+            )
+        }
+
+        // Generate HTML for PDF
+        const htmlContent = generateQuotePDFHTML(quote, companySettings)
+
+        // For now, return the HTML content with proper headers
+        // In production, you could integrate with libraries like puppeteer to generate actual PDFs
+        return new NextResponse(htmlContent, {
+            headers: {
+                'Content-Type': 'text/html; charset=utf-8',
+                'Content-Disposition': `inline; filename="cotizacion-${quote.quoteNumber}.html"`,
             },
-          },
-        },
-      }),
-      prisma.companySettings.findFirst({
-        select: {
-          companyName: true,
-          logo: true,
-          address: true,
-          city: true,
-          state: true,
-          zipCode: true,
-          country: true,
-          phone: true,
-          email: true,
-          website: true,
-          primaryColor: true,
-          secondaryColor: true,
-          tertiaryColor: true,
-        },
-      })
-    ])
-
-    if (!quote) {
-      return NextResponse.json(
-        { error: 'Cotización no encontrada' },
-        { status: 404 }
-      )
+        })
+    } catch (error) {
+        console.error('PDF generation error:', error)
+        return NextResponse.json(
+            { error: 'Error al generar PDF' },
+            { status: 500 }
+        )
     }
-
-    // Check if user has access to this quote
-    if (session.user.role !== 'ADMIN' && quote.userId !== session.user.id) {
-      return NextResponse.json(
-        { error: 'No autorizado' },
-        { status: 403 }
-      )
-    }
-
-    // Generate HTML for PDF
-    const htmlContent = generateQuotePDFHTML(quote, companySettings)
-
-    // For now, return the HTML content with proper headers
-    // In production, you could integrate with libraries like puppeteer to generate actual PDFs
-    return new NextResponse(htmlContent, {
-      headers: {
-        'Content-Type': 'text/html; charset=utf-8',
-        'Content-Disposition': `inline; filename="cotizacion-${quote.quoteNumber}.html"`,
-      },
-    })
-  } catch (error) {
-    console.error('PDF generation error:', error)
-    return NextResponse.json(
-      { error: 'Error al generar PDF' },
-      { status: 500 }
-    )
-  }
 }
 
 function generateQuotePDFHTML(quote: any, companySettings: any): string {
-  // Preparar datos de la empresa con fallbacks
-  const companyName = companySettings?.companyName || quote.user.companyName || 'Cocinas de Lujo'
-  // Si el logo ya tiene una ruta completa (empieza con / o http), úsala directamente
-  const logoUrl = companySettings?.logo ? companySettings.logo : null
-  const primaryColor = companySettings?.primaryColor || '#2563eb'
-  const secondaryColor = companySettings?.secondaryColor || '#1d4ed8'
-  
-  // Información de contacto corporativa
-  const companyContact = companySettings ? {
-    address: companySettings.address,
-    city: companySettings.city,
-    state: companySettings.state,
-    zipCode: companySettings.zipCode,
-    country: companySettings.country,
-    phone: companySettings.phone,
-    email: companySettings.email,
-    website: companySettings.website
-  } : null
-  return `
+    // Preparar datos de la empresa con fallbacks
+    const companyName = companySettings?.companyName || quote.user.companyName || 'Cocinas de Lujo'
+    // Si el logo ya tiene una ruta completa (empieza con / o http), úsala directamente
+    const logoUrl = companySettings?.logo ? companySettings.logo : null
+    const primaryColor = companySettings?.primaryColor || '#2563eb'
+    const secondaryColor = companySettings?.secondaryColor || '#1d4ed8'
+
+    // Información de contacto corporativa
+    const companyContact = companySettings ? {
+        address: companySettings.address,
+        city: companySettings.city,
+        state: companySettings.state,
+        zipCode: companySettings.zipCode,
+        country: companySettings.country,
+        phone: companySettings.phone,
+        email: companySettings.email,
+        website: companySettings.website
+    } : null
+    return `
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -135,25 +138,31 @@ function generateQuotePDFHTML(quote: any, companySettings: any): string {
             box-sizing: border-box;
         }
         
+        @page {
+            size: letter;
+            margin: 1mm;
+        }
+        
         body {
             font-family: 'Arial', sans-serif;
-            line-height: 1.6;
+            line-height: 1.4;
             color: #333;
             background: #fff;
+            font-size: 10pt;
         }
         
         .container {
-            max-width: 800px;
+            max-width: 100%;
             margin: 0 auto;
-            padding: 20px;
+            padding: 5px;
         }
         
         .header {
             background: linear-gradient(135deg, ${primaryColor}, ${secondaryColor});
             color: white;
-            padding: 30px;
-            border-radius: 8px;
-            margin-bottom: 30px;
+            padding: 15px 20px;
+            border-radius: 6px;
+            margin-bottom: 15px;
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -162,15 +171,15 @@ function generateQuotePDFHTML(quote: any, companySettings: any): string {
         .header-left {
             display: flex;
             align-items: center;
-            gap: 20px;
+            gap: 15px;
         }
         
         .header-logo {
-            height: 60px;
+            height: 45px;
             width: auto;
             background: rgba(255, 255, 255, 0.1);
-            border-radius: 8px;
-            padding: 8px;
+            border-radius: 6px;
+            padding: 6px;
         }
         
         .header-right {
@@ -178,43 +187,49 @@ function generateQuotePDFHTML(quote: any, companySettings: any): string {
         }
         
         .header h1 {
-            font-size: 2rem;
-            margin-bottom: 5px;
+            font-size: 1.3rem;
+            margin-bottom: 3px;
+        }
+        
+        .header h2 {
+            font-size: 1.1rem;
+            margin-bottom: 3px;
         }
         
         .header p {
             opacity: 0.9;
-            font-size: 1.1rem;
+            font-size: 0.85rem;
         }
         
         .info-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 30px;
-            margin-bottom: 30px;
+            gap: 15px;
+            margin-bottom: 15px;
         }
         
         .info-card {
             background: #f8fafc;
-            padding: 20px;
-            border-radius: 8px;
-            border-left: 4px solid ${primaryColor};
+            padding: 12px;
+            border-radius: 6px;
+            border-left: 3px solid ${primaryColor};
         }
         
         .info-card h3 {
             color: ${primaryColor};
-            margin-bottom: 15px;
-            font-size: 1.1rem;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
         }
         
         .info-item {
-            margin-bottom: 8px;
+            margin-bottom: 5px;
+            font-size: 0.8rem;
         }
         
         .info-label {
             font-weight: bold;
             color: #64748b;
-            font-size: 0.9rem;
+            font-size: 0.75rem;
         }
         
         .info-value {
@@ -223,37 +238,41 @@ function generateQuotePDFHTML(quote: any, companySettings: any): string {
         }
         
         .products-section {
-            margin-bottom: 30px;
+            margin-bottom: 15px;
         }
         
         .section-title {
-            font-size: 1.5rem;
+            font-size: 1rem;
             color: #1e293b;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
+            margin-bottom: 10px;
+            padding-bottom: 5px;
             border-bottom: 2px solid #e2e8f0;
         }
         
         .products-table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 20px;
-            font-size: 0.9rem;
+            margin-bottom: 10px;
+            font-size: 0.6rem;
+            table-layout: fixed;
         }
         
         .products-table th,
         .products-table td {
-            padding: 10px 8px;
+            padding: 3px 2px;
             text-align: left;
             border-bottom: 1px solid #e2e8f0;
             vertical-align: middle;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
         
         .products-table th {
             background: #f1f5f9;
             font-weight: bold;
             color: #475569;
-            font-size: 0.85rem;
+            font-size: 0.55rem;
             white-space: nowrap;
         }
         
@@ -261,60 +280,53 @@ function generateQuotePDFHTML(quote: any, companySettings: any): string {
             background: #f8fafc;
         }
         
-        /* Specific column widths for better layout */
-        .products-table th:nth-child(1) { width: 25%; } /* Producto */
-        .products-table th:nth-child(2) { width: 12%; } /* SKU */
-        .products-table th:nth-child(3) { width: 15%; } /* Categoría */
-        .products-table th:nth-child(4) { width: 12%; } /* Dimensiones */
-        .products-table th:nth-child(5) { width: 8%; }  /* Área */
-        .products-table th:nth-child(6) { width: 8%; }  /* Cantidad */
-        .products-table th:nth-child(7) { width: 10%; } /* Precio Unitario */
-        .products-table th:nth-child(8) { width: 10%; } /* Total */
-        
         .total-section {
             background: #f8fafc;
-            padding: 20px;
-            border-radius: 8px;
+            padding: 12px;
+            border-radius: 6px;
             border: 1px solid #e2e8f0;
+            font-size: 0.85rem;
         }
         
         .total-row {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 8px;
+            margin-bottom: 5px;
         }
         
         .total-row.final {
-            font-size: 1.2rem;
+            font-size: 1rem;
             font-weight: bold;
             color: ${primaryColor};
             border-top: 2px solid #e2e8f0;
-            padding-top: 10px;
-            margin-top: 10px;
+            padding-top: 8px;
+            margin-top: 8px;
         }
         
         .notes-section {
-            margin-top: 30px;
-            padding: 20px;
+            margin-top: 15px;
+            padding: 12px;
             background: #fefce8;
-            border-radius: 8px;
-            border-left: 4px solid #eab308;
+            border-radius: 6px;
+            border-left: 3px solid #eab308;
+            font-size: 0.8rem;
         }
         
         .footer {
-            margin-top: 40px;
-            padding: 20px;
+            margin-top: 20px;
+            padding: 12px;
             background: #1e293b;
             color: white;
-            border-radius: 8px;
+            border-radius: 6px;
             text-align: center;
+            font-size: 0.7rem;
         }
         
         .status-badge {
             display: inline-block;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.8rem;
+            padding: 3px 10px;
+            border-radius: 15px;
+            font-size: 0.65rem;
             font-weight: bold;
             text-transform: uppercase;
         }
@@ -325,24 +337,44 @@ function generateQuotePDFHTML(quote: any, companySettings: any): string {
         .status-rejected { background: #fee2e2; color: #dc2626; }
         
         @media print {
+            body {
+                font-size: 9pt;
+            }
+            
             .container {
                 padding: 0;
+                max-width: 100%;
             }
             
             .header {
                 background: linear-gradient(135deg, ${primaryColor}, ${secondaryColor}) !important;
                 -webkit-print-color-adjust: exact;
-                color-adjust: exact;
+                print-color-adjust: exact;
             }
             
             .info-card {
                 border-left-color: ${primaryColor} !important;
                 -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
             }
             
             .total-row.final {
                 color: ${primaryColor} !important;
                 -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            
+            .products-table {
+                font-size: 6pt;
+            }
+            
+            .products-table th,
+            .products-table td {
+                padding: 2px 1px;
+            }
+            
+            .footer {
+                page-break-inside: avoid;
             }
         }
     </style>
@@ -436,47 +468,65 @@ function generateQuotePDFHTML(quote: any, companySettings: any): string {
                         <th>Producto</th>
                         <th>SKU</th>
                         <th>Categoría</th>
+                        <th>Línea</th>
+                        <th>Tono</th>
+                        <th>Jaladera</th>
                         <th>Dimensiones (mm)</th>
                         <th>Área (m²)</th>
                         <th>Cantidad</th>
+                        <th>Jaladera Unit.</th>
+                        <th>Cant. Jaladeras</th>
+                        <th>Total Jaladeras</th>
                         <th>Precio Unitario</th>
                         <th>Total</th>
                     </tr>
                 </thead>
                 <tbody>
                     ${quote.items.map((item: any) => {
-                        // Formatear dimensiones
-                        const formatDimensions = () => {
-                            if (item.customWidth && item.customHeight) {
-                                const width = Math.round(item.customWidth);
-                                const height = Math.round(item.customHeight);
-                                return `${width} × ${height}`;
-                            }
-                            return 'Estándar';
-                        };
-                        
-                        // Calcular área en m²
-                        const calculateArea = () => {
-                            if (item.customWidth && item.customHeight) {
-                                const areaM2 = (item.customWidth * item.customHeight) / (1000 * 1000);
-                                return areaM2.toFixed(2);
-                            }
-                            return '-';
-                        };
-                        
-                        return `
+        // Formatear dimensiones
+        const formatDimensions = () => {
+            if (item.customWidth && item.customHeight) {
+                const width = Math.round(item.customWidth);
+                const height = Math.round(item.customHeight);
+                return `${width} × ${height}`;
+            }
+            return 'Estándar';
+        };
+
+        // Calcular área en m²
+        const calculateArea = () => {
+            if (item.customWidth && item.customHeight) {
+                const areaM2 = (item.customWidth * item.customHeight) / (1000 * 1000);
+                return areaM2.toFixed(2);
+            }
+            return '-';
+        };
+
+        // Datos de jaladera
+        const handleName = item.handleModel ? `${item.handleModel.model} - ${item.handleModel.finish}` : 'Sin jaladera';
+        const handleUnitPrice = item.handleModel ? formatMXN(item.handleModel.price) : '-';
+        const handleQuantity = item.handleModel ? item.quantity : '-';
+        const handleTotal = item.handleModel ? formatMXN(item.handleModel.price * item.quantity) : '-';
+
+        return `
                         <tr>
                             <td>${item.product.name}</td>
                             <td>${item.product.sku}</td>
                             <td>${item.product.category?.name || 'N/A'}</td>
+                            <td>${item.productLine?.name || 'N/A'}</td>
+                            <td>${item.productTone?.name || 'N/A'}</td>
+                            <td>${handleName}</td>
                             <td style="text-align: center;">${formatDimensions()}</td>
                             <td style="text-align: center;">${calculateArea()}</td>
                             <td style="text-align: center;">${item.quantity}</td>
+                            <td style="text-align: right;">${handleUnitPrice}</td>
+                            <td style="text-align: center;">${handleQuantity}</td>
+                            <td style="text-align: right;">${handleTotal}</td>
                             <td style="text-align: right;">${formatMXN(item.unitPrice)}</td>
                             <td style="text-align: right;">${formatMXN(item.totalPrice)}</td>
                         </tr>
                         `;
-                    }).join('')}
+    }).join('')}
                 </tbody>
             </table>
         </div>
@@ -559,11 +609,11 @@ function generateQuotePDFHTML(quote: any, companySettings: any): string {
 }
 
 function getStatusDisplayName(status: string): string {
-  switch (status) {
-    case 'DRAFT': return 'Borrador'
-    case 'PENDING': return 'Pendiente'
-    case 'APPROVED': return 'Aprobada'
-    case 'REJECTED': return 'Rechazada'
-    default: return status
-  }
+    switch (status) {
+        case 'DRAFT': return 'Borrador'
+        case 'PENDING': return 'Pendiente'
+        case 'APPROVED': return 'Aprobada'
+        case 'REJECTED': return 'Rechazada'
+        default: return status
+    }
 }

@@ -97,6 +97,24 @@ export default function ProductSelectorDialog({
                     <ProductConfigurator
                         onComplete={handleConfiguratorComplete}
                         onCancel={handleConfiguratorCancel}
+                        allowedLines={['Vidrio']}
+                        allowedHandles={['Sorento A', 'Sorento L', 'Sorento G']}
+                        allowedTones={[
+                            'Blanco Brillante',
+                            'Blanco Mate',
+                            'Paja Brillante',
+                            'Paja Mate',
+                            'Capuchino Brillante',
+                            'Capuchino Mate',
+                            'Humo Brillante',
+                            'Humo Mate',
+                            'Gris Brillante',
+                            'Gris Mate',
+                            'Rojo Brillante',
+                            'Rojo Mate',
+                            'Negro Brillante',
+                            'Negro Mate'
+                        ]}
                     />
                 )}
             </DialogContent>

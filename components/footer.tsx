@@ -10,6 +10,12 @@ export function Footer() {
   const [companySettings, setCompanySettings] = useState<{
     companyName: string
     logo?: string
+    phone?: string
+    email?: string
+    address?: string
+    city?: string
+    state?: string
+    country?: string
   }>({
     companyName: 'Module al Dente', // Fallback
     logo: undefined
@@ -24,7 +30,13 @@ export function Footer() {
           if (result.success && result.data) {
             setCompanySettings({
               companyName: result.data.companyName,
-              logo: result.data.logo
+              logo: result.data.logo,
+              phone: result.data.phone,
+              email: result.data.email,
+              address: result.data.address,
+              city: result.data.city,
+              state: result.data.state,
+              country: result.data.country
             })
           }
         }
@@ -73,11 +85,7 @@ export function Footer() {
                   Cotizaciones
                 </Link>
               </li>
-              <li>
-                <Link href="/products" className="text-gray-400 hover:text-white transition-colors">
-                  Productos
-                </Link>
-              </li>
+              {/* Enlace a Productos eliminado */}
               {/* Enlace a Configurador eliminado */}
             </ul>
           </div>
@@ -98,18 +106,31 @@ export function Footer() {
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">Contacto</h3>
             <div className="space-y-2 text-sm text-gray-400">
-              <div className="flex items-center space-x-2">
-                <Phone className="w-4 h-4" />
-                <span>+52 33 1234 5678</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Mail className="w-4 h-4" />
-                <span>contacto@module.com.mx</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <MapPin className="w-4 h-4" />
-                <span>Zapopan, Jalisco, México</span>
-              </div>
+              {companySettings.phone && (
+                <div className="flex items-center space-x-2">
+                  <Phone className="w-4 h-4" />
+                  <span>{companySettings.phone}</span>
+                </div>
+              )}
+              {companySettings.email && (
+                <div className="flex items-center space-x-2">
+                  <Mail className="w-4 h-4" />
+                  <span>{companySettings.email}</span>
+                </div>
+              )}
+              {(companySettings.address || companySettings.city || companySettings.state) && (
+                <div className="flex items-center space-x-2">
+                  <MapPin className="w-4 h-4 flex-shrink-0" />
+                  <span>
+                    {[
+                      companySettings.address,
+                      companySettings.city,
+                      companySettings.state,
+                      companySettings.country
+                    ].filter(Boolean).join(', ')}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         </div>

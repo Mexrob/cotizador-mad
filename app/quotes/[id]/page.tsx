@@ -410,7 +410,7 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
             [editingItem.id]: config.quantity
           }))
         }
-        
+
         toast({
           title: 'Éxito',
           description: 'Producto actualizado exitosamente',
@@ -587,42 +587,7 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
         ? itemQuantities[item.id]
         : item.quantity
 
-      // Recalculate unit price based on product data and custom dimensions
-      let unitPrice = 0
-      const product = item.product
-
-      if (product) {
-        // Get base price (try pricing first, then basePrice)
-        let basePrice = 0
-        if (product.pricing && product.pricing.length > 0) {
-          basePrice = product.pricing[0].finalPrice
-        } else {
-          basePrice = product.basePrice || 0
-        }
-
-        // Calculate unit price based on custom dimensions for customizable products
-        if (product.isCustomizable && item.customWidth && item.customHeight && product.width && product.height) {
-          // Standard product dimensions in m²
-          const standardArea = (product.width / 1000) * (product.height / 1000)
-
-          // Custom dimensions area in m²
-          const customArea = (item.customWidth / 1000) * (item.customHeight / 1000)
-
-          // Price per m² based on standard dimensions
-          const pricePerSquareMeter = standardArea > 0 ? basePrice / standardArea : 0
-
-          // Calculate price for custom dimensions
-          unitPrice = customArea * pricePerSquareMeter
-        } else {
-          // For non-customizable products, use the base price as-is
-          unitPrice = basePrice
-        }
-      } else {
-        // Fallback to stored unitPrice if product data is not available
-        unitPrice = item.unitPrice || 0
-      }
-
-      return sum + (unitPrice * currentQuantity)
+      return sum + (item.unitPrice * currentQuantity)
     }, 0)
 
     // Calculate tax (16%)
@@ -895,8 +860,8 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
               )}
 
               <div className="flex-1 min-w-0">
-               <motion.h1
-                 className="text-xl sm:text-2xl md:text-3xl font-bold truncate"
+                <motion.h1
+                  className="text-xl sm:text-2xl md:text-3xl font-bold truncate"
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5 }}
@@ -1006,10 +971,769 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
         </div>
       </section>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 lg:gap-8">
           {/* Main Content */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-3 space-y-6">
+            {/* Project Information */}
+
+
+            {/* Products */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.1 }}
+            >
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div className="flex items-center gap-2">
+                      <Package className="w-5 h-5" />
+                      <span className="text-base sm:text-lg">Productos ({quote.items.length})</span>
+                    </div>
+                    {isEditing && (
+                      <>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setShowProductSelector(true)}
+                          className="w-full sm:w-auto"
+                        >
+                          <Plus className="w-4 h-4 mr-2" />
+                          <span className="text-sm">Agregar Producto</span>
+                        </Button>
+                        <Dialog open={showAddProductModal} onOpenChange={setShowAddProductModal}>
+                          <DialogContent className="max-w-3xl">
+                            <DialogHeader>
+                              <DialogTitle>Agregar Producto a la Cotización</DialogTitle>
+                            </DialogHeader>
+                            <div className="space-y-4">
+                              <div>
+                                <Label htmlFor="productSearch">Buscar Producto</Label>
+                                <div className="relative">
+                                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                                  <Input
+                                    id="productSearch"
+                                    placeholder="Buscar por nombre o SKU..."
+                                    value={productSearch}
+                                    onChange={(e) => setProductSearch(e.target.value)}
+                                    className="pl-10"
+                                  />
+                                </div>
+                              </div>
+
+                              <div>
+                                <Label>Seleccionar Producto</Label>
+                                <Select value={selectedProductId} onValueChange={setSelectedProductId}>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Selecciona un producto" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {availableProducts
+                                      .filter(product =>
+                                        productSearch === '' ||
+                                        product.name.toLowerCase().includes(productSearch.toLowerCase()) ||
+                                        product.sku.toLowerCase().includes(productSearch.toLowerCase())
+                                      )
+                                      .map((product) => (
+                                        <SelectItem key={product.id} value={product.id}>
+                                          <div className="flex items-center gap-2">
+                                            <span className="font-medium">{product.name}</span>
+                                            <span className="text-sm text-gray-500">({product.sku})</span>
+                                          </div>
+                                        </SelectItem>
+                                      ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+
+                              {/* Quantity and Dimensions */}
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div>
+                                  <Label htmlFor="quantity">Cantidad</Label>
+                                  <Input
+                                    id="quantity"
+                                    type="number"
+                                    min="1"
+                                    max="1000"
+                                    value={newProductQuantity}
+                                    onChange={(e) => {
+                                      const value = parseInt(e.target.value) || 1
+                                      if (value >= 1 && value <= 1000) {
+                                        setNewProductQuantity(value)
+                                      }
+                                    }}
+                                    className={newProductQuantity < 1 || newProductQuantity > 1000 ? 'border-red-500' : ''}
+                                  />
+                                  {(newProductQuantity < 1 || newProductQuantity > 1000) && (
+                                    <p className="text-red-500 text-xs mt-1">Entre 1 y 1,000 unidades</p>
+                                  )}
+                                </div>
+
+                                <div>
+                                  <Label htmlFor="width">Ancho (mm)</Label>
+                                  <Input
+                                    id="width"
+                                    type="number"
+                                    min="10"
+                                    max="50000"
+                                    value={newProductWidth}
+                                    onChange={(e) => {
+                                      const value = e.target.value
+                                      setNewProductWidth(value)
+                                    }}
+                                    placeholder="Ingrese el ancho en mm"
+                                    autoComplete="off"
+                                    className={newProductWidth && (parseFloat(newProductWidth) < 10 || parseFloat(newProductWidth) > 50000) ? 'border-red-500' : ''}
+                                  />
+                                  {newProductWidth && (parseFloat(newProductWidth) < 10 || parseFloat(newProductWidth) > 50000) && (
+                                    <p className="text-red-500 text-xs mt-1">Entre 10mm y 50,000mm</p>
+                                  )}
+                                </div>
+
+                                <div>
+                                  <Label htmlFor="height">Alto (mm)</Label>
+                                  <Input
+                                    id="height"
+                                    type="number"
+                                    min="10"
+                                    max="50000"
+                                    value={newProductHeight}
+                                    onChange={(e) => {
+                                      const value = e.target.value
+                                      setNewProductHeight(value)
+                                    }}
+                                    placeholder="Ingrese la altura en mm"
+                                    autoComplete="off"
+                                    className={newProductHeight && (parseFloat(newProductHeight) < 10 || parseFloat(newProductHeight) > 50000) ? 'border-red-500' : ''}
+                                  />
+                                  {newProductHeight && (parseFloat(newProductHeight) < 10 || parseFloat(newProductHeight) > 50000) && (
+                                    <p className="text-red-500 text-xs mt-1">Entre 10mm y 50,000mm</p>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Price Calculation Preview */}
+                              {selectedProductId && (
+                                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                                  <h4 className="font-medium text-foreground mb-2">Vista Previa del Cálculo</h4>
+                                  <div className="grid grid-cols-2 gap-4 text-sm">
+                                    <div>
+                                      <p className="text-muted-foreground">Cantidad: <span className="font-medium">{newProductQuantity} unidades</span></p>
+                                      <p className="text-muted-foreground">Dimensiones: <span className="font-medium">{newProductWidth || '0'}mm × {newProductHeight || '0'}mm</span></p>
+                                      <p className="text-muted-foreground">Área por unidad: <span className="font-medium">{areaInSquareMeters.toFixed(4)} m²</span></p>
+                                    </div>
+                                    <div>
+                                      {(() => {
+                                        const selectedProduct = availableProducts.find(p => p.id === selectedProductId);
+                                        if (selectedProduct && selectedProduct.isCustomizable) {
+                                          const standardArea = (selectedProduct.width / 1000) * (selectedProduct.height / 1000);
+                                          const pricePerSquareMeter = selectedProductPrice / standardArea;
+                                          return (
+                                            <>
+                                              <p className="text-muted-foreground">Precio base por unidad estándar: <span className="font-medium">{formatBasePriceMXN(selectedProductPrice)}</span></p>
+                                              <p className="text-muted-foreground">Dimensión estándar: <span className="font-medium">{selectedProduct.width}mm × {selectedProduct.height}mm ({standardArea.toFixed(4)} m²)</span></p>
+                                              <p className="text-muted-foreground">Precio por m²: <span className="font-medium">{formatMXN(pricePerSquareMeter)}</span></p>
+                                            </>
+                                          );
+                                        } else {
+                                          return <p className="text-muted-foreground">Precio base: <span className="font-medium">{formatBasePriceMXN(selectedProductPrice)} / unidad</span></p>;
+                                        }
+                                      })()}
+                                      <p className="text-muted-foreground">Precio por unidad: <span className="font-medium">{formatMXN(pricePerUnit)}</span></p>
+                                      <p className="text-foreground font-semibold text-lg">Precio Total: {formatMXN(totalPrice)}</p>
+                                    </div>
+                                  </div>
+                                  {selectedProductPrice === 0 && (
+                                    <div className="mt-2 p-2 bg-yellow-100 border border-yellow-300 rounded text-yellow-800 text-xs">
+                                      <strong>Nota:</strong> No se encontró precio para este producto. Verifique la configuración de precios.
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+
+                              <div className="flex justify-end gap-2">
+                                <Button variant="outline" onClick={() => setShowAddProductModal(false)}>
+                                  Cancelar
+                                </Button>
+                                <Button
+                                  onClick={addProduct}
+                                  disabled={!selectedProductId || newProductQuantity < 1 || newProductQuantity > 1000 || !newProductWidth || !newProductHeight || parseFloat(newProductWidth) < 10 || parseFloat(newProductWidth) > 50000 || parseFloat(newProductHeight) < 10 || parseFloat(newProductHeight) > 50000}
+                                >
+                                  Agregar Producto
+                                </Button>
+                              </div>
+                            </div>
+                          </DialogContent>
+                        </Dialog>
+                      </>
+                    )}
+
+                  </CardTitle>
+                  <div className="flex items-center gap-2">
+                    <div className="flex bg-muted rounded-lg p-1">
+                      <Button
+                        variant={viewMode === 'list' ? 'secondary' : 'ghost'}
+                        size="sm"
+                        className="h-8 w-8 p-0"
+                        onClick={() => setViewMode('list')}
+                      >
+                        <LayoutList className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant={viewMode === 'table' ? 'secondary' : 'ghost'}
+                        size="sm"
+                        className="h-8 w-8 p-0"
+                        onClick={() => setViewMode('table')}
+                      >
+                        <TableIcon className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {viewMode === 'list' ? (
+                    <div className="space-y-4">
+                      {quote.items.map((item, index) => (
+                        <motion.div
+                          key={item.id}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ duration: 0.3, delay: index * 0.05 }}
+                          className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 border rounded-lg hover:bg-gray-50 transition-colors"
+                        >
+                          <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center overflow-hidden">
+                            {item.product.thumbnail ? (
+                              <Image
+                                src={item.product.thumbnail}
+                                alt={item.product.name}
+                                width={64}
+                                height={64}
+                                className="object-cover w-full h-full"
+                              />
+                            ) : (
+                              <Package className="w-8 h-8 text-gray-400" />
+                            )}
+                          </div>
+
+                          <div className="flex-1">
+                            <h4 className="font-medium text-foreground">{item.product.name}</h4>
+
+                            {expandedItems[item.id] && (
+                              <div className="mt-2 space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                                <div>
+                                  <p className="text-sm text-gray-500">SKU: {item.product.sku}</p>
+                                  {item.product.category && (
+                                    <p className="text-xs text-module-black">{item.product.category.name}</p>
+                                  )}
+                                </div>
+
+                                {/* Custom Dimensions Display */}
+                                <div className="space-y-1">
+                                  {(item.customWidth && item.customHeight) ? (
+                                    <>
+                                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                        <Ruler className="w-3 h-3" />
+                                        <span className="font-medium">Dimensiones:</span>
+                                        <span className="bg-gray-50 px-2 py-0.5 rounded">
+                                          {item.customWidth}mm × {item.customHeight}mm
+                                        </span>
+                                      </div>
+                                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                        <span className="w-3 h-3"></span>
+                                        <span className="font-medium">Área:</span>
+                                        <span className="bg-green-50 px-2 py-0.5 rounded">
+                                          {((item.customWidth / 1000) * (item.customHeight / 1000)).toFixed(4)} m²
+                                        </span>
+                                      </div>
+                                    </>
+                                  ) : (
+                                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                      <Ruler className="w-3 h-3" />
+                                      <span className="font-medium">Dimensiones estándar:</span>
+                                      <span className="bg-gray-50 px-2 py-0.5 rounded">
+                                        {item.product.width}mm × {item.product.height}mm
+                                      </span>
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Configuration Details */}
+                                {(item.productLine || item.productTone || item.handleModel || item.isTwoSided) && (
+                                  <div className="space-y-1 p-2 bg-blue-50 dark:bg-gray-800 rounded border border-blue-100 dark:border-gray-700">
+                                    <p className="text-xs font-semibold text-blue-900 dark:text-blue-100">Configuración:</p>
+
+                                    {item.productLine && (
+                                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                        <span className="font-medium">Línea:</span>
+                                        <Badge variant="outline">{item.productLine.name}</Badge>
+                                      </div>
+                                    )}
+
+                                    {item.productTone && (
+                                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                        <span className="font-medium">Tono:</span>
+                                        <Badge variant="outline" className="flex items-center gap-1">
+                                          {item.productTone.hexColor && (
+                                            <div
+                                              className="w-3 h-3 rounded-full border"
+                                              style={{ backgroundColor: item.productTone.hexColor }}
+                                            />
+                                          )}
+                                          {item.productTone.name}
+                                        </Badge>
+                                      </div>
+                                    )}
+
+                                    {item.handleModel && (
+                                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                        <span className="font-medium">Jaladera:</span>
+                                        <Badge variant="outline">{item.handleModel.model} - {item.handleModel.finish}</Badge>
+                                      </div>
+                                    )}
+
+                                    {item.isTwoSided && (
+                                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                        <span className="font-medium">Caras:</span>
+                                        <Badge variant="secondary">2 Caras</Badge>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+
+                                {/* Price Breakdown */}
+                                <div className="text-xs text-muted-foreground bg-gray-50 p-2 rounded border max-w-xs">
+                                  <div className="flex justify-between">
+                                    <span>Producto Base:</span>
+                                    <span>{formatMXN(item.unitPrice - (Number(item.handleModel?.price || 0) + Number(item.packagingCost || 0)))}</span>
+                                  </div>
+                                  {item.handleModel && (
+                                    <>
+                                      <div className="flex justify-between">
+                                        <span>Jaladera (unitario):</span>
+                                        <span>{formatMXN(item.handleModel.price)}</span>
+                                      </div>
+                                      <div className="flex justify-between">
+                                        <span>Cantidad de jaladeras:</span>
+                                        <span>{item.quantity}</span>
+                                      </div>
+                                      <div className="flex justify-between font-medium">
+                                        <span>Total jaladeras:</span>
+                                        <span>{formatMXN(item.handleModel.price * item.quantity)}</span>
+                                      </div>
+                                    </>
+                                  )}
+                                  {item.packagingCost > 0 && (
+                                    <div className="flex justify-between">
+                                      <span>Empaque:</span>
+                                      <span>{formatMXN(item.packagingCost)}</span>
+                                    </div>
+                                  )}
+                                  <div className="border-t mt-1 pt-1 flex justify-between font-medium text-foreground">
+                                    <span>Unitario:</span>
+                                    <span>{formatMXN(item.unitPrice)}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto mt-4 sm:mt-0">
+                            {isEditing ? (
+                              <div className="flex flex-wrap items-center gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    const newQuantity = Math.max(1, (itemQuantities[item.id] || item.quantity) - 1)
+                                    setItemQuantities({ ...itemQuantities, [item.id]: newQuantity })
+                                  }}
+                                >
+                                  <Minus className="w-4 h-4" />
+                                </Button>
+
+                                <Input
+                                  type="number"
+                                  min="1"
+                                  value={itemQuantities[item.id] || item.quantity}
+                                  onChange={(e) => {
+                                    const newQuantity = Math.max(1, parseInt(e.target.value) || 1)
+                                    setItemQuantities({ ...itemQuantities, [item.id]: newQuantity })
+                                  }}
+                                  className="w-20 text-center"
+                                />
+
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    const newQuantity = (itemQuantities[item.id] || item.quantity) + 1
+                                    setItemQuantities({ ...itemQuantities, [item.id]: newQuantity })
+                                  }}
+                                >
+                                  <Plus className="w-4 h-4" />
+                                </Button>
+
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  onClick={() => deleteItem(item.id)}
+                                  className="ml-2"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+
+                                {item.product.isCustomizable && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleEditItem(item)}
+                                    className="ml-2"
+                                  >
+                                    <Pencil className="w-4 h-4" />
+                                  </Button>
+                                )}
+                              </div>
+                            ) : (
+                              <div className="text-right">
+                                <p className="text-sm text-gray-500">
+                                  {item.quantity} × {formatMXN(item.unitPrice)}
+                                </p>
+                                <p className="font-semibold text-lg">
+                                  {formatMXN(item.totalPrice)}
+                                </p>
+                                {/* Show price per area for customizable products */}
+                                {item.customWidth && item.customHeight && item.product.isCustomizable && (
+                                  <p className="text-xs text-gray-400 mt-1">
+                                    ({formatMXN(item.unitPrice / ((item.customWidth! / 1000) * (item.customHeight! / 1000)))}/m²)
+                                  </p>
+                                )}
+
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => toggleItemDetails(item.id)}
+                                  className="mt-1 h-6 text-xs text-muted-foreground hover:text-foreground w-full justify-end px-0"
+                                >
+                                  {expandedItems[item.id] ? (
+                                    <>Ocultar detalles <ChevronUp className="ml-1 w-3 h-3" /></>
+                                  ) : (
+                                    <>Ver detalles <ChevronDown className="ml-1 w-3 h-3" /></>
+                                  )}
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="rounded-md border overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="w-[80px]">Imagen</TableHead>
+                            <TableHead>Producto</TableHead>
+                            <TableHead>Dimensiones</TableHead>
+                            <TableHead>Jaladera</TableHead>
+                            <TableHead className="text-right">Cantidad</TableHead>
+                            <TableHead className="text-right">Unitario</TableHead>
+                            <TableHead className="text-right">Total</TableHead>
+                            <TableHead className="w-[100px]">Acciones</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {quote.items.map((item) => (
+                            <TableRow key={item.id}>
+                              <TableCell>
+                                <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center overflow-hidden">
+                                  {item.product.thumbnail ? (
+                                    <Image
+                                      src={item.product.thumbnail}
+                                      alt={item.product.name}
+                                      width={48}
+                                      height={48}
+                                      className="object-cover w-full h-full"
+                                    />
+                                  ) : (
+                                    <Package className="w-6 h-6 text-gray-400" />
+                                  )}
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <div className="font-medium">{item.product.name}</div>
+                                <div className="text-xs text-muted-foreground">{item.product.sku}</div>
+                                {(item.productLine || item.productTone || item.handleModel) && (
+                                  <div className="text-xs text-muted-foreground mt-1">
+                                    {item.productLine?.name} {item.productTone?.name}
+                                  </div>
+                                )}
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => toggleItemDetails(item.id)}
+                                  className="mt-1 h-6 text-xs text-muted-foreground hover:text-foreground p-0"
+                                >
+                                  {expandedItems[item.id] ? (
+                                    <>Ocultar detalles <ChevronUp className="ml-1 w-3 h-3" /></>
+                                  ) : (
+                                    <>Ver detalles <ChevronDown className="ml-1 w-3 h-3" /></>
+                                  )}
+                                </Button>
+
+                                {expandedItems[item.id] && (
+                                  <div className="mt-2 space-y-1 p-2 bg-blue-50 dark:bg-gray-800 rounded border border-blue-100 dark:border-gray-700 text-xs">
+                                    <p className="font-semibold text-blue-900 dark:text-blue-100">Configuración:</p>
+
+                                    {item.productLine && (
+                                      <div className="flex items-center gap-2 text-muted-foreground">
+                                        <span className="font-medium">Línea:</span>
+                                        <Badge variant="outline" className="h-5 text-[10px] px-1">{item.productLine.name}</Badge>
+                                      </div>
+                                    )}
+
+                                    {item.productTone && (
+                                      <div className="flex items-center gap-2 text-muted-foreground">
+                                        <span className="font-medium">Tono:</span>
+                                        <Badge variant="outline" className="flex items-center gap-1 h-5 text-[10px] px-1">
+                                          {item.productTone.hexColor && (
+                                            <div
+                                              className="w-2 h-2 rounded-full border"
+                                              style={{ backgroundColor: item.productTone.hexColor }}
+                                            />
+                                          )}
+                                          {item.productTone.name}
+                                        </Badge>
+                                      </div>
+                                    )}
+
+                                    {item.handleModel && (
+                                      <div className="flex items-center gap-2 text-muted-foreground">
+                                        <span className="font-medium">Jaladera:</span>
+                                        <Badge variant="outline" className="h-5 text-[10px] px-1">{item.handleModel.model} - {item.handleModel.finish}</Badge>
+                                      </div>
+                                    )}
+
+                                    {item.isTwoSided && (
+                                      <div className="flex items-center gap-2 text-muted-foreground">
+                                        <span className="font-medium">Caras:</span>
+                                        <Badge variant="secondary" className="h-5 text-[10px] px-1">2 Caras</Badge>
+                                      </div>
+                                    )}
+
+                                    {item.isExhibition && (
+                                      <div className="flex items-center gap-2 text-muted-foreground">
+                                        <span className="font-medium">Exhibición:</span>
+                                        <Badge variant="secondary" className="h-5 text-[10px] px-1 bg-amber-100 text-amber-800 border-amber-200">Sí</Badge>
+                                      </div>
+                                    )}
+
+                                    {item.isExpressDelivery && (
+                                      <div className="flex items-center gap-2 text-muted-foreground">
+                                        <span className="font-medium">Express:</span>
+                                        <Badge variant="secondary" className="h-5 text-[10px] px-1 bg-purple-100 text-purple-800 border-purple-200">Sí</Badge>
+                                      </div>
+                                    )}
+
+                                    {/* Handle Price Breakdown */}
+                                    {item.handleModel && (
+                                      <div className="mt-2 pt-2 border-t border-blue-200 dark:border-gray-700 space-y-1">
+                                        <p className="text-xs font-semibold text-blue-900 dark:text-blue-100">Desglose Jaladeras:</p>
+                                        <div className="flex justify-between text-xs text-muted-foreground">
+                                          <span>Jaladera (unitario):</span>
+                                          <span className="font-medium">{formatMXN(item.handleModel.price)}</span>
+                                        </div>
+                                        <div className="flex justify-between text-xs text-muted-foreground">
+                                          <span>Cantidad:</span>
+                                          <span className="font-medium">{item.quantity}</span>
+                                        </div>
+                                        <div className="flex justify-between text-xs text-blue-900 dark:text-blue-100 font-semibold">
+                                          <span>Total jaladeras:</span>
+                                          <span>{formatMXN(item.handleModel.price * item.quantity)}</span>
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                <div className="text-sm">
+                                  {item.customWidth && item.customHeight ? (
+                                    <>
+                                      {item.customWidth} × {item.customHeight} mm
+                                      <div className="text-xs text-muted-foreground">
+                                        {((item.customWidth! / 1000) * (item.customHeight! / 1000)).toFixed(4)} m²
+                                      </div>
+                                    </>
+                                  ) : (
+                                    <>{item.product.width} × {item.product.height} mm</>
+                                  )}
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                {item.handleModel ? (
+                                  <div className="text-sm">
+                                    <div className="font-medium">{item.handleModel.model}</div>
+                                    <div className="text-xs text-muted-foreground">{item.handleModel.finish}</div>
+                                  </div>
+                                ) : (
+                                  <span className="text-xs text-muted-foreground italic">Sin jaladera</span>
+                                )}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                {isEditing ? (
+                                  <Input
+                                    type="number"
+                                    min="1"
+                                    value={itemQuantities[item.id] || item.quantity}
+                                    onChange={(e) => {
+                                      const newQuantity = Math.max(1, parseInt(e.target.value) || 1)
+                                      setItemQuantities({ ...itemQuantities, [item.id]: newQuantity })
+                                    }}
+                                    className="w-16 text-center ml-auto h-8"
+                                  />
+                                ) : (
+                                  item.quantity
+                                )}
+                              </TableCell>
+                              <TableCell className="text-right">{formatMXN(item.unitPrice)}</TableCell>
+                              <TableCell className="text-right font-medium">{formatMXN(item.totalPrice)}</TableCell>
+                              <TableCell>
+                                {isEditing && (
+                                  <div className="flex items-center justify-end gap-1">
+                                    {item.product.isCustomizable && (
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => handleEditItem(item)}
+                                        className="h-8 w-8 p-0"
+                                      >
+                                        <Pencil className="w-4 h-4" />
+                                      </Button>
+                                    )}
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => deleteItem(item.id)}
+                                      className="h-8 w-8 p-0 text-red-500 hover:text-red-600"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </Button>
+                                  </div>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </motion.div>
+          </div >
+
+          {/* Sidebar */}
+          < div className="space-y-6" >
+            {/* Customer Information */}
+            < motion.div
+              initial={{ opacity: 0, y: 20 }
+              }
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+            >
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <User className="w-5 h-5" />
+                    Información del Cliente
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div>
+                    <Label htmlFor="customerName" className="text-sm text-gray-500">
+                      Nombre
+                    </Label>
+                    {isEditing ? (
+                      <Input
+                        id="customerName"
+                        value={editedQuote.customerName || ''}
+                        onChange={(e) => setEditedQuote({ ...editedQuote, customerName: e.target.value })}
+                        className="mt-1"
+                      />
+                    ) : (
+                      <p className="font-medium">{quote.customerName}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <Label htmlFor="customerEmail" className="text-sm text-gray-500">
+                      Email
+                    </Label>
+                    {isEditing ? (
+                      <Input
+                        id="customerEmail"
+                        type="email"
+                        value={editedQuote.customerEmail || ''}
+                        onChange={(e) => setEditedQuote({ ...editedQuote, customerEmail: e.target.value })}
+                        className="mt-1"
+                      />
+                    ) : (
+                      <p className="font-medium flex items-center gap-1">
+                        <Mail className="w-4 h-4 text-gray-400" />
+                        {quote.customerEmail}
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <Label htmlFor="customerPhone" className="text-sm text-gray-500">
+                      Teléfono
+                    </Label>
+                    {isEditing ? (
+                      <Input
+                        id="customerPhone"
+                        value={editedQuote.customerPhone || ''}
+                        onChange={(e) => setEditedQuote({ ...editedQuote, customerPhone: e.target.value })}
+                        className="mt-1"
+                        placeholder="Teléfono opcional"
+                      />
+                    ) : quote.customerPhone ? (
+                      <p className="font-medium flex items-center gap-1">
+                        <Phone className="w-4 h-4 text-gray-400" />
+                        {quote.customerPhone}
+                      </p>
+                    ) : (
+                      <p className="text-gray-400 italic">No especificado</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <Label htmlFor="customerAddress" className="text-sm text-gray-500">
+                      Dirección
+                    </Label>
+                    {isEditing ? (
+                      <Textarea
+                        id="customerAddress"
+                        value={editedQuote.customerAddress || ''}
+                        onChange={(e) => setEditedQuote({ ...editedQuote, customerAddress: e.target.value })}
+                        className="mt-1"
+                        placeholder="Dirección opcional"
+                        rows={2}
+                      />
+                    ) : quote.customerAddress ? (
+                      <p className="font-medium flex items-start gap-1">
+                        <MapPin className="w-4 h-4 text-gray-400 mt-0.5" />
+                        {quote.customerAddress}
+                      </p>
+                    ) : (
+                      <p className="text-gray-400 italic">No especificada</p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div >
+
             {/* Project Information */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -1039,7 +1763,7 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
                       <p className="font-medium">{quote.projectName}</p>
                     )}
                   </div>
-                  
+
                   <div>
                     <Label htmlFor="projectAddress" className="text-sm text-gray-500 mb-1">
                       Dirección del Proyecto
@@ -1062,851 +1786,185 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
                     )}
                   </div>
 
-                          {quote.roomDimensions && (
-                            <div>
-                              <p className="text-sm text-gray-500 mb-2">Dimensiones de la Cocina</p>
-                              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-gray-50 rounded-lg">
-                                <div className="text-center">
-                                  <Ruler className="w-5 h-5 text-module-black mx-auto mb-1" />
-                                  <p className="text-sm text-gray-500">Ancho</p>
-                                  <p className="font-semibold">{quote.roomDimensions.width}m</p>
-                                </div>
-                                <div className="text-center">
-                                  <Ruler className="w-5 h-5 text-module-black mx-auto mb-1" />
-                                  <p className="text-sm text-gray-500">Alto</p>
-                                  <p className="font-semibold">{quote.roomDimensions.height}m</p>
-                                </div>
-                                <div className="text-center">
-                                  <Ruler className="w-5 h-5 text-module-black mx-auto mb-1" />
-                                  <p className="text-sm text-gray-500">Profundidad</p>
-                                  <p className="font-semibold">{quote.roomDimensions.depth}m</p>
-                                </div>
-                                <div className="text-center">
-                                  <Ruler className="w-5 h-5 text-module-black mx-auto mb-1" />
-                                  <p className="text-sm text-gray-500">Área Total</p>
-                                  <p className="font-semibold">
-                                    {(quote.roomDimensions.width * quote.roomDimensions.depth).toFixed(1)}m²
-                                  </p>
-                                </div>
-                              </div>
-                            </div>
-                          )}
-        
-                          <div>
-                            <Label htmlFor="notes" className="text-sm text-gray-500 mb-1">
-                              Notas
-                            </Label>
-                            {isEditing ? (
-                              <Textarea
-                                id="notes"
-                                value={editedQuote.notes || ''}
-                                onChange={(e) => setEditedQuote({ ...editedQuote, notes: e.target.value })}
-                                className="mt-1"
-                                placeholder="Notas adicionales del proyecto..."
-                                rows={3}
-                              />
-                            ) : quote.notes ? (
-                              <p className="text-gray-700 bg-gray-50 p-3 rounded-lg">{quote.notes}</p>
-                            ) : (
-                              <p className="text-gray-400 italic">Sin notas</p>
-                            )}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </motion.div>
-
-            {/* Products */ }
-  <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ duration: 0.5, delay: 0.1 }}
-  >
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <Package className="w-5 h-5" />
-            <span className="text-base sm:text-lg">Productos ({quote.items.length})</span>
-          </div>
-          {isEditing && (
-            <>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowProductSelector(true)}
-                className="w-full sm:w-auto"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                <span className="text-sm">Agregar Producto</span>
-              </Button>
-              <Dialog open={showAddProductModal} onOpenChange={setShowAddProductModal}>
-                <DialogContent className="max-w-3xl">
-                  <DialogHeader>
-                    <DialogTitle>Agregar Producto a la Cotización</DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-4">
+                  {quote.roomDimensions && (
                     <div>
-                      <Label htmlFor="productSearch">Buscar Producto</Label>
-                      <div className="relative">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                        <Input
-                          id="productSearch"
-                          placeholder="Buscar por nombre o SKU..."
-                          value={productSearch}
-                          onChange={(e) => setProductSearch(e.target.value)}
-                          className="pl-10"
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <Label>Seleccionar Producto</Label>
-                      <Select value={selectedProductId} onValueChange={setSelectedProductId}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecciona un producto" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {availableProducts
-                            .filter(product =>
-                              productSearch === '' ||
-                              product.name.toLowerCase().includes(productSearch.toLowerCase()) ||
-                              product.sku.toLowerCase().includes(productSearch.toLowerCase())
-                            )
-                            .map((product) => (
-                              <SelectItem key={product.id} value={product.id}>
-                                <div className="flex items-center gap-2">
-                                  <span className="font-medium">{product.name}</span>
-                                  <span className="text-sm text-gray-500">({product.sku})</span>
-                                </div>
-                              </SelectItem>
-                            ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {/* Quantity and Dimensions */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div>
-                        <Label htmlFor="quantity">Cantidad</Label>
-                        <Input
-                          id="quantity"
-                          type="number"
-                          min="1"
-                          max="1000"
-                          value={newProductQuantity}
-                          onChange={(e) => {
-                            const value = parseInt(e.target.value) || 1
-                            if (value >= 1 && value <= 1000) {
-                              setNewProductQuantity(value)
-                            }
-                          }}
-                          className={newProductQuantity < 1 || newProductQuantity > 1000 ? 'border-red-500' : ''}
-                        />
-                        {(newProductQuantity < 1 || newProductQuantity > 1000) && (
-                          <p className="text-red-500 text-xs mt-1">Entre 1 y 1,000 unidades</p>
-                        )}
-                      </div>
-
-                      <div>
-                        <Label htmlFor="width">Ancho (mm)</Label>
-                        <Input
-                          id="width"
-                          type="number"
-                          min="10"
-                          max="50000"
-                          value={newProductWidth}
-                          onChange={(e) => {
-                            const value = e.target.value
-                            setNewProductWidth(value)
-                          }}
-                          placeholder="Ingrese el ancho en mm"
-                          autoComplete="off"
-                          className={newProductWidth && (parseFloat(newProductWidth) < 10 || parseFloat(newProductWidth) > 50000) ? 'border-red-500' : ''}
-                        />
-                        {newProductWidth && (parseFloat(newProductWidth) < 10 || parseFloat(newProductWidth) > 50000) && (
-                          <p className="text-red-500 text-xs mt-1">Entre 10mm y 50,000mm</p>
-                        )}
-                      </div>
-
-                      <div>
-                        <Label htmlFor="height">Alto (mm)</Label>
-                        <Input
-                          id="height"
-                          type="number"
-                          min="10"
-                          max="50000"
-                          value={newProductHeight}
-                          onChange={(e) => {
-                            const value = e.target.value
-                            setNewProductHeight(value)
-                          }}
-                          placeholder="Ingrese la altura en mm"
-                          autoComplete="off"
-                          className={newProductHeight && (parseFloat(newProductHeight) < 10 || parseFloat(newProductHeight) > 50000) ? 'border-red-500' : ''}
-                        />
-                        {newProductHeight && (parseFloat(newProductHeight) < 10 || parseFloat(newProductHeight) > 50000) && (
-                          <p className="text-red-500 text-xs mt-1">Entre 10mm y 50,000mm</p>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Price Calculation Preview */}
-                    {selectedProductId && (
-                      <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                        <h4 className="font-medium text-foreground mb-2">Vista Previa del Cálculo</h4>
-                        <div className="grid grid-cols-2 gap-4 text-sm">
-                          <div>
-                            <p className="text-muted-foreground">Cantidad: <span className="font-medium">{newProductQuantity} unidades</span></p>
-                            <p className="text-muted-foreground">Dimensiones: <span className="font-medium">{newProductWidth || '0'}mm × {newProductHeight || '0'}mm</span></p>
-                            <p className="text-muted-foreground">Área por unidad: <span className="font-medium">{areaInSquareMeters.toFixed(4)} m²</span></p>
-                          </div>
-                          <div>
-                            {(() => {
-                              const selectedProduct = availableProducts.find(p => p.id === selectedProductId);
-                              if (selectedProduct && selectedProduct.isCustomizable) {
-                                const standardArea = (selectedProduct.width / 1000) * (selectedProduct.height / 1000);
-                                const pricePerSquareMeter = selectedProductPrice / standardArea;
-                                return (
-                                  <>
-                                    <p className="text-muted-foreground">Precio base por unidad estándar: <span className="font-medium">{formatBasePriceMXN(selectedProductPrice)}</span></p>
-                                    <p className="text-muted-foreground">Dimensión estándar: <span className="font-medium">{selectedProduct.width}mm × {selectedProduct.height}mm ({standardArea.toFixed(4)} m²)</span></p>
-                                    <p className="text-muted-foreground">Precio por m²: <span className="font-medium">{formatMXN(pricePerSquareMeter)}</span></p>
-                                  </>
-                                );
-                              } else {
-                                return <p className="text-muted-foreground">Precio base: <span className="font-medium">{formatBasePriceMXN(selectedProductPrice)} / unidad</span></p>;
-                              }
-                            })()}
-                            <p className="text-muted-foreground">Precio por unidad: <span className="font-medium">{formatMXN(pricePerUnit)}</span></p>
-                            <p className="text-foreground font-semibold text-lg">Precio Total: {formatMXN(totalPrice)}</p>
-                          </div>
+                      <p className="text-sm text-gray-500 mb-2">Dimensiones de la Cocina</p>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-gray-50 rounded-lg">
+                        <div className="text-center">
+                          <Ruler className="w-5 h-5 text-module-black mx-auto mb-1" />
+                          <p className="text-sm text-gray-500">Ancho</p>
+                          <p className="font-semibold">{quote.roomDimensions.width}m</p>
                         </div>
-                        {selectedProductPrice === 0 && (
-                          <div className="mt-2 p-2 bg-yellow-100 border border-yellow-300 rounded text-yellow-800 text-xs">
-                            <strong>Nota:</strong> No se encontró precio para este producto. Verifique la configuración de precios.
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    <div className="flex justify-end gap-2">
-                      <Button variant="outline" onClick={() => setShowAddProductModal(false)}>
-                        Cancelar
-                      </Button>
-                      <Button
-                        onClick={addProduct}
-                        disabled={!selectedProductId || newProductQuantity < 1 || newProductQuantity > 1000 || !newProductWidth || !newProductHeight || parseFloat(newProductWidth) < 10 || parseFloat(newProductWidth) > 50000 || parseFloat(newProductHeight) < 10 || parseFloat(newProductHeight) > 50000}
-                      >
-                        Agregar Producto
-                      </Button>
-                    </div>
-                  </div>
-                </DialogContent>
-              </Dialog>
-            </>
-          )}
-
-        </CardTitle>
-        <div className="flex items-center gap-2">
-          <div className="flex bg-muted rounded-lg p-1">
-            <Button
-              variant={viewMode === 'list' ? 'secondary' : 'ghost'}
-              size="sm"
-              className="h-8 w-8 p-0"
-              onClick={() => setViewMode('list')}
-            >
-              <LayoutList className="h-4 w-4" />
-            </Button>
-            <Button
-              variant={viewMode === 'table' ? 'secondary' : 'ghost'}
-              size="sm"
-              className="h-8 w-8 p-0"
-              onClick={() => setViewMode('table')}
-            >
-              <TableIcon className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent>
-        {viewMode === 'list' ? (
-          <div className="space-y-4">
-            {quote.items.map((item, index) => (
-              <motion.div
-               key={item.id}
-               initial={{ opacity: 0, x: -20 }}
-               animate={{ opacity: 1, x: 0 }}
-               transition={{ duration: 0.3, delay: index * 0.05 }}
-               className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 border rounded-lg hover:bg-gray-50 transition-colors"
-             >
-                <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center overflow-hidden">
-                  {item.product.thumbnail ? (
-                    <Image
-                      src={item.product.thumbnail}
-                      alt={item.product.name}
-                      width={64}
-                      height={64}
-                      className="object-cover w-full h-full"
-                    />
-                  ) : (
-                    <Package className="w-8 h-8 text-gray-400" />
-                  )}
-                </div>
-
-                <div className="flex-1">
-                  <h4 className="font-medium text-foreground">{item.product.name}</h4>
-
-                  {expandedItems[item.id] && (
-                    <div className="mt-2 space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
-                      <div>
-                        <p className="text-sm text-gray-500">SKU: {item.product.sku}</p>
-                        {item.product.category && (
-                          <p className="text-xs text-module-black">{item.product.category.name}</p>
-                        )}
-                      </div>
-
-                      {/* Custom Dimensions Display */}
-                      <div className="space-y-1">
-                        {(item.customWidth && item.customHeight) ? (
-                          <>
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                              <Ruler className="w-3 h-3" />
-                              <span className="font-medium">Dimensiones:</span>
-                              <span className="bg-gray-50 px-2 py-0.5 rounded">
-                                {item.customWidth}mm × {item.customHeight}mm
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                              <span className="w-3 h-3"></span>
-                              <span className="font-medium">Área:</span>
-                              <span className="bg-green-50 px-2 py-0.5 rounded">
-                                {((item.customWidth / 1000) * (item.customHeight / 1000)).toFixed(4)} m²
-                              </span>
-                            </div>
-                          </>
-                        ) : (
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <Ruler className="w-3 h-3" />
-                            <span className="font-medium">Dimensiones estándar:</span>
-                            <span className="bg-gray-50 px-2 py-0.5 rounded">
-                              {item.product.width}mm × {item.product.height}mm
-                            </span>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Configuration Details */}
-                      {(item.productLine || item.productTone || item.handleModel || item.isTwoSided) && (
-                        <div className="space-y-1 p-2 bg-blue-50 rounded border border-blue-100">
-                          <p className="text-xs font-semibold text-blue-900">Configuración:</p>
-
-                          {item.productLine && (
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                              <span className="font-medium">Línea:</span>
-                              <Badge variant="outline">{item.productLine.name}</Badge>
-                            </div>
-                          )}
-
-                          {item.productTone && (
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                              <span className="font-medium">Tono:</span>
-                              <Badge variant="outline" className="flex items-center gap-1">
-                                {item.productTone.hexColor && (
-                                  <div
-                                    className="w-3 h-3 rounded-full border"
-                                    style={{ backgroundColor: item.productTone.hexColor }}
-                                  />
-                                )}
-                                {item.productTone.name}
-                              </Badge>
-                            </div>
-                          )}
-
-                          {item.handleModel && (
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                              <span className="font-medium">Jaladera:</span>
-                              <Badge variant="outline">{item.handleModel.model} - {item.handleModel.finish}</Badge>
-                            </div>
-                          )}
-
-                          {item.isTwoSided && (
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                              <span className="font-medium">Caras:</span>
-                              <Badge variant="secondary">2 Caras</Badge>
-                            </div>
-                          )}
+                        <div className="text-center">
+                          <Ruler className="w-5 h-5 text-module-black mx-auto mb-1" />
+                          <p className="text-sm text-gray-500">Alto</p>
+                          <p className="font-semibold">{quote.roomDimensions.height}m</p>
                         </div>
-                      )}
-
-                      {/* Price Breakdown */}
-                      <div className="text-xs text-muted-foreground bg-gray-50 p-2 rounded border max-w-xs">
-                        <div className="flex justify-between">
-                          <span>Producto Base:</span>
-                          <span>{formatMXN(item.unitPrice - (Number(item.handleModel?.price || 0) + Number(item.packagingCost || 0)))}</span>
+                        <div className="text-center">
+                          <Ruler className="w-5 h-5 text-module-black mx-auto mb-1" />
+                          <p className="text-sm text-gray-500">Profundidad</p>
+                          <p className="font-semibold">{quote.roomDimensions.depth}m</p>
                         </div>
-                        {item.handleModel && (
-                          <div className="flex justify-between">
-                            <span>Jaladera:</span>
-                            <span>{formatMXN(item.handleModel.price)}</span>
-                          </div>
-                        )}
-                        {item.packagingCost > 0 && (
-                          <div className="flex justify-between">
-                            <span>Empaque:</span>
-                            <span>{formatMXN(item.packagingCost)}</span>
-                          </div>
-                        )}
-                        <div className="border-t mt-1 pt-1 flex justify-between font-medium text-foreground">
-                          <span>Unitario:</span>
-                          <span>{formatMXN(item.unitPrice)}</span>
+                        <div className="text-center">
+                          <Ruler className="w-5 h-5 text-module-black mx-auto mb-1" />
+                          <p className="text-sm text-gray-500">Área Total</p>
+                          <p className="font-semibold">
+                            {(quote.roomDimensions.width * quote.roomDimensions.depth).toFixed(1)}m²
+                          </p>
                         </div>
                       </div>
                     </div>
                   )}
-                </div>
 
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto mt-4 sm:mt-0">
-                  {isEditing ? (
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          const newQuantity = Math.max(1, (itemQuantities[item.id] || item.quantity) - 1)
-                          setItemQuantities({ ...itemQuantities, [item.id]: newQuantity })
-                        }}
-                      >
-                        <Minus className="w-4 h-4" />
-                      </Button>
-
-                      <Input
-                        type="number"
-                        min="1"
-                        value={itemQuantities[item.id] || item.quantity}
-                        onChange={(e) => {
-                          const newQuantity = Math.max(1, parseInt(e.target.value) || 1)
-                          setItemQuantities({ ...itemQuantities, [item.id]: newQuantity })
-                        }}
-                        className="w-20 text-center"
+                  <div>
+                    <Label htmlFor="notes" className="text-sm text-gray-500 mb-1">
+                      Notas
+                    </Label>
+                    {isEditing ? (
+                      <Textarea
+                        id="notes"
+                        value={editedQuote.notes || ''}
+                        onChange={(e) => setEditedQuote({ ...editedQuote, notes: e.target.value })}
+                        className="mt-1"
+                        placeholder="Notas adicionales del proyecto..."
+                        rows={3}
                       />
+                    ) : quote.notes ? (
+                      <p className="text-gray-700 bg-gray-50 p-3 rounded-lg">{quote.notes}</p>
+                    ) : (
+                      <p className="text-gray-400 italic">Sin notas</p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
 
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          const newQuantity = (itemQuantities[item.id] || item.quantity) + 1
-                          setItemQuantities({ ...itemQuantities, [item.id]: newQuantity })
-                        }}
-                      >
-                        <Plus className="w-4 h-4" />
-                      </Button>
+            {/* Quote Summary */}
+            < motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.3 }}
+            >
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <DollarSign className="w-5 h-5" />
+                    Resumen de Costos
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Subtotal:</span>
+                    <span className="font-medium">{formatMXN(calculatedSummary.subtotal)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">IVA (16%):</span>
+                    <span className="font-medium">{formatMXN(calculatedSummary.taxAmount)}</span>
+                  </div>
 
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => deleteItem(item.id)}
-                        className="ml-2"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                  <Separator />
+                  <div className="flex justify-between text-lg font-bold">
+                    <span>Total:</span>
+                    <span>{formatMXN(calculatedSummary.totalAmount)}</span>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div >
 
-                      {item.product.isCustomizable && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleEditItem(item)}
-                          className="ml-2"
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </Button>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="text-right">
-                      <p className="text-sm text-gray-500">
-                        {item.quantity} × {formatMXN(item.unitPrice)}
-                      </p>
-                      <p className="font-semibold text-lg">
-                        {formatMXN(item.totalPrice)}
-                      </p>
-                      {/* Show price per area for customizable products */}
-                      {item.customWidth && item.customHeight && item.product.isCustomizable && (
-                        <p className="text-xs text-gray-400 mt-1">
-                          ({formatMXN(item.unitPrice / ((item.customWidth! / 1000) * (item.customHeight! / 1000)))}/m²)
-                        </p>
-                      )}
-
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => toggleItemDetails(item.id)}
-                        className="mt-1 h-6 text-xs text-muted-foreground hover:text-foreground w-full justify-end px-0"
-                      >
-                        {expandedItems[item.id] ? (
-                          <>Ocultar detalles <ChevronUp className="ml-1 w-3 h-3" /></>
-                        ) : (
-                          <>Ver detalles <ChevronDown className="ml-1 w-3 h-3" /></>
-                        )}
-                      </Button>
+            {/* Quote Details */}
+            < motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.4 }}
+            >
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Calendar className="w-5 h-5" />
+                    Detalles de la Cotización
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3 text-sm">
+                  <div>
+                    <p className="text-gray-500">Número de Cotización</p>
+                    <p className="font-medium">{quote.quoteNumber}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500">Fecha de Creación</p>
+                    <p className="font-medium">{formatDate(quote.createdAt)}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500">Válida Hasta</p>
+                    <p className="font-medium">{formatDate(quote.validUntil)}</p>
+                  </div>
+                  {quote.deliveryDate && (
+                    <div>
+                      <p className="text-gray-500">Fecha de Entrega</p>
+                      <p className="font-medium">{formatDate(quote.deliveryDate)}</p>
                     </div>
                   )}
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        ) : (
-          <div className="rounded-md border overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[80px]">Imagen</TableHead>
-                  <TableHead>Producto</TableHead>
-                  <TableHead>Dimensiones</TableHead>
-                  <TableHead>Jaladera</TableHead>
-                  <TableHead className="text-right">Cantidad</TableHead>
-                  <TableHead className="text-right">Unitario</TableHead>
-                  <TableHead className="text-right">Total</TableHead>
-                  <TableHead className="w-[100px]">Acciones</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {quote.items.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell>
-                      <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center overflow-hidden">
-                        {item.product.thumbnail ? (
-                          <Image
-                            src={item.product.thumbnail}
-                            alt={item.product.name}
-                            width={48}
-                            height={48}
-                            className="object-cover w-full h-full"
-                          />
-                        ) : (
-                          <Package className="w-6 h-6 text-gray-400" />
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="font-medium">{item.product.name}</div>
-                      <div className="text-xs text-muted-foreground">{item.product.sku}</div>
-                      {(item.productLine || item.productTone || item.handleModel) && (
-                        <div className="text-xs text-muted-foreground mt-1">
-                          {item.productLine?.name} {item.productTone?.name}
-                        </div>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-sm">
-                        {item.customWidth && item.customHeight ? (
-                          <>
-                            {item.customWidth} × {item.customHeight} mm
-                            <div className="text-xs text-muted-foreground">
-                              {((item.customWidth! / 1000) * (item.customHeight! / 1000)).toFixed(4)} m²
-                            </div>
-                          </>
-                        ) : (
-                          <>{item.product.width} × {item.product.height} mm</>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {item.handleModel ? (
-                        <div className="text-sm">
-                          <div className="font-medium">{item.handleModel.model}</div>
-                          <div className="text-xs text-muted-foreground">{item.handleModel.finish}</div>
-                        </div>
-                      ) : (
-                        <span className="text-xs text-muted-foreground italic">Sin jaladera</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {isEditing ? (
-                        <Input
-                          type="number"
-                          min="1"
-                          value={itemQuantities[item.id] || item.quantity}
-                          onChange={(e) => {
-                            const newQuantity = Math.max(1, parseInt(e.target.value) || 1)
-                            setItemQuantities({ ...itemQuantities, [item.id]: newQuantity })
-                          }}
-                          className="w-16 text-center ml-auto h-8"
-                        />
-                      ) : (
-                        item.quantity
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right">{formatMXN(item.unitPrice)}</TableCell>
-                    <TableCell className="text-right font-medium">{formatMXN(item.totalPrice)}</TableCell>
-                    <TableCell>
-                      {isEditing && (
-                        <div className="flex items-center justify-end gap-1">
-                          {item.product.isCustomizable && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleEditItem(item)}
-                              className="h-8 w-8 p-0"
-                            >
-                              <Pencil className="w-4 h-4" />
-                            </Button>
-                          )}
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => deleteItem(item.id)}
-                            className="h-8 w-8 p-0 text-red-500 hover:text-red-600"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  </motion.div>
-          </div >
-
-    {/* Sidebar */ }
-    < div className = "space-y-6" >
-      {/* Customer Information */ }
-      < motion.div
-  initial = {{ opacity: 0, y: 20 }
-}
-animate = {{ opacity: 1, y: 0 }}
-transition = {{ duration: 0.5, delay: 0.2 }}
-            >
-  <Card>
-    <CardHeader>
-      <CardTitle className="flex items-center gap-2">
-        <User className="w-5 h-5" />
-        Información del Cliente
-      </CardTitle>
-    </CardHeader>
-    <CardContent className="space-y-3">
-      <div>
-        <Label htmlFor="customerName" className="text-sm text-gray-500">
-          Nombre
-        </Label>
-        {isEditing ? (
-          <Input
-            id="customerName"
-            value={editedQuote.customerName || ''}
-            onChange={(e) => setEditedQuote({ ...editedQuote, customerName: e.target.value })}
-            className="mt-1"
-          />
-        ) : (
-          <p className="font-medium">{quote.customerName}</p>
-        )}
-      </div>
-
-      <div>
-        <Label htmlFor="customerEmail" className="text-sm text-gray-500">
-          Email
-        </Label>
-        {isEditing ? (
-          <Input
-            id="customerEmail"
-            type="email"
-            value={editedQuote.customerEmail || ''}
-            onChange={(e) => setEditedQuote({ ...editedQuote, customerEmail: e.target.value })}
-            className="mt-1"
-          />
-        ) : (
-          <p className="font-medium flex items-center gap-1">
-            <Mail className="w-4 h-4 text-gray-400" />
-            {quote.customerEmail}
-          </p>
-        )}
-      </div>
-
-      <div>
-        <Label htmlFor="customerPhone" className="text-sm text-gray-500">
-          Teléfono
-        </Label>
-        {isEditing ? (
-          <Input
-            id="customerPhone"
-            value={editedQuote.customerPhone || ''}
-            onChange={(e) => setEditedQuote({ ...editedQuote, customerPhone: e.target.value })}
-            className="mt-1"
-            placeholder="Teléfono opcional"
-          />
-        ) : quote.customerPhone ? (
-          <p className="font-medium flex items-center gap-1">
-            <Phone className="w-4 h-4 text-gray-400" />
-            {quote.customerPhone}
-          </p>
-        ) : (
-          <p className="text-gray-400 italic">No especificado</p>
-        )}
-      </div>
-
-      <div>
-        <Label htmlFor="customerAddress" className="text-sm text-gray-500">
-          Dirección
-        </Label>
-        {isEditing ? (
-          <Textarea
-            id="customerAddress"
-            value={editedQuote.customerAddress || ''}
-            onChange={(e) => setEditedQuote({ ...editedQuote, customerAddress: e.target.value })}
-            className="mt-1"
-            placeholder="Dirección opcional"
-            rows={2}
-          />
-        ) : quote.customerAddress ? (
-          <p className="font-medium flex items-start gap-1">
-            <MapPin className="w-4 h-4 text-gray-400 mt-0.5" />
-            {quote.customerAddress}
-          </p>
-        ) : (
-          <p className="text-gray-400 italic">No especificada</p>
-        )}
-      </div>
-    </CardContent>
-  </Card>
-            </motion.div >
-
-  {/* Quote Summary */ }
-  < motion.div
-initial = {{ opacity: 0, y: 20 }}
-animate = {{ opacity: 1, y: 0 }}
-transition = {{ duration: 0.5, delay: 0.3 }}
-            >
-  <Card>
-    <CardHeader>
-      <CardTitle className="flex items-center gap-2">
-        <DollarSign className="w-5 h-5" />
-        Resumen de Costos
-      </CardTitle>
-    </CardHeader>
-    <CardContent className="space-y-3">
-      <div className="flex justify-between">
-        <span className="text-muted-foreground">Subtotal:</span>
-        <span className="font-medium">{formatMXN(calculatedSummary.subtotal)}</span>
-      </div>
-      <div className="flex justify-between">
-        <span className="text-muted-foreground">IVA (16%):</span>
-        <span className="font-medium">{formatMXN(calculatedSummary.taxAmount)}</span>
-      </div>
-
-      <div className="flex justify-between text-green-600">
-        <span>Descuento:</span>
-        {isEditing ? (
-          <div className="flex items-center gap-2">
-            <span className="text-sm">$</span>
-            <Input
-              type="number"
-              min="0"
-              step="0.01"
-              value={editedQuote.discountAmount || 0}
-              onChange={(e) => setEditedQuote({
-                ...editedQuote,
-                discountAmount: parseFloat(e.target.value) || 0
-              })}
-              className="w-24 text-right text-sm"
-            />
-          </div>
-        ) : (
-          <span className="font-medium">
-            {calculatedSummary.discountAmount && calculatedSummary.discountAmount > 0
-              ? `-${formatMXN(calculatedSummary.discountAmount)}`
-              : formatMXN(0)
-            }
-          </span>
-        )}
-      </div>
-
-      <Separator />
-      <div className="flex justify-between text-lg font-bold">
-        <span>Total:</span>
-        <span>{formatMXN(calculatedSummary.totalAmount)}</span>
-      </div>
-    </CardContent>
-  </Card>
-            </motion.div >
-
-  {/* Quote Details */ }
-  < motion.div
-initial = {{ opacity: 0, y: 20 }}
-animate = {{ opacity: 1, y: 0 }}
-transition = {{ duration: 0.5, delay: 0.4 }}
-            >
-  <Card>
-    <CardHeader>
-      <CardTitle className="flex items-center gap-2">
-        <Calendar className="w-5 h-5" />
-        Detalles de la Cotización
-      </CardTitle>
-    </CardHeader>
-    <CardContent className="space-y-3 text-sm">
-      <div>
-        <p className="text-gray-500">Número de Cotización</p>
-        <p className="font-medium">{quote.quoteNumber}</p>
-      </div>
-      <div>
-        <p className="text-gray-500">Fecha de Creación</p>
-        <p className="font-medium">{formatDate(quote.createdAt)}</p>
-      </div>
-      <div>
-        <p className="text-gray-500">Válida Hasta</p>
-        <p className="font-medium">{formatDate(quote.validUntil)}</p>
-      </div>
-      {quote.deliveryDate && (
-        <div>
-          <p className="text-gray-500">Fecha de Entrega</p>
-          <p className="font-medium">{formatDate(quote.deliveryDate)}</p>
-        </div>
-      )}
-      <div>
-        <p className="text-gray-500">Creado por</p>
-        <p className="font-medium">{quote.user.name}</p>
-        {quote.user.companyName && (
-          <p className="text-xs text-gray-400">{quote.user.companyName}</p>
-        )}
-      </div>
-    </CardContent>
-  </Card>
+                  <div>
+                    <p className="text-gray-500">Creado por</p>
+                    <p className="font-medium">{quote.user.name}</p>
+                    {quote.user.companyName && (
+                      <p className="text-xs text-gray-400">{quote.user.companyName}</p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
             </motion.div >
           </div >
         </div >
 
-  {/* Product Selector Dialog */ }
-  < ProductSelectorDialog
-open = { showProductSelector }
-onOpenChange = { setShowProductSelector }
-onConfiguredProductAdd = { handleConfiguredProductAdd }
-onStandardProductAdd = { handleStandardProductAdd }
-  />
-
-  <Dialog open={showEditConfigurator} onOpenChange={setShowEditConfigurator}>
-    <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
-      {editingItem && (
-        <ProductConfigurator
-          mode="edit"
-          initialConfig={{
-            productId: editingItem.product.id,
-            width: editingItem.customWidth || 0,
-            height: editingItem.customHeight || 0,
-            quantity: editingItem.quantity,
-            lineId: editingItem.product.lineId,
-            toneId: editingItem.productToneId,
-            handleId: editingItem.handleModelId,
-            cars: editingItem.isTwoSided ? 2 : 1,
-          }}
-          onComplete={handleEditComplete}
-          onCancel={() => setShowEditConfigurator(false)}
+        {/* Product Selector Dialog */}
+        < ProductSelectorDialog
+          open={showProductSelector}
+          onOpenChange={setShowProductSelector}
+          onConfiguredProductAdd={handleConfiguredProductAdd}
+          onStandardProductAdd={handleStandardProductAdd}
         />
-      )}
-    </DialogContent>
-  </Dialog>
+
+        <Dialog open={showEditConfigurator} onOpenChange={setShowEditConfigurator}>
+          <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+            {editingItem && (
+              <ProductConfigurator
+                mode="edit"
+                initialConfig={{
+                  productId: editingItem.product.id,
+                  width: editingItem.customWidth || 0,
+                  height: editingItem.customHeight || 0,
+                  quantity: editingItem.quantity,
+                  lineId: editingItem.productLineId,
+                  toneId: editingItem.productToneId,
+                  handleId: editingItem.handleModelId,
+                  cars: editingItem.isTwoSided ? 2 : 1,
+                  isExhibition: editingItem.isExhibition || false,
+                  isExpressDelivery: editingItem.isExpressDelivery || false,
+                }}
+                onComplete={handleEditComplete}
+                onCancel={() => setShowEditConfigurator(false)}
+                allowedLines={['Vidrio']}
+                allowedHandles={['Sorento A', 'Sorento L', 'Sorento G']}
+                allowedTones={[
+                  'Blanco Brillante',
+                  'Blanco Mate',
+                  'Paja Brillante',
+                  'Paja Mate',
+                  'Capuchino Brillante',
+                  'Capuchino Mate',
+                  'Humo Brillante',
+                  'Humo Mate',
+                  'Gris Brillante',
+                  'Gris Mate',
+                  'Rojo Brillante',
+                  'Rojo Mate',
+                  'Negro Brillante',
+                  'Negro Mate'
+                ]}
+              />
+            )}
+          </DialogContent>
+        </Dialog>
       </div >
     </div >
   )

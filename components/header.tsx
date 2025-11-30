@@ -106,7 +106,7 @@ export function Header() {
 
   // Enlaces que requieren autenticación
   const authRequiredNavigation = session ? [
-    { name: 'Productos', href: '/products', icon: Package },
+    // Removed Productos link
   ] : []
 
   // Combinar navegación base con la que requiere autenticación
@@ -125,7 +125,7 @@ export function Header() {
   const allNavigation = [...navigation, ...userNavigation, ...adminNavigation]
 
   return (
-    <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-200/50 shadow-sm dark:bg-gray-900/80 dark:border-gray-800">
+    <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-200/50 shadow-sm dark:bg-gray-950/95 dark:border-gray-700">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-14 sm:h-16">
           {/* Logo */}
@@ -144,7 +144,7 @@ export function Header() {
                 <Package className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
               </div>
             )}
-            <span className="text-base sm:text-xl font-bold text-gray-900 dark:text-white truncate hidden xs:block">
+            <span className="text-base sm:text-xl font-bold text-gray-900 dark:text-gray-100 truncate hidden xs:block">
               {companySettings.companyName}
             </span>
           </Link>
@@ -155,7 +155,7 @@ export function Header() {
               <Link
                 key={item.name}
                 href={item.href}
-                className="text-gray-700 hover:text-module-black transition-colors font-medium"
+                className="text-gray-700 hover:text-module-black transition-colors font-medium dark:text-gray-200 dark:hover:text-white"
               >
                 {item.name}
               </Link>
@@ -177,7 +177,7 @@ export function Header() {
                     <Link
                       key={item.name}
                       href={item.href}
-                      className="text-gray-700 hover:text-module-black transition-colors"
+                      className="text-gray-700 hover:text-module-black transition-colors dark:text-gray-300 dark:hover:text-white"
                     >
                       <item.icon className="w-5 h-5" />
                     </Link>
@@ -186,7 +186,7 @@ export function Header() {
                   {session.user.role === 'ADMIN' && (
                     <Link
                       href="/admin"
-                      className="text-gray-700 hover:text-module-black transition-colors"
+                      className="text-gray-700 hover:text-module-black transition-colors dark:text-gray-300 dark:hover:text-white"
                     >
                       <Settings className="w-5 h-5" />
                     </Link>
@@ -245,7 +245,7 @@ export function Header() {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="md:hidden bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800"
+            className="md:hidden bg-white dark:bg-gray-950 border-t border-gray-200 dark:border-gray-700"
           >
             <div className="px-4 py-3 space-y-1">
               {allNavigation.map((item) => (

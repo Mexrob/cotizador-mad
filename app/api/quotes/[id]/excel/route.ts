@@ -12,7 +12,7 @@ export async function GET(
 ) {
   try {
     const session = await getServerSession(authOptions)
-    
+
     if (!session) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
@@ -95,7 +95,7 @@ export async function GET(
     }
 
     const wsInfo = XLSX.utils.aoa_to_sheet(quoteInfoData)
-    
+
     // Ajustar anchos de columnas
     wsInfo['!cols'] = [
       { wch: 25 },
@@ -118,6 +118,9 @@ export async function GET(
         'Alto (mm)',
         'Área (m²)',
         'Cantidad',
+        'Jaladera Unitaria',
+        'Cant. Jaladeras',
+        'Total Jaladeras',
         'Precio Unitario',
         'Total'
       ],
@@ -125,7 +128,11 @@ export async function GET(
         const area = item.customWidth && item.customHeight
           ? ((item.customWidth * item.customHeight) / 1000000).toFixed(4)
           : '-'
-        
+
+        const handleUnitPrice = item.handleModel ? parseFloat(item.handleModel.price.toFixed(2)) : 0
+        const handleQuantity = item.handleModel ? item.quantity : 0
+        const handleTotal = item.handleModel ? parseFloat((item.handleModel.price * item.quantity).toFixed(2)) : 0
+
         return [
           item.product.name,
           item.product.sku,
@@ -138,14 +145,49 @@ export async function GET(
           item.customHeight || item.product.height,
           area,
           item.quantity,
-          item.unitPrice,
-          item.totalPrice
+          handleUnitPrice,
+          handleQuantity,
+          handleTotal,
+          parseFloat(item.unitPrice.toFixed(2)),
+          parseFloat(item.totalPrice.toFixed(2))
         ]
       })
     ]
 
     const wsProducts = XLSX.utils.aoa_to_sheet(productsData)
-    
+
+    // Aplicar formato de moneda MXN a las columnas de precio
+    const range = XLSX.utils.decode_range(wsProducts['!ref'] || 'A1')
+    for (let row = 1; row <= range.e.r; row++) {
+      // Columna L (11): Jaladera Unitaria
+      const handleUnitCell = XLSX.utils.encode_cell({ r: row, c: 11 })
+      if (wsProducts[handleUnitCell] && typeof wsProducts[handleUnitCell].v === 'number') {
+        wsProducts[handleUnitCell].z = '$#,##0.00'
+        wsProducts[handleUnitCell].t = 'n'
+      }
+
+      // Columna N (13): Total Jaladeras
+      const handleTotalCell = XLSX.utils.encode_cell({ r: row, c: 13 })
+      if (wsProducts[handleTotalCell] && typeof wsProducts[handleTotalCell].v === 'number') {
+        wsProducts[handleTotalCell].z = '$#,##0.00'
+        wsProducts[handleTotalCell].t = 'n'
+      }
+
+      // Columna O (14): Precio Unitario
+      const unitPriceCell = XLSX.utils.encode_cell({ r: row, c: 14 })
+      if (wsProducts[unitPriceCell] && typeof wsProducts[unitPriceCell].v === 'number') {
+        wsProducts[unitPriceCell].z = '$#,##0.00'
+        wsProducts[unitPriceCell].t = 'n'
+      }
+
+      // Columna P (15): Total
+      const totalPriceCell = XLSX.utils.encode_cell({ r: row, c: 15 })
+      if (wsProducts[totalPriceCell] && typeof wsProducts[totalPriceCell].v === 'number') {
+        wsProducts[totalPriceCell].z = '$#,##0.00'
+        wsProducts[totalPriceCell].t = 'n'
+      }
+    }
+
     // Ajustar anchos de columnas
     wsProducts['!cols'] = [
       { wch: 30 }, // Producto
@@ -159,6 +201,9 @@ export async function GET(
       { wch: 12 }, // Alto
       { wch: 12 }, // Área
       { wch: 10 }, // Cantidad
+      { wch: 15 }, // Jaladera Unitaria
+      { wch: 12 }, // Cant. Jaladeras
+      { wch: 15 }, // Total Jaladeras
       { wch: 15 }, // Precio Unitario
       { wch: 15 }, // Total
     ]
@@ -169,14 +214,25 @@ export async function GET(
     const summaryData = [
       ['RESUMEN FINANCIERO'],
       [''],
-      ['Subtotal', quote.subtotal],
-      ['IVA (16%)', quote.taxAmount],
-      ['Descuento', quote.discountAmount || 0],
+      ['Subtotal', parseFloat(quote.subtotal.toFixed(2))],
+      ['IVA (16%)', parseFloat(quote.taxAmount.toFixed(2))],
+      ['Descuento', parseFloat((quote.discountAmount || 0).toFixed(2))],
       [''],
-      ['TOTAL', quote.totalAmount],
+      ['TOTAL', parseFloat(quote.totalAmount.toFixed(2))],
     ]
 
     const wsSummary = XLSX.utils.aoa_to_sheet(summaryData)
+
+    // Aplicar formato de moneda MXN a las celdas de precio
+    const summaryRange = XLSX.utils.decode_range(wsSummary['!ref'] || 'A1')
+    for (let row = 0; row <= summaryRange.e.r; row++) {
+      const priceCell = XLSX.utils.encode_cell({ r: row, c: 1 })
+      if (wsSummary[priceCell] && typeof wsSummary[priceCell].v === 'number') {
+        wsSummary[priceCell].z = '$#,##0.00'
+        wsSummary[priceCell].t = 'n'
+      }
+    }
+
     wsSummary['!cols'] = [
       { wch: 20 },
       { wch: 20 },
@@ -185,9 +241,9 @@ export async function GET(
     XLSX.utils.book_append_sheet(workbook, wsSummary, 'Resumen')
 
     // Generar buffer del Excel
-    const excelBuffer = XLSX.write(workbook, { 
-      type: 'buffer', 
-      bookType: 'xlsx' 
+    const excelBuffer = XLSX.write(workbook, {
+      type: 'buffer',
+      bookType: 'xlsx'
     })
 
     // Retornar el archivo Excel
