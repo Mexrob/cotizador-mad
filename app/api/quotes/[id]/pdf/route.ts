@@ -261,7 +261,7 @@ function generateQuotePDFHTML(quote: any, companySettings: any): string {
         .products-table td {
             padding: 3px 2px;
             text-align: left;
-            border-bottom: 1px solid #e2e8f0;
+            border: 1px solid #cbd5e1;
             vertical-align: middle;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -274,6 +274,7 @@ function generateQuotePDFHTML(quote: any, companySettings: any): string {
             color: #475569;
             font-size: 0.55rem;
             white-space: nowrap;
+            border: 1px solid #94a3b8;
         }
         
         .products-table tr:hover {
@@ -466,63 +467,51 @@ function generateQuotePDFHTML(quote: any, companySettings: any): string {
                 <thead>
                     <tr>
                         <th>Producto</th>
-                        <th>SKU</th>
-                        <th>Categoría</th>
-                        <th>Línea</th>
-                        <th>Tono</th>
+                        <th style="text-align: right;">Alto</th>
+                        <th style="text-align: right;">Ancho</th>
+                        <th style="text-align: right;">Precio m²</th>
+                        <th style="text-align: right;">Cantidad</th>
+                        <th style="text-align: center;">Caras</th>
+                        <th style="text-align: right;">Costo unitario</th>
                         <th>Jaladera</th>
-                        <th>Dimensiones (mm)</th>
-                        <th>Área (m²)</th>
-                        <th>Cantidad</th>
-                        <th>Jaladera Unit.</th>
-                        <th>Cant. Jaladeras</th>
-                        <th>Total Jaladeras</th>
-                        <th>Precio Unitario</th>
-                        <th>Total</th>
+                        <th style="text-align: right;">Precio Jaladera</th>
+                        <th style="text-align: right;">Cant. Jaladera</th>
+                        <th style="text-align: center;">Prod. Exhibición</th>
+                        <th style="text-align: center;">Envío Express</th>
+                        <th style="text-align: right;">Total</th>
                     </tr>
                 </thead>
                 <tbody>
                     ${quote.items.map((item: any) => {
-        // Formatear dimensiones
-        const formatDimensions = () => {
-            if (item.customWidth && item.customHeight) {
-                const width = Math.round(item.customWidth);
-                const height = Math.round(item.customHeight);
-                return `${width} × ${height}`;
-            }
-            return 'Estándar';
-        };
+        const width = item.customWidth || item.product.width || 0
+        const height = item.customHeight || item.product.height || 0
+        const area = (width / 1000) * (height / 1000)
 
-        // Calcular área en m²
-        const calculateArea = () => {
-            if (item.customWidth && item.customHeight) {
-                const areaM2 = (item.customWidth * item.customHeight) / (1000 * 1000);
-                return areaM2.toFixed(2);
-            }
-            return '-';
-        };
+        const handlePrice = item.handleModel?.price || 0
+        const baseUnitPrice = item.unitPrice - handlePrice
+        const pricePerM2 = area > 0 ? baseUnitPrice / area : 0
 
-        // Datos de jaladera
-        const handleName = item.handleModel ? `${item.handleModel.model} - ${item.handleModel.finish}` : 'Sin jaladera';
-        const handleUnitPrice = item.handleModel ? formatMXN(item.handleModel.price) : '-';
-        const handleQuantity = item.handleModel ? item.quantity : '-';
-        const handleTotal = item.handleModel ? formatMXN(item.handleModel.price * item.quantity) : '-';
+        const handleName = item.handleModel ? `${item.handleModel.model} - ${item.handleModel.finish}` : 'Sin jaladera'
+        const handlePriceFormatted = item.handleModel ? formatMXN(item.handleModel.price) : '-'
+        const handleQuantity = item.handleModel ? item.quantity : '-'
+
+        const exhibitionFee = item.isExhibition ? formatMXN(500) : '-'
+        const expressDeliveryFee = item.isExpressDelivery ? formatMXN(500) : '-'
 
         return `
                         <tr>
                             <td>${item.product.name}</td>
-                            <td>${item.product.sku}</td>
-                            <td>${item.product.category?.name || 'N/A'}</td>
-                            <td>${item.productLine?.name || 'N/A'}</td>
-                            <td>${item.productTone?.name || 'N/A'}</td>
+                            <td style="text-align: right;">${height} mm</td>
+                            <td style="text-align: right;">${width} mm</td>
+                            <td style="text-align: right;">${pricePerM2 > 0 ? formatMXN(pricePerM2) : '-'}</td>
+                            <td style="text-align: right;">${item.quantity}</td>
+                            <td style="text-align: center;">${item.isTwoSided ? '2' : '1'}</td>
+                            <td style="text-align: right;">${formatMXN(baseUnitPrice * item.quantity)}</td>
                             <td>${handleName}</td>
-                            <td style="text-align: center;">${formatDimensions()}</td>
-                            <td style="text-align: center;">${calculateArea()}</td>
-                            <td style="text-align: center;">${item.quantity}</td>
-                            <td style="text-align: right;">${handleUnitPrice}</td>
-                            <td style="text-align: center;">${handleQuantity}</td>
-                            <td style="text-align: right;">${handleTotal}</td>
-                            <td style="text-align: right;">${formatMXN(item.unitPrice)}</td>
+                            <td style="text-align: right;">${handlePriceFormatted}</td>
+                            <td style="text-align: right;">${handleQuantity}</td>
+                            <td style="text-align: center;">${exhibitionFee}</td>
+                            <td style="text-align: center;">${expressDeliveryFee}</td>
                             <td style="text-align: right;">${formatMXN(item.totalPrice)}</td>
                         </tr>
                         `;

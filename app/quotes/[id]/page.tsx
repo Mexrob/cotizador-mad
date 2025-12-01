@@ -48,9 +48,7 @@ import {
   RefreshCw,
   Pencil,
   ChevronDown,
-  ChevronUp,
-  LayoutList,
-  Table as TableIcon
+  ChevronUp
 } from 'lucide-react'
 import ProductSelectorDialog from '@/components/product-selector-dialog'
 import ProductConfigurator from '@/components/product-configurator'
@@ -92,6 +90,8 @@ interface Quote {
     productToneId?: string
     handleModelId?: string
     isTwoSided?: boolean
+    isExhibition?: boolean
+    isExpressDelivery?: boolean
     productLine?: {
       id: string
       name: string
@@ -164,7 +164,7 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
   const { toast } = useToast()
 
   const [quote, setQuote] = useState<Quote | null>(null)
-  const [viewMode, setViewMode] = useState<'list' | 'table'>('table')
+
   const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -389,7 +389,7 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
         },
         body: JSON.stringify({
           quantity: config.quantity,
-          unitPrice: config.totalPrice / config.quantity,
+          unitPrice: config.unitPrice,
           totalPrice: config.totalPrice,
           customWidth: config.width,
           customHeight: config.height,
@@ -397,6 +397,8 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
           toneId: config.toneId,
           handleId: config.handleId,
           cars: config.cars,
+          isExhibition: config.isExhibition,
+          isExpressDelivery: config.isExpressDelivery,
         }),
       })
 
@@ -577,33 +579,61 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
       return {
         subtotal: 0,
         taxAmount: 0,
-        totalAmount: 0
+        totalAmount: 0,
+        exhibitionFees: 0,
+        expressDeliveryFees: 0,
+        discountAmount: 0,
+        subtotalWithFees: 0,
+        baseProductSubtotal: 0,
+        handlesSubtotal: 0
       }
     }
 
-    // Calculate subtotal based on current items and quantities with recalculated unit prices
-    const subtotal = quote.items.reduce((sum, item) => {
+    // Calculate base product subtotal and handles subtotal
+    const { baseProductSubtotal, handlesSubtotal } = quote.items.reduce((acc, item) => {
       const currentQuantity = itemQuantities[item.id] !== undefined
         ? itemQuantities[item.id]
         : item.quantity
 
-      return sum + (item.unitPrice * currentQuantity)
+      const handlePrice = item.handleModel?.price || 0
+      // item.unitPrice includes handlePrice, so we subtract it to get base unit price
+      const baseUnitPrice = item.unitPrice - handlePrice
+
+      acc.baseProductSubtotal += baseUnitPrice * currentQuantity
+      acc.handlesSubtotal += handlePrice * currentQuantity
+
+      return acc
+    }, { baseProductSubtotal: 0, handlesSubtotal: 0 })
+
+    // Calculate fees (Flat fee per item line, matching ProductConfigurator logic)
+    const exhibitionFees = quote.items.reduce((sum, item) => {
+      return sum + (item.isExhibition ? 500 : 0)
     }, 0)
 
+    const expressDeliveryFees = quote.items.reduce((sum, item) => {
+      return sum + (item.isExpressDelivery ? 500 : 0)
+    }, 0)
+
+    const subtotalWithFees = baseProductSubtotal + handlesSubtotal + exhibitionFees + expressDeliveryFees
+
     // Calculate tax (16%)
-    const taxAmount = subtotal * 0.16
+    const taxAmount = subtotalWithFees * 0.16
 
     // Apply discount
     const discountAmount = (isEditing ? (editedQuote.discountAmount || 0) : (quote.discountAmount || 0))
 
     // Calculate total
-    const totalAmount = subtotal + taxAmount - discountAmount
+    const totalAmount = subtotalWithFees + taxAmount - discountAmount
 
     return {
-      subtotal,
+      subtotal: subtotalWithFees,
       taxAmount,
       totalAmount,
-      discountAmount
+      discountAmount,
+      exhibitionFees,
+      expressDeliveryFees,
+      baseProductSubtotal,
+      handlesSubtotal
     }
   }, [quote, itemQuantities, isEditing, editedQuote.discountAmount])
 
@@ -1170,452 +1200,138 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
                     )}
 
                   </CardTitle>
-                  <div className="flex items-center gap-2">
-                    <div className="flex bg-muted rounded-lg p-1">
-                      <Button
-                        variant={viewMode === 'list' ? 'secondary' : 'ghost'}
-                        size="sm"
-                        className="h-8 w-8 p-0"
-                        onClick={() => setViewMode('list')}
-                      >
-                        <LayoutList className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant={viewMode === 'table' ? 'secondary' : 'ghost'}
-                        size="sm"
-                        className="h-8 w-8 p-0"
-                        onClick={() => setViewMode('table')}
-                      >
-                        <TableIcon className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
                 </CardHeader>
                 <CardContent>
-                  {viewMode === 'list' ? (
-                    <div className="space-y-4">
-                      {quote.items.map((item, index) => (
-                        <motion.div
-                          key={item.id}
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ duration: 0.3, delay: index * 0.05 }}
-                          className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 border rounded-lg hover:bg-gray-50 transition-colors"
-                        >
-                          <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center overflow-hidden">
-                            {item.product.thumbnail ? (
-                              <Image
-                                src={item.product.thumbnail}
-                                alt={item.product.name}
-                                width={64}
-                                height={64}
-                                className="object-cover w-full h-full"
-                              />
-                            ) : (
-                              <Package className="w-8 h-8 text-gray-400" />
-                            )}
-                          </div>
 
-                          <div className="flex-1">
-                            <h4 className="font-medium text-foreground">{item.product.name}</h4>
+                  <div className="rounded-md border overflow-x-auto">
+                    <Table className="border-collapse">
+                      <TableHeader>
+                        <TableRow className="border-b">
+                          <TableHead className="w-[200px] border-r">Producto</TableHead>
+                          <TableHead className="text-right border-r">Alto</TableHead>
+                          <TableHead className="text-right border-r">Ancho</TableHead>
+                          <TableHead className="text-right border-r">Precio m²</TableHead>
+                          <TableHead className="text-right border-r">Cantidad</TableHead>
+                          <TableHead className="text-center border-r">Caras</TableHead>
+                          <TableHead className="text-right border-r">Costo unitario</TableHead>
+                          <TableHead className="border-r">Jaladera</TableHead>
+                          <TableHead className="text-right border-r">Precio Jaladera</TableHead>
+                          <TableHead className="text-right border-r">Cant. Jaladera</TableHead>
+                          <TableHead className="text-center border-r">Prod. Exhibición</TableHead>
+                          <TableHead className="text-center border-r">Envío Express</TableHead>
+                          <TableHead className="text-right border-r">Total</TableHead>
+                          <TableHead className="w-[50px]"></TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {quote.items.map((item) => {
+                          const width = item.customWidth || item.product.width || 0
+                          const height = item.customHeight || item.product.height || 0
+                          const area = (width / 1000) * (height / 1000)
+                          const handlePrice = item.handleModel?.price || 0
+                          // Calculate base unit price (without handle) for m2 calculation
+                          const baseUnitPrice = item.unitPrice - handlePrice
+                          const pricePerM2 = area > 0 ? baseUnitPrice / area : 0
 
-                            {expandedItems[item.id] && (
-                              <div className="mt-2 space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
-                                <div>
-                                  <p className="text-sm text-gray-500">SKU: {item.product.sku}</p>
-                                  {item.product.category && (
-                                    <p className="text-xs text-module-black">{item.product.category.name}</p>
-                                  )}
-                                </div>
-
-                                {/* Custom Dimensions Display */}
-                                <div className="space-y-1">
-                                  {(item.customWidth && item.customHeight) ? (
-                                    <>
-                                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                        <Ruler className="w-3 h-3" />
-                                        <span className="font-medium">Dimensiones:</span>
-                                        <span className="bg-gray-50 px-2 py-0.5 rounded">
-                                          {item.customWidth}mm × {item.customHeight}mm
-                                        </span>
-                                      </div>
-                                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                        <span className="w-3 h-3"></span>
-                                        <span className="font-medium">Área:</span>
-                                        <span className="bg-green-50 px-2 py-0.5 rounded">
-                                          {((item.customWidth / 1000) * (item.customHeight / 1000)).toFixed(4)} m²
-                                        </span>
-                                      </div>
-                                    </>
-                                  ) : (
-                                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                      <Ruler className="w-3 h-3" />
-                                      <span className="font-medium">Dimensiones estándar:</span>
-                                      <span className="bg-gray-50 px-2 py-0.5 rounded">
-                                        {item.product.width}mm × {item.product.height}mm
-                                      </span>
-                                    </div>
-                                  )}
-                                </div>
-
-                                {/* Configuration Details */}
-                                {(item.productLine || item.productTone || item.handleModel || item.isTwoSided) && (
-                                  <div className="space-y-1 p-2 bg-blue-50 dark:bg-gray-800 rounded border border-blue-100 dark:border-gray-700">
-                                    <p className="text-xs font-semibold text-blue-900 dark:text-blue-100">Configuración:</p>
-
-                                    {item.productLine && (
-                                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                        <span className="font-medium">Línea:</span>
-                                        <Badge variant="outline">{item.productLine.name}</Badge>
-                                      </div>
+                          return (
+                            <TableRow key={item.id} className="border-b">
+                              <TableCell className="border-r">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-10 h-10 bg-gray-100 rounded-md flex items-center justify-center overflow-hidden flex-shrink-0">
+                                    {item.product.thumbnail ? (
+                                      <Image
+                                        src={item.product.thumbnail}
+                                        alt={item.product.name}
+                                        width={40}
+                                        height={40}
+                                        className="object-cover w-full h-full"
+                                      />
+                                    ) : (
+                                      <Package className="w-5 h-5 text-gray-400" />
                                     )}
-
-                                    {item.productTone && (
-                                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                        <span className="font-medium">Tono:</span>
-                                        <Badge variant="outline" className="flex items-center gap-1">
-                                          {item.productTone.hexColor && (
-                                            <div
-                                              className="w-3 h-3 rounded-full border"
-                                              style={{ backgroundColor: item.productTone.hexColor }}
-                                            />
-                                          )}
-                                          {item.productTone.name}
-                                        </Badge>
-                                      </div>
-                                    )}
-
-                                    {item.handleModel && (
-                                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                        <span className="font-medium">Jaladera:</span>
-                                        <Badge variant="outline">{item.handleModel.model} - {item.handleModel.finish}</Badge>
-                                      </div>
-                                    )}
-
-                                    {item.isTwoSided && (
-                                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                        <span className="font-medium">Caras:</span>
-                                        <Badge variant="secondary">2 Caras</Badge>
+                                  </div>
+                                  <div className="min-w-0">
+                                    <div className="font-medium text-sm truncate" title={item.product.name}>{item.product.name}</div>
+                                    <div className="text-xs text-muted-foreground truncate">{item.product.sku}</div>
+                                    {(item.productLine || item.productTone) && (
+                                      <div className="text-[10px] text-muted-foreground truncate">
+                                        {item.productLine?.name} {item.productTone?.name}
                                       </div>
                                     )}
                                   </div>
-                                )}
-
-                                {/* Price Breakdown */}
-                                <div className="text-xs text-muted-foreground bg-gray-50 p-2 rounded border max-w-xs">
-                                  <div className="flex justify-between">
-                                    <span>Producto Base:</span>
-                                    <span>{formatMXN(item.unitPrice - (Number(item.handleModel?.price || 0) + Number(item.packagingCost || 0)))}</span>
-                                  </div>
-                                  {item.handleModel && (
-                                    <>
-                                      <div className="flex justify-between">
-                                        <span>Jaladera (unitario):</span>
-                                        <span>{formatMXN(item.handleModel.price)}</span>
-                                      </div>
-                                      <div className="flex justify-between">
-                                        <span>Cantidad de jaladeras:</span>
-                                        <span>{item.quantity}</span>
-                                      </div>
-                                      <div className="flex justify-between font-medium">
-                                        <span>Total jaladeras:</span>
-                                        <span>{formatMXN(item.handleModel.price * item.quantity)}</span>
-                                      </div>
-                                    </>
-                                  )}
-                                  {item.packagingCost > 0 && (
-                                    <div className="flex justify-between">
-                                      <span>Empaque:</span>
-                                      <span>{formatMXN(item.packagingCost)}</span>
-                                    </div>
-                                  )}
-                                  <div className="border-t mt-1 pt-1 flex justify-between font-medium text-foreground">
-                                    <span>Unitario:</span>
-                                    <span>{formatMXN(item.unitPrice)}</span>
-                                  </div>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-
-                          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto mt-4 sm:mt-0">
-                            {isEditing ? (
-                              <div className="flex flex-wrap items-center gap-2">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => {
-                                    const newQuantity = Math.max(1, (itemQuantities[item.id] || item.quantity) - 1)
-                                    setItemQuantities({ ...itemQuantities, [item.id]: newQuantity })
-                                  }}
-                                >
-                                  <Minus className="w-4 h-4" />
-                                </Button>
-
-                                <Input
-                                  type="number"
-                                  min="1"
-                                  value={itemQuantities[item.id] || item.quantity}
-                                  onChange={(e) => {
-                                    const newQuantity = Math.max(1, parseInt(e.target.value) || 1)
-                                    setItemQuantities({ ...itemQuantities, [item.id]: newQuantity })
-                                  }}
-                                  className="w-20 text-center"
-                                />
-
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => {
-                                    const newQuantity = (itemQuantities[item.id] || item.quantity) + 1
-                                    setItemQuantities({ ...itemQuantities, [item.id]: newQuantity })
-                                  }}
-                                >
-                                  <Plus className="w-4 h-4" />
-                                </Button>
-
-                                <Button
-                                  variant="destructive"
-                                  size="sm"
-                                  onClick={() => deleteItem(item.id)}
-                                  className="ml-2"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </Button>
-
-                                {item.product.isCustomizable && (
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => handleEditItem(item)}
-                                    className="ml-2"
-                                  >
-                                    <Pencil className="w-4 h-4" />
-                                  </Button>
-                                )}
-                              </div>
-                            ) : (
-                              <div className="text-right">
-                                <p className="text-sm text-gray-500">
-                                  {item.quantity} × {formatMXN(item.unitPrice)}
-                                </p>
-                                <p className="font-semibold text-lg">
-                                  {formatMXN(item.totalPrice)}
-                                </p>
-                                {/* Show price per area for customizable products */}
-                                {item.customWidth && item.customHeight && item.product.isCustomizable && (
-                                  <p className="text-xs text-gray-400 mt-1">
-                                    ({formatMXN(item.unitPrice / ((item.customWidth! / 1000) * (item.customHeight! / 1000)))}/m²)
-                                  </p>
-                                )}
-
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => toggleItemDetails(item.id)}
-                                  className="mt-1 h-6 text-xs text-muted-foreground hover:text-foreground w-full justify-end px-0"
-                                >
-                                  {expandedItems[item.id] ? (
-                                    <>Ocultar detalles <ChevronUp className="ml-1 w-3 h-3" /></>
-                                  ) : (
-                                    <>Ver detalles <ChevronDown className="ml-1 w-3 h-3" /></>
-                                  )}
-                                </Button>
-                              </div>
-                            )}
-                          </div>
-                        </motion.div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="rounded-md border overflow-x-auto">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead className="w-[80px]">Imagen</TableHead>
-                            <TableHead>Producto</TableHead>
-                            <TableHead>Dimensiones</TableHead>
-                            <TableHead>Jaladera</TableHead>
-                            <TableHead className="text-right">Cantidad</TableHead>
-                            <TableHead className="text-right">Unitario</TableHead>
-                            <TableHead className="text-right">Total</TableHead>
-                            <TableHead className="w-[100px]">Acciones</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {quote.items.map((item) => (
-                            <TableRow key={item.id}>
-                              <TableCell>
-                                <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center overflow-hidden">
-                                  {item.product.thumbnail ? (
-                                    <Image
-                                      src={item.product.thumbnail}
-                                      alt={item.product.name}
-                                      width={48}
-                                      height={48}
-                                      className="object-cover w-full h-full"
-                                    />
-                                  ) : (
-                                    <Package className="w-6 h-6 text-gray-400" />
-                                  )}
                                 </div>
                               </TableCell>
-                              <TableCell>
-                                <div className="font-medium">{item.product.name}</div>
-                                <div className="text-xs text-muted-foreground">{item.product.sku}</div>
-                                {(item.productLine || item.productTone || item.handleModel) && (
-                                  <div className="text-xs text-muted-foreground mt-1">
-                                    {item.productLine?.name} {item.productTone?.name}
-                                  </div>
-                                )}
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => toggleItemDetails(item.id)}
-                                  className="mt-1 h-6 text-xs text-muted-foreground hover:text-foreground p-0"
-                                >
-                                  {expandedItems[item.id] ? (
-                                    <>Ocultar detalles <ChevronUp className="ml-1 w-3 h-3" /></>
-                                  ) : (
-                                    <>Ver detalles <ChevronDown className="ml-1 w-3 h-3" /></>
-                                  )}
-                                </Button>
-
-                                {expandedItems[item.id] && (
-                                  <div className="mt-2 space-y-1 p-2 bg-blue-50 dark:bg-gray-800 rounded border border-blue-100 dark:border-gray-700 text-xs">
-                                    <p className="font-semibold text-blue-900 dark:text-blue-100">Configuración:</p>
-
-                                    {item.productLine && (
-                                      <div className="flex items-center gap-2 text-muted-foreground">
-                                        <span className="font-medium">Línea:</span>
-                                        <Badge variant="outline" className="h-5 text-[10px] px-1">{item.productLine.name}</Badge>
-                                      </div>
-                                    )}
-
-                                    {item.productTone && (
-                                      <div className="flex items-center gap-2 text-muted-foreground">
-                                        <span className="font-medium">Tono:</span>
-                                        <Badge variant="outline" className="flex items-center gap-1 h-5 text-[10px] px-1">
-                                          {item.productTone.hexColor && (
-                                            <div
-                                              className="w-2 h-2 rounded-full border"
-                                              style={{ backgroundColor: item.productTone.hexColor }}
-                                            />
-                                          )}
-                                          {item.productTone.name}
-                                        </Badge>
-                                      </div>
-                                    )}
-
-                                    {item.handleModel && (
-                                      <div className="flex items-center gap-2 text-muted-foreground">
-                                        <span className="font-medium">Jaladera:</span>
-                                        <Badge variant="outline" className="h-5 text-[10px] px-1">{item.handleModel.model} - {item.handleModel.finish}</Badge>
-                                      </div>
-                                    )}
-
-                                    {item.isTwoSided && (
-                                      <div className="flex items-center gap-2 text-muted-foreground">
-                                        <span className="font-medium">Caras:</span>
-                                        <Badge variant="secondary" className="h-5 text-[10px] px-1">2 Caras</Badge>
-                                      </div>
-                                    )}
-
-                                    {item.isExhibition && (
-                                      <div className="flex items-center gap-2 text-muted-foreground">
-                                        <span className="font-medium">Exhibición:</span>
-                                        <Badge variant="secondary" className="h-5 text-[10px] px-1 bg-amber-100 text-amber-800 border-amber-200">Sí</Badge>
-                                      </div>
-                                    )}
-
-                                    {item.isExpressDelivery && (
-                                      <div className="flex items-center gap-2 text-muted-foreground">
-                                        <span className="font-medium">Express:</span>
-                                        <Badge variant="secondary" className="h-5 text-[10px] px-1 bg-purple-100 text-purple-800 border-purple-200">Sí</Badge>
-                                      </div>
-                                    )}
-
-                                    {/* Handle Price Breakdown */}
-                                    {item.handleModel && (
-                                      <div className="mt-2 pt-2 border-t border-blue-200 dark:border-gray-700 space-y-1">
-                                        <p className="text-xs font-semibold text-blue-900 dark:text-blue-100">Desglose Jaladeras:</p>
-                                        <div className="flex justify-between text-xs text-muted-foreground">
-                                          <span>Jaladera (unitario):</span>
-                                          <span className="font-medium">{formatMXN(item.handleModel.price)}</span>
-                                        </div>
-                                        <div className="flex justify-between text-xs text-muted-foreground">
-                                          <span>Cantidad:</span>
-                                          <span className="font-medium">{item.quantity}</span>
-                                        </div>
-                                        <div className="flex justify-between text-xs text-blue-900 dark:text-blue-100 font-semibold">
-                                          <span>Total jaladeras:</span>
-                                          <span>{formatMXN(item.handleModel.price * item.quantity)}</span>
-                                        </div>
-                                      </div>
-                                    )}
-                                  </div>
-                                )}
+                              <TableCell className="text-right text-sm border-r">
+                                {height > 0 ? `${height} mm` : '-'}
                               </TableCell>
-                              <TableCell>
-                                <div className="text-sm">
-                                  {item.customWidth && item.customHeight ? (
-                                    <>
-                                      {item.customWidth} × {item.customHeight} mm
-                                      <div className="text-xs text-muted-foreground">
-                                        {((item.customWidth! / 1000) * (item.customHeight! / 1000)).toFixed(4)} m²
-                                      </div>
-                                    </>
-                                  ) : (
-                                    <>{item.product.width} × {item.product.height} mm</>
-                                  )}
-                                </div>
+                              <TableCell className="text-right text-sm border-r">
+                                {width > 0 ? `${width} mm` : '-'}
                               </TableCell>
-                              <TableCell>
+                              <TableCell className="text-right text-sm border-r">
+                                {pricePerM2 > 0 ? formatMXN(pricePerM2) : '-'}
+                              </TableCell>
+                              <TableCell className="text-right border-r">
+                                <span className="text-sm">{item.quantity}</span>
+                              </TableCell>
+                              <TableCell className="text-center text-sm border-r">
+                                {item.isTwoSided ? '2' : '1'}
+                              </TableCell>
+                              <TableCell className="text-right text-sm border-r">{formatMXN(baseUnitPrice * item.quantity)}</TableCell>
+                              <TableCell className="text-sm border-r">
                                 {item.handleModel ? (
-                                  <div className="text-sm">
-                                    <div className="font-medium">{item.handleModel.model}</div>
-                                    <div className="text-xs text-muted-foreground">{item.handleModel.finish}</div>
+                                  <div className="flex flex-col">
+                                    <span className="truncate" title={item.handleModel.model}>{item.handleModel.model}</span>
+                                    <span className="text-[10px] text-muted-foreground truncate">{item.handleModel.finish}</span>
                                   </div>
                                 ) : (
-                                  <span className="text-xs text-muted-foreground italic">Sin jaladera</span>
+                                  <span className="text-muted-foreground italic">-</span>
                                 )}
                               </TableCell>
-                              <TableCell className="text-right">
-                                {isEditing ? (
-                                  <Input
-                                    type="number"
-                                    min="1"
-                                    value={itemQuantities[item.id] || item.quantity}
-                                    onChange={(e) => {
-                                      const newQuantity = Math.max(1, parseInt(e.target.value) || 1)
-                                      setItemQuantities({ ...itemQuantities, [item.id]: newQuantity })
-                                    }}
-                                    className="w-16 text-center ml-auto h-8"
-                                  />
+                              <TableCell className="text-right text-sm border-r">
+                                {item.handleModel ? formatMXN(item.handleModel.price) : '-'}
+                              </TableCell>
+                              <TableCell className="text-right text-sm border-r">
+                                {item.handleModel ? item.quantity : '-'}
+                              </TableCell>
+                              <TableCell className="text-center text-sm border-r">
+                                {item.isExhibition ? (
+                                  <div className="flex flex-col items-center">
+                                    <Badge variant="secondary" className="bg-amber-100 text-amber-800 border-amber-200 text-[10px] mb-1">Sí</Badge>
+                                    <span>{formatMXN(500)}</span>
+                                  </div>
                                 ) : (
-                                  item.quantity
+                                  <span className="text-muted-foreground text-sm">-</span>
                                 )}
                               </TableCell>
-                              <TableCell className="text-right">{formatMXN(item.unitPrice)}</TableCell>
-                              <TableCell className="text-right font-medium">{formatMXN(item.totalPrice)}</TableCell>
+                              <TableCell className="text-center text-sm border-r">
+                                {item.isExpressDelivery ? (
+                                  <div className="flex flex-col items-center">
+                                    <Badge variant="secondary" className="bg-purple-100 text-purple-800 border-purple-200 text-[10px] mb-1">Sí</Badge>
+                                    <span>{formatMXN(500)}</span>
+                                  </div>
+                                ) : (
+                                  <span className="text-muted-foreground text-sm">-</span>
+                                )}
+                              </TableCell>
+                              <TableCell className="text-right font-medium text-sm border-r">{formatMXN(item.totalPrice)}</TableCell>
                               <TableCell>
                                 {isEditing && (
-                                  <div className="flex items-center justify-end gap-1">
+                                  <div className="flex items-center justify-end">
                                     {item.product.isCustomizable && (
                                       <Button
                                         variant="ghost"
-                                        size="sm"
+                                        size="icon"
                                         onClick={() => handleEditItem(item)}
-                                        className="h-8 w-8 p-0"
+                                        className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                                       >
                                         <Pencil className="w-4 h-4" />
                                       </Button>
                                     )}
                                     <Button
                                       variant="ghost"
-                                      size="sm"
+                                      size="icon"
                                       onClick={() => deleteItem(item.id)}
-                                      className="h-8 w-8 p-0 text-red-500 hover:text-red-600"
+                                      className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
                                     >
                                       <Trash2 className="w-4 h-4" />
                                     </Button>
@@ -1623,11 +1339,11 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
                                 )}
                               </TableCell>
                             </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  )}
+                          )
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
                 </CardContent>
               </Card>
             </motion.div>
@@ -1854,6 +1570,34 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="flex justify-between">
+                    <span className="text-muted-foreground">Subtotal Productos:</span>
+                    <span className="font-medium">{formatMXN(calculatedSummary.baseProductSubtotal)}</span>
+                  </div>
+
+                  {calculatedSummary.handlesSubtotal > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Jaladeras:</span>
+                      <span className="font-medium">{formatMXN(calculatedSummary.handlesSubtotal)}</span>
+                    </div>
+                  )}
+
+                  {calculatedSummary.exhibitionFees > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Producto de Exhibición:</span>
+                      <span className="font-medium">{formatMXN(calculatedSummary.exhibitionFees)}</span>
+                    </div>
+                  )}
+
+                  {calculatedSummary.expressDeliveryFees > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Envío Express:</span>
+                      <span className="font-medium">{formatMXN(calculatedSummary.expressDeliveryFees)}</span>
+                    </div>
+                  )}
+
+                  <Separator />
+
+                  <div className="flex justify-between">
                     <span className="text-muted-foreground">Subtotal:</span>
                     <span className="font-medium">{formatMXN(calculatedSummary.subtotal)}</span>
                   </div>
@@ -1927,41 +1671,43 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
         <Dialog open={showEditConfigurator} onOpenChange={setShowEditConfigurator}>
           <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
             {editingItem && (
-              <ProductConfigurator
-                mode="edit"
-                initialConfig={{
-                  productId: editingItem.product.id,
-                  width: editingItem.customWidth || 0,
-                  height: editingItem.customHeight || 0,
-                  quantity: editingItem.quantity,
-                  lineId: editingItem.productLineId,
-                  toneId: editingItem.productToneId,
-                  handleId: editingItem.handleModelId,
-                  cars: editingItem.isTwoSided ? 2 : 1,
-                  isExhibition: editingItem.isExhibition || false,
-                  isExpressDelivery: editingItem.isExpressDelivery || false,
-                }}
-                onComplete={handleEditComplete}
-                onCancel={() => setShowEditConfigurator(false)}
-                allowedLines={['Vidrio']}
-                allowedHandles={['Sorento A', 'Sorento L', 'Sorento G']}
-                allowedTones={[
-                  'Blanco Brillante',
-                  'Blanco Mate',
-                  'Paja Brillante',
-                  'Paja Mate',
-                  'Capuchino Brillante',
-                  'Capuchino Mate',
-                  'Humo Brillante',
-                  'Humo Mate',
-                  'Gris Brillante',
-                  'Gris Mate',
-                  'Rojo Brillante',
-                  'Rojo Mate',
-                  'Negro Brillante',
-                  'Negro Mate'
-                ]}
-              />
+              <>
+                <ProductConfigurator
+                  mode="edit"
+                  initialConfig={{
+                    productId: editingItem.product.id,
+                    width: editingItem.customWidth || 0,
+                    height: editingItem.customHeight || 0,
+                    quantity: editingItem.quantity,
+                    lineId: editingItem.productLineId,
+                    toneId: editingItem.productToneId,
+                    handleId: editingItem.handleModelId,
+                    cars: editingItem.isTwoSided ? 2 : 1,
+                    isExhibition: editingItem.isExhibition || false,
+                    isExpressDelivery: editingItem.isExpressDelivery || false,
+                  }}
+                  onComplete={handleEditComplete}
+                  onCancel={() => setShowEditConfigurator(false)}
+                  allowedLines={['Vidrio']}
+                  allowedHandles={['Sorento A', 'Sorento L', 'Sorento G']}
+                  allowedTones={[
+                    'Blanco Brillante',
+                    'Blanco Mate',
+                    'Paja Brillante',
+                    'Paja Mate',
+                    'Capuchino Brillante',
+                    'Capuchino Mate',
+                    'Humo Brillante',
+                    'Humo Mate',
+                    'Gris Brillante',
+                    'Gris Mate',
+                    'Rojo Brillante',
+                    'Rojo Mate',
+                    'Negro Brillante',
+                    'Negro Mate'
+                  ]}
+                />
+              </>
             )}
           </DialogContent>
         </Dialog>
