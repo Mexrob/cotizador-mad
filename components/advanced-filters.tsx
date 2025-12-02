@@ -8,23 +8,23 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { 
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { 
+import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { Calendar } from '@/components/ui/calendar'
 import { Checkbox } from '@/components/ui/checkbox'
-import { 
-  Filter, 
-  X, 
+import {
+  Filter,
+  X,
   Calendar as CalendarIcon,
   DollarSign,
   Search,
@@ -60,6 +60,7 @@ const QUOTE_STATUSES = [
   { key: 'PENDING', label: 'Pendiente', color: 'bg-yellow-100 text-yellow-800' },
   { key: 'APPROVED', label: 'Aprobada', color: 'bg-green-100 text-green-800' },
   { key: 'REJECTED', label: 'Rechazada', color: 'bg-red-100 text-red-800' },
+  { key: 'PAID', label: 'Pagada', color: 'bg-blue-100 text-blue-800' },
   { key: 'EXPIRED', label: 'Expirada', color: 'bg-gray-100 text-gray-800' },
   { key: 'CONVERTED', label: 'Convertida', color: 'bg-purple-100 text-purple-800' },
 ]
@@ -73,9 +74,9 @@ const SORT_OPTIONS = [
   { key: 'validUntil', label: 'Válida hasta' },
 ]
 
-export function AdvancedFilters({ 
-  filters, 
-  onFiltersChange, 
+export function AdvancedFilters({
+  filters,
+  onFiltersChange,
   onClearFilters,
   statusCounts = {}
 }: AdvancedFiltersProps) {

@@ -292,6 +292,7 @@ function getStatusDisplayName(status: string): string {
     case 'PENDING': return 'Pendiente'
     case 'APPROVED': return 'Aprobada'
     case 'REJECTED': return 'Rechazada'
+    case 'PAID': return 'Pagada'
     default: return status
   }
 }

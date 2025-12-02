@@ -57,7 +57,7 @@ import FileUpload from '@/components/file-upload'
 interface Quote {
   id: string
   quoteNumber: string
-  status: 'DRAFT' | 'PENDING' | 'APPROVED' | 'REJECTED'
+  status: 'DRAFT' | 'PENDING' | 'APPROVED' | 'REJECTED' | 'EXPIRED' | 'CONVERTED' | 'SENT_TO_CLIENT' | 'APPROVED_BY_CLIENT' | 'PAID' | 'IN_PRODUCTION' | 'READY_FOR_DELIVERY' | 'INVOICED' | 'COMPLETED' | 'CANCELLED'
   customerName: string
   customerEmail: string
   customerPhone?: string
@@ -812,6 +812,12 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
           label: 'Rechazada',
           icon: X,
           color: 'bg-red-100 text-red-800 border-red-200',
+        }
+      case 'PAID':
+        return {
+          label: 'Pagada',
+          icon: Check,
+          color: 'bg-blue-100 text-blue-800 border-blue-200',
         }
       default:
         return {
