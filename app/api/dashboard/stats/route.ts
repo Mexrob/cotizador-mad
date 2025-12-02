@@ -47,6 +47,7 @@ export async function GET() {
       totalQuotes,
       pendingQuotes,
       approvedQuotes,
+      paidQuotes,
       monthlyQuotes,
       totalRevenue,
       monthlyRevenue,
@@ -63,6 +64,11 @@ export async function GET() {
       // Approved quotes
       prisma.quote.count({
         where: { ...whereBase, status: 'APPROVED' }
+      }),
+
+      // Paid quotes
+      prisma.quote.count({
+        where: { ...whereBase, status: 'PAID' }
       }),
 
       // Monthly quotes
@@ -151,6 +157,7 @@ export async function GET() {
       totalQuotes,
       pendingQuotes,
       approvedQuotes,
+      paidQuotes,
       monthlyQuotes,
       totalRevenue: totalRevenue._sum.totalAmount || 0,
       monthlyRevenue: monthlyRevenue._sum.totalAmount || 0,
