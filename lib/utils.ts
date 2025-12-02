@@ -192,6 +192,7 @@ export function getStatusDisplayName(status: string): string {
     DRAFT: 'Borrador',
     APPROVED: 'Aprobada',
     REJECTED: 'Rechazada',
+    PAID: 'Pagada',
     EXPIRED: 'Expirada',
     CONVERTED: 'Convertida',
     NEW: 'Nuevo',
@@ -337,12 +338,12 @@ export function hasPermission(userRole: string, requiredRole: string[]): boolean
     WHOLESALE: 2,
     RETAIL: 1,
   }
-  
+
   const userLevel = roleHierarchy[userRole as keyof typeof roleHierarchy] || 0
   const requiredLevels = requiredRole.map(role =>
     roleHierarchy[role as keyof typeof roleHierarchy] || 0
   )
-  
+
   return requiredLevels.some(level => userLevel >= level)
 }
 
@@ -375,10 +376,10 @@ export function calculateDimensionPrice(
 
   // Calculate area in mm²
   const area = width * height
-  
+
   // Calculate price
   const price = area * basePricePerMm2
-  
+
   return {
     area,
     price,

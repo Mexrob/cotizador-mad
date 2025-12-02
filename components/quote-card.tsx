@@ -7,9 +7,9 @@ import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { formatMXN, formatDate, getStatusDisplayName } from '@/lib/utils'
-import { 
-  Clock, 
-  User, 
+import {
+  Clock,
+  User,
   MapPin,
   Package
 } from 'lucide-react'
@@ -17,7 +17,7 @@ import { Quote } from '@/lib/types'
 import { QuoteActions } from '@/components/quote-actions'
 
 interface QuoteCardProps {
-  quote: Quote & { 
+  quote: Quote & {
     user?: { name?: string | null; email: string }
     _count?: { items: number }
   }
@@ -33,6 +33,7 @@ export function QuoteCard({ quote, onDownloadPDF, onRefresh, showUserInfo = fals
       case 'REJECTED': return 'destructive'
       case 'EXPIRED': return 'destructive'
       case 'PENDING': return 'warning'
+      case 'PAID': return 'info' // Blue variant
       case 'CONVERTED': return 'success'
       default: return 'secondary'
     }
@@ -107,7 +108,7 @@ export function QuoteCard({ quote, onDownloadPDF, onRefresh, showUserInfo = fals
                 </span>
               </div>
             </div>
-            
+
             <div className="text-right sm:text-right">
               <div className="text-xl sm:text-2xl font-bold text-primary">
                 {formatMXN(quote.totalAmount)}

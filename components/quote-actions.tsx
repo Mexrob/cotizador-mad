@@ -39,7 +39,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { 
+import {
   MoreHorizontal,
   Eye,
   Edit,
@@ -66,15 +66,16 @@ const QUOTE_STATUSES = [
   { key: 'PENDING', label: 'Pendiente', color: 'bg-yellow-100 text-yellow-800' },
   { key: 'APPROVED', label: 'Aprobada', color: 'bg-green-100 text-green-800' },
   { key: 'REJECTED', label: 'Rechazada', color: 'bg-red-100 text-red-800' },
+  { key: 'PAID', label: 'Pagada', color: 'bg-blue-100 text-blue-800' },
   { key: 'EXPIRED', label: 'Expirada', color: 'bg-gray-100 text-gray-800' },
   { key: 'CONVERTED', label: 'Convertida', color: 'bg-purple-100 text-purple-800' },
 ]
 
-export function QuoteActions({ 
-  quote, 
-  onDownloadPDF, 
+export function QuoteActions({
+  quote,
+  onDownloadPDF,
   onRefresh,
-  showUserInfo = false 
+  showUserInfo = false
 }: QuoteActionsProps) {
   const router = useRouter()
   const { data: session } = useSession()
@@ -199,7 +200,7 @@ export function QuoteActions({
           <DropdownMenuContent align="end" className="w-48">
             <DropdownMenuLabel>Acciones</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            
+
             {canEdit && (
               <DropdownMenuItem
                 onClick={() => router.push(`/quotes/${quote.id}/edit`)}
@@ -208,7 +209,7 @@ export function QuoteActions({
                 Editar
               </DropdownMenuItem>
             )}
-            
+
             <DropdownMenuItem
               onClick={handleDuplicate}
               disabled={loading === 'duplicate'}
@@ -259,7 +260,7 @@ export function QuoteActions({
           <AlertDialogHeader>
             <AlertDialogTitle>¿Eliminar cotización?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta acción eliminará permanentemente la cotización "{quote.quoteNumber}" 
+              Esta acción eliminará permanentemente la cotización "{quote.quoteNumber}"
               para el proyecto "{quote.projectName}". Esta acción no se puede deshacer.
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -291,7 +292,7 @@ export function QuoteActions({
               Estado actual: <Badge variant="outline">{getStatusDisplayName(quote.status)}</Badge>
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">Nuevo Estado</label>

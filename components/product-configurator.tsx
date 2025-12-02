@@ -524,7 +524,7 @@ export default function ProductConfigurator({
             </div>
 
             {/* Navigation Buttons */}
-            <div className="sticky bottom-0 left-0 right-0 bg-white dark:bg-gray-900 border-t sm:border-t-0 pt-4 pb-4 sm:pb-0 -mx-4 px-4 sm:mx-0 sm:px-0 sm:static flex flex-col sm:flex-row justify-between gap-3 mt-4 sm:mt-6 z-10">
+            <div className="sticky bottom-0 left-0 right-0 bg-white dark:bg-gray-900 border-t pt-4 pb-4 -mx-4 px-4 sm:mx-0 sm:px-6 flex flex-col sm:flex-row justify-between gap-3 mt-4 sm:mt-6 z-20 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
                 <Button
                     variant="outline"
                     onClick={currentStep === 1 ? onCancel : handleBack}
@@ -910,13 +910,64 @@ function StepDimensions({
     product?: Product
     onUpdate: (updates: Partial<ConfigurationState>) => void
 }) {
-    // Need access to products to get min/max limits
-    // Since we don't have products passed here, we need to pass them or use a context/store
-    // For now, let's assume the parent component passes the selected product limits or we change the props
-    // But StepDimensions is used in the render loop where products are available in scope?
-    // No, StepDimensions is a separate function.
-    // I need to update the signature of StepDimensions to accept 'products' or 'selectedProduct'
-    // Let's check the call site.
+    const [localWidth, setLocalWidth] = useState<string>(config.width.toString())
+    const [localHeight, setLocalHeight] = useState<string>(config.height.toString())
+    const [localQuantity, setLocalQuantity] = useState<string>(config.quantity.toString())
+
+    // Sync local state when config changes externally (e.g. when product changes defaults)
+    useEffect(() => {
+        setLocalWidth(config.width.toString())
+    }, [config.width])
+
+    useEffect(() => {
+        setLocalHeight(config.height.toString())
+    }, [config.height])
+
+    useEffect(() => {
+        setLocalQuantity(config.quantity.toString())
+    }, [config.quantity])
+
+    const handleWidthChange = (value: string) => {
+        setLocalWidth(value)
+        const numValue = parseFloat(value)
+        if (!isNaN(numValue)) {
+            onUpdate({ width: numValue })
+        } else {
+            // If empty or invalid, we might want to set it to 0 or keep previous?
+            // Setting to 0 effectively invalidates the step check (width > 0)
+            onUpdate({ width: 0 })
+        }
+    }
+
+    const handleHeightChange = (value: string) => {
+        setLocalHeight(value)
+        const numValue = parseFloat(value)
+        if (!isNaN(numValue)) {
+            onUpdate({ height: numValue })
+        } else {
+            onUpdate({ height: 0 })
+        }
+    }
+
+    const handleQuantityChange = (value: string) => {
+        setLocalQuantity(value)
+        const numValue = parseFloat(value)
+        if (!isNaN(numValue)) {
+            onUpdate({ quantity: numValue })
+        } else {
+            onUpdate({ quantity: 0 })
+        }
+    }
+
+    const minWidth = product?.minWidth || 300
+    const maxWidth = product?.maxWidth || 1500
+    const minHeight = product?.minHeight || 500
+    const maxHeight = product?.maxHeight || 2400
+
+    const isWidthInvalid = config.width < minWidth || config.width > maxWidth
+    const isHeightInvalid = config.height < minHeight || config.height > maxHeight
+    const isQuantityInvalid = config.quantity < 1
+
     return (
         <div className="space-y-6">
             <p className="text-muted-foreground mb-4">
@@ -927,47 +978,68 @@ function StepDimensions({
                 {/* Width */}
                 <div className="space-y-2">
                     <label className="text-sm font-medium">Ancho (mm)</label>
-                    <input
+                    <Input
                         type="number"
-                        value={config.width}
-                        onChange={(e) => onUpdate({ width: Number(e.target.value) })}
-                        min={product?.minWidth || 300}
-                        max={product?.maxWidth || 1500}
-                        className="w-full px-3 py-2 border rounded-md"
+                        value={localWidth}
+                        onChange={(e) => handleWidthChange(e.target.value)}
+                        min={minWidth}
+                        max={maxWidth}
+                        className={`w-full ${isWidthInvalid ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                     />
-                    <p className="text-xs text-muted-foreground">
-                        Rango: {product?.minWidth || 300} - {product?.maxWidth || 1500} mm
-                    </p>
+                    <div className="flex justify-between items-start">
+                        <p className="text-xs text-muted-foreground">
+                            Rango: {minWidth} - {maxWidth} mm
+                        </p>
+                        {isWidthInvalid && (
+                            <p className="text-xs text-red-500 font-medium">
+                                {config.width === 0 ? 'Requerido' : 'Fuera de rango'}
+                            </p>
+                        )}
+                    </div>
                 </div>
 
                 {/* Height */}
                 <div className="space-y-2">
                     <label className="text-sm font-medium">Alto (mm)</label>
-                    <input
+                    <Input
                         type="number"
-                        value={config.height}
-                        onChange={(e) => onUpdate({ height: Number(e.target.value) })}
-                        min={product?.minHeight || 500}
-                        max={product?.maxHeight || 2400}
-                        className="w-full px-3 py-2 border rounded-md"
+                        value={localHeight}
+                        onChange={(e) => handleHeightChange(e.target.value)}
+                        min={minHeight}
+                        max={maxHeight}
+                        className={`w-full ${isHeightInvalid ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                     />
-                    <p className="text-xs text-muted-foreground">
-                        Rango: {product?.minHeight || 500} - {product?.maxHeight || 2400} mm
-                    </p>
+                    <div className="flex justify-between items-start">
+                        <p className="text-xs text-muted-foreground">
+                            Rango: {minHeight} - {maxHeight} mm
+                        </p>
+                        {isHeightInvalid && (
+                            <p className="text-xs text-red-500 font-medium">
+                                {config.height === 0 ? 'Requerido' : 'Fuera de rango'}
+                            </p>
+                        )}
+                    </div>
                 </div>
 
                 {/* Quantity */}
                 <div className="space-y-2 md:col-span-2">
                     <label className="text-sm font-medium">Cantidad</label>
-                    <input
+                    <Input
                         type="number"
-                        value={config.quantity}
-                        onChange={(e) => onUpdate({ quantity: Number(e.target.value) })}
+                        value={localQuantity}
+                        onChange={(e) => handleQuantityChange(e.target.value)}
                         min="1"
                         max="100"
-                        className="w-full px-3 py-2 border rounded-md"
+                        className={`w-full ${isQuantityInvalid ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                     />
-                    <p className="text-xs text-muted-foreground">Máximo: 100 unidades</p>
+                    <div className="flex justify-between items-start">
+                        <p className="text-xs text-muted-foreground">Máximo: 100 unidades</p>
+                        {isQuantityInvalid && (
+                            <p className="text-xs text-red-500 font-medium">
+                                {config.quantity === 0 ? 'Requerido' : 'Mínimo 1'}
+                            </p>
+                        )}
+                    </div>
                 </div>
             </div>
 
