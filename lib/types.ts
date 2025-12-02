@@ -394,6 +394,7 @@ export interface DashboardStats {
   totalQuotes: number
   pendingQuotes: number
   approvedQuotes: number
+  paidQuotes: number
   monthlyQuotes: number
   totalRevenue: number
   monthlyRevenue: number
