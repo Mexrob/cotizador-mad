@@ -1,0 +1,104 @@
+version: '3.9'
+
+services:
+  # ============================================
+  # PostgreSQL Database
+  # ============================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: cotizador-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-cotizador}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme123}
+      POSTGRES_DB: ${POSTGRES_DB:-cotizador_mad}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backups:/backups
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cotizador}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - cotizador-network
+
+  # ============================================
+  # Next.js Application
+  # ============================================
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NODE_ENV: production
+    container_name: cotizador-app
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      # Database
+      DATABASE_URL: postgresql://${POSTGRES_USER:-cotizador}:${POSTGRES_PASSWORD:-changeme123}@postgres:5432/${POSTGRES_DB:-cotizador_mad}?schema=public
+
+      # NextAuth
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-generate-a-random-secret-here}
+
+      # App
+      NODE_ENV: production
+      PORT: 3000
+    volumes:
+      # Persistir uploads (comprobantes de pago, etc.)
+      - uploads_data:/app/public/uploads
+    ports:
+      - "3000:3000"
+    networks:
+      - cotizador-network
+    command: >
+      sh -c "
+        echo 'Esperando a PostgreSQL...' &&
+        sleep 5 &&
+        echo 'Ejecutando migraciones de Prisma...' &&
+        npx prisma migrate deploy &&
+        echo 'Iniciando aplicación...' &&
+        node server.js
+      "
+
+  # ============================================
+  # Nginx Reverse Proxy (Opcional)
+  # ============================================
+  nginx:
+    image: nginx:alpine
+    container_name: cotizador-nginx
+    restart: unless-stopped
+    depends_on:
+      - app
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - uploads_data:/usr/share/nginx/html/uploads:ro
+    networks:
+      - cotizador-network
+
+# ============================================
+# Volumes
+# ============================================
+volumes:
+  postgres_data:
+    driver: local
+  uploads_data:
+    driver: local
+
+# ============================================
+# Networks
+# ============================================
+networks:
+  cotizador-network:
+    driver: bridge

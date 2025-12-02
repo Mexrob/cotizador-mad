@@ -137,3 +137,15 @@ public/uploads/
 
 # TypeScript build info
 *.tsbuildinfo
+
+# Docker
+backups/
+*.sql
+*.sql.gz
+nginx/ssl/
+.env
+.env.production
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
