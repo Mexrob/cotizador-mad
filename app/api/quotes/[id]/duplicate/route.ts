@@ -14,7 +14,7 @@ export async function POST(
 ) {
   try {
     const session = await getServerSession(authOptions)
-    
+
     if (!session) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
@@ -43,7 +43,7 @@ export async function POST(
       data: {
         quoteNumber: generateQuoteNumber(),
         userId: session.user.id,
-        status: 'DRAFT', // Always start as draft
+        status: 'PENDING', // Always start as pending
         customerName: originalQuote.customerName,
         customerEmail: originalQuote.customerEmail,
         customerPhone: originalQuote.customerPhone,

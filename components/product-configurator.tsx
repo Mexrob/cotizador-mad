@@ -103,7 +103,7 @@ interface PricingCalculation {
 }
 
 interface ProductConfiguratorProps {
-    onComplete: (config: ConfigurationState & { totalPrice: number }) => void
+    onComplete: (config: ConfigurationState & { unitPrice: number; totalPrice: number }) => void
     onCancel: () => void
     initialConfig?: Partial<ConfigurationState>
     mode?: 'create' | 'edit'
@@ -146,9 +146,9 @@ export default function ProductConfigurator({
         cars: initialConfig?.cars || 1,
         grain: initialConfig?.grain,
         handleId: initialConfig?.handleId,
-        width: initialConfig?.width || 700,
-        height: initialConfig?.height || 2100,
-        quantity: initialConfig?.quantity || 1,
+        width: initialConfig?.width ?? 700,
+        height: initialConfig?.height ?? 2100,
+        quantity: initialConfig?.quantity ?? 1,
         isExhibition: initialConfig?.isExhibition || false,
         isExpressDelivery: initialConfig?.isExpressDelivery || false,
     })
@@ -160,9 +160,9 @@ export default function ProductConfigurator({
         fetchHandles()
     }, [])
 
-    // When product is selected, set default line and dimensions
+    // When product is selected, set default line and dimensions (only in create mode)
     useEffect(() => {
-        if (config.productId && products.length > 0) {
+        if (mode === 'create' && config.productId && products.length > 0) {
             const selectedProduct = products.find(p => p.id === config.productId)
             if (selectedProduct) {
                 setConfig(prev => ({
@@ -173,7 +173,7 @@ export default function ProductConfigurator({
                 }))
             }
         }
-    }, [config.productId, products])
+    }, [config.productId, products, mode])
 
     // Fetch tones when line is selected
     useEffect(() => {
@@ -342,6 +342,7 @@ export default function ProductConfigurator({
         const pricing = calculatePrice()
         onComplete({
             ...config,
+            unitPrice: pricing.unitPrice,
             totalPrice: pricing.totalPrice,
         })
     }
@@ -427,7 +428,7 @@ export default function ProductConfigurator({
             </div>
 
             {/* Step Content */}
-            <div className="min-h-[500px] w-full">
+            <div className="h-[500px] sm:h-[600px] md:h-[700px] lg:h-[750px] w-full max-w-[900px] mx-auto">
                 <AnimatePresence mode="wait">
                     <motion.div
                         key={currentStep}
@@ -435,9 +436,9 @@ export default function ProductConfigurator({
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: -20 }}
                         transition={{ duration: 0.3 }}
-                        className="w-full"
+                        className="w-full h-full"
                     >
-                        <Card className="flex flex-col w-full">
+                        <Card className="flex flex-col w-full h-full">
                             <CardHeader className="pb-4 flex-none">
                                 <CardTitle className="text-lg sm:text-xl">{steps[currentStep - 1].name}</CardTitle>
                                 <CardDescription className="text-sm">
@@ -450,7 +451,7 @@ export default function ProductConfigurator({
                                     {currentStep === 7 && 'Revisa tu configuración'}
                                 </CardDescription>
                             </CardHeader>
-                            <CardContent className="flex-1 pr-2">
+                            <CardContent className="flex-1 pr-2 overflow-y-auto">
                                 {/* Step content will be rendered here */}
                                 {currentStep === 1 && (
                                     <StepProductSelection
@@ -523,7 +524,7 @@ export default function ProductConfigurator({
             </div>
 
             {/* Navigation Buttons */}
-            <div className="flex flex-col sm:flex-row justify-between gap-3 mt-4 sm:mt-6">
+            <div className="sticky bottom-0 left-0 right-0 bg-white dark:bg-gray-900 border-t sm:border-t-0 pt-4 pb-4 sm:pb-0 -mx-4 px-4 sm:mx-0 sm:px-0 sm:static flex flex-col sm:flex-row justify-between gap-3 mt-4 sm:mt-6 z-10">
                 <Button
                     variant="outline"
                     onClick={currentStep === 1 ? onCancel : handleBack}
@@ -1112,6 +1113,39 @@ function StepSummary({
                     )}
                 </CardContent>
             </Card>
+
+            {/* Additional Options Card */}
+            {(config.isExhibition || config.isExpressDelivery) && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-lg">Opciones Adicionales</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                        {config.isExhibition && (
+                            <div className="flex items-center gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                                    <span className="text-xl">🏢</span>
+                                </div>
+                                <div className="flex-1">
+                                    <p className="font-medium">Producto de Exhibición</p>
+                                    <p className="text-sm text-muted-foreground">Cargo adicional: $500.00 MXN</p>
+                                </div>
+                            </div>
+                        )}
+                        {config.isExpressDelivery && (
+                            <div className="flex items-center gap-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                                <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+                                    <span className="text-xl">⚡</span>
+                                </div>
+                                <div className="flex-1">
+                                    <p className="font-medium">Entrega Express</p>
+                                    <p className="text-sm text-muted-foreground">Cargo adicional: $500.00 MXN</p>
+                                </div>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+            )}
 
             {/* Pricing Breakdown Card */}
             <Card>

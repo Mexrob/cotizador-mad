@@ -10,9 +10,9 @@ export async function GET() {
   console.log('Attempting to fetch session...'); // Added log
   try {
     const session = await getServerSession(authOptions)
-    
+
     console.log('Session fetched:', session ? 'Successful' : 'Failed to retrieve session'); // Added log
-    
+
     if (!session) {
       return NextResponse.json(
         { error: 'No autorizado' },
@@ -33,9 +33,14 @@ export async function GET() {
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
     const startOfYear = new Date(now.getFullYear(), 0, 1)
 
+    console.log('Current date:', now)
+    console.log('Start of month:', startOfMonth)
+
     // Build where clauses
     const whereBase: any = userId ? { userId } : {}
     const whereMonth = { ...whereBase, createdAt: { gte: startOfMonth } }
+
+    console.log('whereMonth filter:', JSON.stringify(whereMonth, null, 2))
 
     // Get statistics
     const [
@@ -49,32 +54,32 @@ export async function GET() {
     ] = await Promise.all([
       // Total quotes
       prisma.quote.count({ where: whereBase }),
-      
+
       // Pending quotes
       prisma.quote.count({
         where: { ...whereBase, status: 'PENDING' }
       }),
-      
+
       // Approved quotes
       prisma.quote.count({
         where: { ...whereBase, status: 'APPROVED' }
       }),
-      
+
       // Monthly quotes
       prisma.quote.count({ where: whereMonth }),
-      
-      // Total revenue (from approved quotes)
+
+      // Total revenue (from all quotes)
       prisma.quote.aggregate({
-        where: { ...whereBase, status: 'APPROVED' },
+        where: whereBase,
         _sum: { totalAmount: true },
       }),
-      
+
       // Monthly revenue
       prisma.quote.aggregate({
-        where: { ...whereMonth, status: 'APPROVED' },
+        where: whereMonth,
         _sum: { totalAmount: true },
       }),
-      
+
       // Recent quotes
       prisma.quote.findMany({
         where: whereBase,
@@ -96,13 +101,16 @@ export async function GET() {
       }),
     ])
 
+    console.log('Monthly quotes count:', monthlyQuotes)
+    console.log('Monthly revenue result:', monthlyRevenue)
+
     // Get top products (only for admin)
     let topProducts: Array<{
       product: any
       quantity: number
       revenue: number
     }> = []
-    
+
     if (session.user.role === 'ADMIN') {
       const productStats = await prisma.quoteItem.groupBy({
         by: ['productId'],
@@ -157,7 +165,7 @@ export async function GET() {
   } catch (error) {
     console.error('Dashboard stats error:', error)
     if (error instanceof Error) {
-        console.error('Error details:', error.message, error.stack);
+      console.error('Error details:', error.message, error.stack);
     }
     return NextResponse.json(
       { error: 'Error al obtener estadísticas' },

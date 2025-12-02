@@ -1,23 +1,2 @@
-Categoria,Colección,Linea,Tono o Color,Veta / Orientación,Caras,Cubrecanto,Precio Base por m²,Jaladera,Precio Jaladera,Tiempo de Entrega (días),Cantidad Mínima,Cantidad Máxima,Ancho Mínimo (cm),Ancho Máximo (cm),Alto Mínimo (cm),Alto Máximo (cm)
-Puerta,MAD,Vidrio,Blanco - Brillante,no aplica,1 o 2,SIMILAR A TONO DEL VIDRIO,"$1,500.00","Sorento A, Sorento L, Sorento G",$300.00,7,1,20,50,100,50,100
-Puerta,MAD,Vidrio,Blanco,no aplica,1 o 2,SIMILAR A TONO DEL VIDRIO,"$1,500.00","Sorento A, Sorento L, Sorento G",$300.00,7,1,20,50,100,50,100
-Puerta,MAD,Vidrio,Blanco Brillante,no aplica,1 o 2,SIMILAR A TONO DEL VIDRIO,"$1,500.00","Sorento A, Sorento L, Sorento G",$300.00,7,1,20,50,100,50,100
-Puerta,MAD,Vidrio,Blanco Mate,no aplica,1 o 2,SIMILAR A TONO DEL VIDRIO,"$1,500.00","Sorento A, Sorento L, Sorento G",$300.00,7,1,20,50,100,50,100
-Puerta,MAD,Vidrio,Paja,no aplica,1 o 2,SIMILAR A TONO DEL VIDRIO,"$1,500.00","Sorento A, Sorento L, Sorento G",$300.00,7,1,20,50,100,50,100
-Puerta,MAD,Vidrio,Paja Brillante,no aplica,1 o 2,SIMILAR A TONO DEL VIDRIO,"$1,500.00","Sorento A, Sorento L, Sorento G",$300.00,7,1,20,50,100,50,100
-Puerta,MAD,Vidrio,Paja Mate,no aplica,1 o 2,SIMILAR A TONO DEL VIDRIO,"$1,500.00","Sorento A, Sorento L, Sorento G",$300.00,7,1,20,50,100,50,100
-Puerta,MAD,Vidrio,Capuchino,no aplica,1 o 2,SIMILAR A TONO DEL VIDRIO,"$1,500.00","Sorento A, Sorento L, Sorento G",$300.00,7,1,20,50,100,50,100
-Puerta,MAD,Vidrio,Capuchino Brillante,no aplica,1 o 2,SIMILAR A TONO DEL VIDRIO,"$1,500.00","Sorento A, Sorento L, Sorento G",$300.00,7,1,20,50,100,50,100
-Puerta,MAD,Vidrio,Capuchino Mate,no aplica,1 o 2,SIMILAR A TONO DEL VIDRIO,"$1,500.00","Sorento A, Sorento L, Sorento G",$300.00,7,1,20,50,100,50,100
-Puerta,MAD,Vidrio,Humo,no aplica,1 o 2,SIMILAR A TONO DEL VIDRIO,"$1,500.00","Sorento A, Sorento L, Sorento G",$300.00,7,1,20,50,100,50,100
-Puerta,MAD,Vidrio,Humo Brillante,no aplica,1 o 2,SIMILAR A TONO DEL VIDRIO,"$1,500.00","Sorento A, Sorento L, Sorento G",$300.00,7,1,20,50,100,50,100
-Puerta,MAD,Vidrio,Humo Mate,no aplica,1 o 2,SIMILAR A TONO DEL VIDRIO,"$1,500.00","Sorento A, Sorento L, Sorento G",$300.00,7,1,20,50,100,50,100
-Puerta,MAD,Vidrio,Gris,no aplica,1 o 2,SIMILAR A TONO DEL VIDRIO,"$1,500.00","Sorento A, Sorento L, Sorento G",$300.00,7,1,20,50,100,50,100
-Puerta,MAD,Vidrio,Gris Brillante,no aplica,1 o 2,SIMILAR A TONO DEL VIDRIO,"$1,500.00","Sorento A, Sorento L, Sorento G",$300.00,7,1,20,50,100,50,100
-Puerta,MAD,Vidrio,Gris Mate,no aplica,1 o 2,SIMILAR A TONO DEL VIDRIO,"$1,500.00","Sorento A, Sorento L, Sorento G",$300.00,7,1,20,50,100,50,100
-Puerta,MAD,Vidrio,Rojo,no aplica,1 o 2,SIMILAR A TONO DEL VIDRIO,"$1,500.00","Sorento A, Sorento L, Sorento G",$300.00,7,1,20,50,100,50,100
-Puerta,MAD,Vidrio,Rojo Brillante,no aplica,1 o 2,SIMILAR A TONO DEL VIDRIO,"$1,500.00","Sorento A, Sorento L, Sorento G",$300.00,7,1,20,50,100,50,100
-Puerta,MAD,Vidrio,Rojo Mate,no aplica,1 o 2,SIMILAR A TONO DEL VIDRIO,"$1,500.00","Sorento A, Sorento L, Sorento G",$300.00,7,1,20,50,100,50,100
-Puerta,MAD,Vidrio,Negro,no aplica,1 o 2,SIMILAR A TONO DEL VIDRIO,"$1,500.00","Sorento A, Sorento L, Sorento G",$300.00,7,1,20,50,100,50,100
-Puerta,MAD,Vidrio,Negro Brillante,no aplica,1 o 2,SIMILAR A TONO DEL VIDRIO,"$1,500.00","Sorento A, Sorento L, Sorento G",$300.00,7,1,20,50,100,50,100
-Puerta,MAD,Vidrio,Negro Mate,no aplica,1 o 2,SIMILAR A TONO DEL VIDRIO,"$1,500.00","Sorento A, Sorento L, Sorento G",$300.00,7,1,20,50,100,50,100
+precio unitario,ancho,alto,cantidad,precio jaladera,cantidad jaladera,exibicion,express,total
+1500,1000,1000,1,300,1,500,500,"$2,800.00"

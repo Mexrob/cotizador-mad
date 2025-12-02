@@ -22,12 +22,14 @@ import {
   FileText,
   BarChart3
 } from 'lucide-react'
+import { NotificationsDropdown } from '@/components/notifications-dropdown'
 
 export function Header() {
   const { data: session } = useSession()
   const router = useRouter()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
+  const [currentDate, setCurrentDate] = useState(new Date())
   const [companySettings, setCompanySettings] = useState<{
     companyName: string
     logo?: string
@@ -55,6 +57,15 @@ export function Header() {
     }
 
     fetchCompanySettings()
+  }, [])
+
+  // Update date every minute
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentDate(new Date())
+    }, 60000) // Update every minute
+
+    return () => clearInterval(timer)
   }, [])
 
   // Función robusta de logout para producción
@@ -149,6 +160,16 @@ export function Header() {
             </span>
           </Link>
 
+          {/* Current Date */}
+          <div className="hidden lg:flex items-center text-sm text-gray-600 dark:text-gray-400 font-medium">
+            {currentDate.toLocaleDateString('es-MX', {
+              weekday: 'long',
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric'
+            })}
+          </div>
+
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-8">
             {navigation.map((item) => (
@@ -163,7 +184,8 @@ export function Header() {
           </nav>
 
           {/* Theme Toggle */}
-          <div className="hidden lg:flex items-center ml-4">
+          <div className="hidden lg:flex items-center ml-4 space-x-2">
+            <NotificationsDropdown />
             <ModeToggle />
           </div>
 

@@ -96,6 +96,7 @@ model User {
   sessions      Session[]
   quotes        Quote[]
   quotesShared  QuoteShare[]
+  notifications Notification[]
   
   @@map("users")
 }
@@ -435,7 +436,7 @@ model Quote {
   id              String        @id @default(cuid())
   quoteNumber     String        @unique
   userId          String
-  status          QuoteStatus   @default(DRAFT)
+  status          QuoteStatus   @default(PENDING)
   
   // Customer Information
   customerName    String
@@ -547,6 +548,21 @@ model QuoteShare {
   
   @@unique([quoteId, userId])
   @@map("quote_shares")
+}
+
+model Notification {
+  id          String   @id @default(cuid())
+  userId      String
+  title       String
+  message     String
+  type        String   // 'info', 'success', 'warning', 'error', 'payment_proof'
+  link        String?
+  isRead      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("notifications")
 }
 
 
