@@ -74,7 +74,7 @@ export default function EditQuotePage({ params }: { params: { id: string } }) {
     notes: '',
     deliveryDate: '',
     discountAmount: 0,
-    status: 'DRAFT' as Quote['status']
+    status: 'PENDING' as Quote['status']
   })
 
   useEffect(() => {
@@ -104,7 +104,7 @@ export default function EditQuotePage({ params }: { params: { id: string } }) {
           notes: quoteData.notes || '',
           deliveryDate: quoteData.deliveryDate ? new Date(quoteData.deliveryDate).toISOString().split('T')[0] : '',
           discountAmount: quoteData.discountAmount || 0,
-          status: quoteData.status || 'DRAFT'
+          status: quoteData.status || 'PENDING'
         })
       } else {
         setError(data.error || 'Error al cargar la cotización')

@@ -52,6 +52,7 @@ import {
 } from 'lucide-react'
 import ProductSelectorDialog from '@/components/product-selector-dialog'
 import ProductConfigurator from '@/components/product-configurator'
+import FileUpload from '@/components/file-upload'
 
 interface Quote {
   id: string
@@ -75,6 +76,7 @@ interface Quote {
   validUntil: string
   deliveryDate?: string
   notes?: string
+  attachments?: string[]
   createdAt: string
   updatedAt: string
   items: Array<{
@@ -218,9 +220,11 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
     }
   }, [quote])
 
-  const fetchQuote = async () => {
+  const fetchQuote = async (background = false) => {
     try {
-      setLoading(true)
+      if (!background) {
+        setLoading(true)
+      }
       setError(null)
 
       const response = await fetch(`/api/quotes/${params.id}`)
@@ -232,10 +236,14 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
         setError(data.error || 'Error al cargar la cotización')
       }
     } catch (err) {
-      setError('Error de conexión al cargar la cotización')
+      if (!background) {
+        setError('Error de conexión al cargar la cotización')
+      }
       console.error('Error fetching quote:', err)
     } finally {
-      setLoading(false)
+      if (!background) {
+        setLoading(false)
+      }
     }
   }
 
@@ -1217,8 +1225,6 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
                           <TableHead className="border-r">Jaladera</TableHead>
                           <TableHead className="text-right border-r">Precio Jaladera</TableHead>
                           <TableHead className="text-right border-r">Cant. Jaladera</TableHead>
-                          <TableHead className="text-center border-r">Prod. Exhibición</TableHead>
-                          <TableHead className="text-center border-r">Envío Express</TableHead>
                           <TableHead className="text-right border-r">Total</TableHead>
                           <TableHead className="w-[50px]"></TableHead>
                         </TableRow>
@@ -1293,26 +1299,6 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
                               <TableCell className="text-right text-sm border-r">
                                 {item.handleModel ? item.quantity : '-'}
                               </TableCell>
-                              <TableCell className="text-center text-sm border-r">
-                                {item.isExhibition ? (
-                                  <div className="flex flex-col items-center">
-                                    <Badge variant="secondary" className="bg-amber-100 text-amber-800 border-amber-200 text-[10px] mb-1">Sí</Badge>
-                                    <span>{formatMXN(500)}</span>
-                                  </div>
-                                ) : (
-                                  <span className="text-muted-foreground text-sm">-</span>
-                                )}
-                              </TableCell>
-                              <TableCell className="text-center text-sm border-r">
-                                {item.isExpressDelivery ? (
-                                  <div className="flex flex-col items-center">
-                                    <Badge variant="secondary" className="bg-purple-100 text-purple-800 border-purple-200 text-[10px] mb-1">Sí</Badge>
-                                    <span>{formatMXN(500)}</span>
-                                  </div>
-                                ) : (
-                                  <span className="text-muted-foreground text-sm">-</span>
-                                )}
-                              </TableCell>
                               <TableCell className="text-right font-medium text-sm border-r">{formatMXN(item.totalPrice)}</TableCell>
                               <TableCell>
                                 {isEditing && (
@@ -1344,6 +1330,29 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
                       </TableBody>
                     </Table>
                   </div>
+                </CardContent>
+              </Card>
+
+              {/* File Attachments - Moved here from sidebar */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Archivos Adjuntos</CardTitle>
+                  <p className="text-sm text-gray-500">Adjunte aquí la imagen o archivo de su comprobante de pago</p>
+                </CardHeader>
+                <CardContent>
+                  <FileUpload
+                    quoteId={quote.id}
+                    existingFiles={quote.attachments || []}
+                    onUploadComplete={(fileUrl) => {
+                      // Refresh quote data in background
+                      fetchQuote(true)
+                    }}
+                    onDeleteFile={(fileUrl) => {
+                      // Refresh quote data in background
+                      fetchQuote(true)
+                    }}
+                    disabled={false} // Always enabled for uploads (e.g. payment proof)
+                  />
                 </CardContent>
               </Card>
             </motion.div>

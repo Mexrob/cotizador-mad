@@ -23,7 +23,7 @@ export async function PUT(
     }
 
     const body = await request.json()
-    const { quantity, customWidth, customHeight, customDepth } = body
+    const { quantity, customWidth, customHeight, customDepth, unitPrice, totalPrice } = body
 
     // Check if quote exists and user has access
     const quote = await prisma.quote.findUnique({
@@ -54,12 +54,11 @@ export async function PUT(
       )
     }
 
-    // Calculate new total price
-    const totalPrice = currentItem.unitPrice * (quantity || currentItem.quantity)
-
     console.log('Update payload:', {
       itemId: params.itemId,
       quantity,
+      unitPrice,
+      totalPrice,
       customWidth,
       customHeight,
       lineId: body.lineId,
@@ -73,6 +72,8 @@ export async function PUT(
       where: { id: params.itemId },
       data: {
         quantity: quantity || currentItem.quantity,
+        unitPrice: unitPrice || currentItem.unitPrice,
+        totalPrice: totalPrice || currentItem.totalPrice,
         customWidth,
         customHeight,
         customDepth,
@@ -80,7 +81,8 @@ export async function PUT(
         productToneId: body.toneId,
         handleModelId: body.handleId,
         isTwoSided: body.cars === 2,
-        totalPrice,
+        isExhibition: body.isExhibition ?? currentItem.isExhibition,
+        isExpressDelivery: body.isExpressDelivery ?? currentItem.isExpressDelivery,
       },
       include: {
         product: {

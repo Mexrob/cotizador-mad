@@ -232,7 +232,7 @@ export async function POST(request: NextRequest) {
         projectName: projectName || 'Nueva Cotización',
         validUntil: validUntil ? new Date(validUntil) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
         notes: notes || '',
-        status: 'DRAFT',
+        status: 'PENDING',
         userId: session.user.id,
         subtotal: 0,
         taxAmount: 0,

@@ -58,7 +58,7 @@ export async function POST(
                 quoteId: params.id,
                 productId: baseProduct.id,
                 quantity: config.quantity,
-                unitPrice: config.totalPrice / config.quantity,
+                unitPrice: config.unitPrice,
                 totalPrice: config.totalPrice,
                 customWidth: config.width,
                 customHeight: config.height,
