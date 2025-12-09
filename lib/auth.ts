@@ -5,11 +5,22 @@ import { PrismaAdapter } from '@next-auth/prisma-adapter'
 import { compare } from 'bcryptjs'
 import { prisma } from './db'
 
+// Function to get session timeout from database
+async function getSessionTimeout(): Promise<number> {
+  try {
+    const settings = await prisma.companySettings.findFirst()
+    return settings?.sessionTimeoutMinutes ? settings.sessionTimeoutMinutes * 60 : 15 * 60
+  } catch (error) {
+    console.error('Error fetching session timeout:', error)
+    return 15 * 60 // Default to 15 minutes if error
+  }
+}
+
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
   session: {
     strategy: 'jwt',
-    maxAge: 15 * 60, // 15 minutos en segundos
+    maxAge: 15 * 60, // Default 15 minutes, will be overridden dynamically
   },
   providers: [
     CredentialsProvider({
@@ -55,6 +66,11 @@ export const authOptions: NextAuthOptions = {
         token.role = user.role
         token.status = user.status
       }
+
+      // Set dynamic session expiration
+      const sessionTimeout = await getSessionTimeout()
+      token.exp = Math.floor(Date.now() / 1000) + sessionTimeout
+
       return token
     },
     async session({ session, token }) {

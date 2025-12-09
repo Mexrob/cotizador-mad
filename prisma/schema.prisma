@@ -160,6 +160,7 @@ model CompanySettings {
   currency      String   @default("MXN")
   timezone      String   @default("America/Mexico_City")
   language      String   @default("es")
+  sessionTimeoutMinutes Int @default(15) // Session timeout in minutes
   
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -506,6 +507,7 @@ model QuoteItem {
   isTwoSided      Boolean?      @default(false)
   isExhibition    Boolean       @default(false)
   isExpressDelivery Boolean     @default(false)
+  edgeBanding     String?       // "Similar al tono del vidrio" | "Tono Aluminio"
   
   // Relationships for item configuration
   doorType        DoorType?    @relation(fields: [doorTypeId], references: [id])
@@ -520,10 +522,12 @@ model QuoteItem {
   productTone     ProductTone? @relation(fields: [productToneId], references: [id])
   handleModelId   String?
   handleModel     HandleModel? @relation(fields: [handleModelId], references: [id])
+  ceramicColor    String?      // Color selection for ceramic products (e.g., "DANAE", "KELYA")
   
   // Pricing
   unitPrice     Float
   totalPrice    Float
+  pricePerSquareMeter Float?    // Precio base por m² del tono seleccionado
   packagingCost Float         @default(0) // Costo de Empaque calculado por Alto × Ancho
   
   quote         Quote   @relation(fields: [quoteId], references: [id], onDelete: Cascade)

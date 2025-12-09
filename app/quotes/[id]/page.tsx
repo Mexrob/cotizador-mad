@@ -15,6 +15,16 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { useToast } from '@/hooks/use-toast'
@@ -50,8 +60,10 @@ import {
   ChevronDown,
   ChevronUp
 } from 'lucide-react'
-import ProductSelectorDialog from '@/components/product-selector-dialog'
-import ProductConfigurator from '@/components/product-configurator'
+// TODO: Re-implementar configurador de productos
+// import ProductSelectorDialog from '@/components/product-selector-dialog'
+// import ProductConfigurator from '@/components/product-configurator'
+import { KitWizard, WizardState } from '@/components/kit-wizard'
 import FileUpload from '@/components/file-upload'
 
 interface Quote {
@@ -84,6 +96,7 @@ interface Quote {
     quantity: number
     unitPrice: number
     totalPrice: number
+    pricePerSquareMeter?: number
     packagingCost: number
     customWidth?: number
     customHeight?: number
@@ -94,6 +107,8 @@ interface Quote {
     isTwoSided?: boolean
     isExhibition?: boolean
     isExpressDelivery?: boolean
+    edgeBanding?: string
+    ceramicColor?: string
     productLine?: {
       id: string
       name: string
@@ -182,7 +197,10 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
   // Add product modal states
   const [showAddProductModal, setShowAddProductModal] = useState(false)
   const [showProductSelector, setShowProductSelector] = useState(false)
+  const [showKitWizard, setShowKitWizard] = useState(false)
   const [editingItem, setEditingItem] = useState<QuoteItem | null>(null)
+  const [itemToDelete, setItemToDelete] = useState<string | null>(null)
+  const [kitWizardInitialState, setKitWizardInitialState] = useState<WizardState | undefined>(undefined)
   const [showEditConfigurator, setShowEditConfigurator] = useState(false)
   const [availableProducts, setAvailableProducts] = useState<Product[]>([])
   const [productSearch, setProductSearch] = useState('')
@@ -376,8 +394,40 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
 
   const handleEditItem = (item: QuoteItem) => {
     if (item.product.isCustomizable) {
+      // Construct WizardState from item
+      const initialState: WizardState = {
+        category: 'Puertas', // Default
+        line: (item.productLine?.name as any) || 'Vidrio',
+        dimensions: {
+          width: item.customWidth || 0,
+          height: item.customHeight || 0,
+          quantity: item.quantity
+        },
+        frontDimensions: { width: 0, height: 0 },
+        tone: item.productTone?.name || null,
+        backFace: item.isTwoSided ? 'Especialidad' : 'Blanca',
+        edgeBanding: (item.edgeBanding as any) || null,
+        optionals: {
+          isExhibition: item.isExhibition || false,
+          isExpressDelivery: item.isExpressDelivery || false
+        },
+        handle: item.handleModel?.name || 'No aplica',
+        pricing: {
+          basePrice: 0,
+          handlePrice: 0,
+          exhibitionFee: 0,
+          expressDeliveryFee: 0,
+          subtotal: 0,
+          total: item.totalPrice,
+          pricePerSquareMeter: item.pricePerSquareMeter || 0
+        },
+        deliveryDays: item.productLine?.name === 'Cerámica' ? 20 : 0,
+        color: item.ceramicColor || null
+      }
+
       setEditingItem(item)
-      setShowEditConfigurator(true)
+      setKitWizardInitialState(initialState)
+      setShowKitWizard(true)
     } else {
       // Logic for standard products if needed
       toast({
@@ -727,6 +777,112 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
     setShowAddProductModal(true)
   }
 
+  const handleKitWizardComplete = async (wizardState: WizardState) => {
+    try {
+      const config = {
+        category: wizardState.category,
+        line: wizardState.line,
+        dimensions: wizardState.dimensions,
+        frontDimensions: wizardState.frontDimensions,
+        tone: wizardState.tone,
+        backFace: wizardState.backFace,
+        edgeBanding: wizardState.edgeBanding,
+        handle: wizardState.handle,
+        isExhibition: wizardState.optionals.isExhibition,
+        isExpressDelivery: wizardState.optionals.isExpressDelivery,
+        pricing: wizardState.pricing,
+        pricePerSquareMeter: wizardState.pricing.pricePerSquareMeter,
+      }
+
+      let response;
+      if (editingItem) {
+        response = await fetch(`/api/quotes/${params.id}/items/kit/${editingItem.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(config),
+        })
+      } else {
+        response = await fetch(`/api/quotes/${params.id}/items/kit`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(config),
+        })
+      }
+
+      // Handle specific HTTP status codes
+      if (!response.ok) {
+        let errorMessage = 'Error al guardar el kit configurado'
+        let errorTitle = 'Error'
+
+        switch (response.status) {
+          case 401:
+            errorTitle = 'Sesión expirada'
+            errorMessage = 'Tu sesión ha expirado. Por favor, recarga la página e inicia sesión nuevamente.'
+            break
+          case 403:
+            errorTitle = 'Acceso denegado'
+            errorMessage = 'No tienes permisos para realizar esta acción.'
+            break
+          case 404:
+            errorTitle = 'Recurso no encontrado'
+            errorMessage = 'No se encontró la línea de producto seleccionada. Por favor, contacta al administrador.'
+            break
+          case 500:
+            errorTitle = 'Error del servidor'
+            errorMessage = 'Ocurrió un error en el servidor. Por favor, intenta nuevamente.'
+            break
+          default:
+            // Try to get error message from response
+            try {
+              const data = await response.json()
+              if (data.error) {
+                errorMessage = data.error
+              }
+            } catch {
+              // If we can't parse the response, use default message
+            }
+        }
+
+        toast({
+          title: errorTitle,
+          description: errorMessage,
+          variant: 'destructive',
+        })
+        return
+      }
+
+      const data = await response.json()
+
+      if (data.success) {
+        await fetchQuote()
+        setShowKitWizard(false)
+        setEditingItem(null)
+        setKitWizardInitialState(undefined)
+        toast({
+          title: editingItem ? 'Kit actualizado' : 'Kit agregado',
+          description: editingItem ? 'El kit ha sido actualizado exitosamente' : 'El kit personalizado ha sido agregado a la cotización',
+        })
+      } else {
+        throw new Error(data.error || 'Error desconocido al guardar el kit')
+      }
+    } catch (err) {
+      console.error('Error adding/updating kit:', err)
+
+      // Handle network errors
+      const errorMessage = err instanceof Error ? err.message : 'Error al guardar el kit configurado'
+
+      toast({
+        title: 'Error',
+        description: errorMessage,
+        variant: 'destructive',
+      })
+    }
+  }
+
   const handleDownloadPDF = async () => {
     try {
       toast({
@@ -856,7 +1012,7 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Volver
               </Button>
-              <Button onClick={fetchQuote}>
+              <Button onClick={() => fetchQuote()}>
                 Reintentar
               </Button>
             </div>
@@ -1040,11 +1196,11 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => setShowProductSelector(true)}
+                          onClick={() => setShowKitWizard(true)}
                           className="w-full sm:w-auto"
                         >
                           <Plus className="w-4 h-4 mr-2" />
-                          <span className="text-sm">Agregar Producto</span>
+                          <span className="text-sm">Configurar Kit</span>
                         </Button>
                         <Dialog open={showAddProductModal} onOpenChange={setShowAddProductModal}>
                           <DialogContent className="max-w-3xl">
@@ -1222,12 +1378,13 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
                       <TableHeader>
                         <TableRow className="border-b">
                           <TableHead className="w-[200px] border-r">Producto</TableHead>
+                          <TableHead className="border-r">Marca</TableHead>
+                          <TableHead className="border-r">Color</TableHead>
                           <TableHead className="text-right border-r">Alto</TableHead>
                           <TableHead className="text-right border-r">Ancho</TableHead>
-                          <TableHead className="text-right border-r">Precio m²</TableHead>
+                          <TableHead className="text-right border-r">Costo unitario</TableHead>
                           <TableHead className="text-right border-r">Cantidad</TableHead>
                           <TableHead className="text-center border-r">Caras</TableHead>
-                          <TableHead className="text-right border-r">Costo unitario</TableHead>
                           <TableHead className="border-r">Jaladera</TableHead>
                           <TableHead className="text-right border-r">Precio Jaladera</TableHead>
                           <TableHead className="text-right border-r">Cant. Jaladera</TableHead>
@@ -1239,11 +1396,11 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
                         {quote.items.map((item) => {
                           const width = item.customWidth || item.product.width || 0
                           const height = item.customHeight || item.product.height || 0
-                          const area = (width / 1000) * (height / 1000)
                           const handlePrice = item.handleModel?.price || 0
-                          // Calculate base unit price (without handle) for m2 calculation
-                          const baseUnitPrice = item.unitPrice - handlePrice
-                          const pricePerM2 = area > 0 ? baseUnitPrice / area : 0
+
+                          // Calculate unit cost: (height × width × price per m²) ÷ 1,000,000
+                          const pricePerM2 = item.pricePerSquareMeter || 0
+                          const unitCost = (height * width * pricePerM2) / 1000000
 
                           return (
                             <TableRow key={item.id} className="border-b">
@@ -1265,13 +1422,14 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
                                   <div className="min-w-0">
                                     <div className="font-medium text-sm truncate" title={item.product.name}>{item.product.name}</div>
                                     <div className="text-xs text-muted-foreground truncate">{item.product.sku}</div>
-                                    {(item.productLine || item.productTone) && (
-                                      <div className="text-[10px] text-muted-foreground truncate">
-                                        {item.productLine?.name} {item.productTone?.name}
-                                      </div>
-                                    )}
                                   </div>
                                 </div>
+                              </TableCell>
+                              <TableCell className="border-r text-sm">
+                                {item.productTone?.name || '-'}
+                              </TableCell>
+                              <TableCell className="border-r text-sm">
+                                {item.ceramicColor || '-'}
                               </TableCell>
                               <TableCell className="text-right text-sm border-r">
                                 {height > 0 ? `${height} mm` : '-'}
@@ -1279,16 +1437,13 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
                               <TableCell className="text-right text-sm border-r">
                                 {width > 0 ? `${width} mm` : '-'}
                               </TableCell>
-                              <TableCell className="text-right text-sm border-r">
-                                {pricePerM2 > 0 ? formatMXN(pricePerM2) : '-'}
-                              </TableCell>
+                              <TableCell className="text-right text-sm border-r">{formatMXN(unitCost)}</TableCell>
                               <TableCell className="text-right border-r">
                                 <span className="text-sm">{item.quantity}</span>
                               </TableCell>
                               <TableCell className="text-center text-sm border-r">
                                 {item.isTwoSided ? '2' : '1'}
                               </TableCell>
-                              <TableCell className="text-right text-sm border-r">{formatMXN(baseUnitPrice * item.quantity)}</TableCell>
                               <TableCell className="text-sm border-r">
                                 {item.handleModel ? (
                                   <div className="flex flex-col">
@@ -1322,7 +1477,7 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
                                     <Button
                                       variant="ghost"
                                       size="icon"
-                                      onClick={() => deleteItem(item.id)}
+                                      onClick={() => setItemToDelete(item.id)}
                                       className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
                                     >
                                       <Trash2 className="w-4 h-4" />
@@ -1675,14 +1830,65 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
           </div >
         </div >
 
-        {/* Product Selector Dialog */}
-        < ProductSelectorDialog
+        {/* TODO: Re-implementar Product Selector Dialog */}
+        {/* 
+        <ProductSelectorDialog
           open={showProductSelector}
           onOpenChange={setShowProductSelector}
           onConfiguredProductAdd={handleConfiguredProductAdd}
           onStandardProductAdd={handleStandardProductAdd}
         />
+        */}
 
+        {/* Kit Wizard Dialog */}
+        <Dialog open={showKitWizard} onOpenChange={setShowKitWizard}>
+          <DialogContent className="max-w-6xl h-[90vh] overflow-hidden flex flex-col p-0">
+            <DialogHeader className="px-6 py-4 border-b">
+              <DialogTitle>Configurador de Kits</DialogTitle>
+            </DialogHeader>
+            <div className="flex-1 overflow-hidden">
+              <KitWizard
+                key={editingItem?.id || `new-${Date.now()}`}
+                initialState={kitWizardInitialState}
+                onComplete={handleKitWizardComplete}
+                onCancel={() => {
+                  setShowKitWizard(false)
+                  setEditingItem(null)
+                  setKitWizardInitialState(undefined)
+                }}
+              />
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={!!itemToDelete} onOpenChange={() => setItemToDelete(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Esta acción no se puede deshacer. Esto eliminará permanentemente el producto de la cotización.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  if (itemToDelete) {
+                    deleteItem(itemToDelete)
+                    setItemToDelete(null)
+                  }
+                }}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                Eliminar
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* TODO: Re-implementar Product Configurator para edición */}
+        {/*
         <Dialog open={showEditConfigurator} onOpenChange={setShowEditConfigurator}>
           <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
             {editingItem && (
@@ -1726,6 +1932,7 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
             )}
           </DialogContent>
         </Dialog>
+        */}
       </div >
     </div >
   )

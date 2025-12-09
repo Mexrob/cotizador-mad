@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic'
 export async function GET() {
   try {
     let settings = await prisma.companySettings.findFirst()
-    
+
     // If no settings exist, create default ones
     if (!settings) {
       settings = await prisma.companySettings.create({
@@ -43,7 +43,7 @@ export async function GET() {
 export async function PUT(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
-    
+
     if (!session) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
@@ -68,11 +68,12 @@ export async function PUT(request: NextRequest) {
       currency,
       timezone,
       language,
+      sessionTimeoutMinutes,
     } = body
 
     // Get existing settings or create new ones
     const existingSettings = await prisma.companySettings.findFirst()
-    
+
     let settings
     if (existingSettings) {
       settings = await prisma.companySettings.update({
@@ -94,6 +95,7 @@ export async function PUT(request: NextRequest) {
           currency,
           timezone,
           language,
+          sessionTimeoutMinutes,
         },
       })
     } else {
@@ -115,6 +117,7 @@ export async function PUT(request: NextRequest) {
           currency,
           timezone,
           language,
+          sessionTimeoutMinutes,
         },
       })
     }

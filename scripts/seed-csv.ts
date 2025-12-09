@@ -148,7 +148,7 @@ async function main() {
         const handlePrice = parseFloat(handlePriceStr)
 
         if (handleStr && handleStr !== 'no aplica') {
-            const handles = handleStr.split(',').map(s => s.trim())
+            const handles = handleStr.split(',').map((s: string) => s.trim())
             for (const handleModelName of handles) {
                 await prisma.handleModel.upsert({
                     where: { name: handleModelName },
