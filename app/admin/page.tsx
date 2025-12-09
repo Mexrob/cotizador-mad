@@ -44,6 +44,7 @@ interface CompanySettings {
   zipCode: string
   taxId: string
   website?: string
+  sessionTimeoutMinutes?: number
 }
 
 interface DashboardStats {
@@ -71,7 +72,8 @@ export default function AdminPage() {
     state: 'CDMX',
     zipCode: '06600',
     taxId: 'CDL123456789',
-    website: 'https://cocinasdelujo.mx'
+    website: 'https://cocinasdelujo.mx',
+    sessionTimeoutMinutes: 15
   })
 
   // Redirect if not authenticated or not admin
@@ -113,7 +115,8 @@ export default function AdminPage() {
               state: settingsData.data.state || '',
               zipCode: settingsData.data.zipCode || '',
               taxId: settingsData.data.taxId || '',
-              website: settingsData.data.website || ''
+              website: settingsData.data.website || '',
+              sessionTimeoutMinutes: settingsData.data.sessionTimeoutMinutes || 15
             })
           }
         }
@@ -385,6 +388,34 @@ export default function AdminPage() {
                         value={companySettings.state}
                         onChange={(e) => setCompanySettings({ ...companySettings, state: e.target.value })}
                       />
+                    </div>
+                  </div>
+
+                  {/* Session Timeout Setting */}
+                  <div className="border-t border-gray-200 pt-6">
+                    <h3 className="text-lg font-semibold mb-4 flex items-center space-x-2">
+                      <Clock className="w-5 h-5" />
+                      <span>Configuración de Sesión</span>
+                    </h3>
+                    <div className="max-w-md space-y-2">
+                      <Label htmlFor="sessionTimeout">Tiempo de expiración de sesión (minutos)</Label>
+                      <Input
+                        id="sessionTimeout"
+                        type="number"
+                        min={5}
+                        max={43200}
+                        value={companySettings.sessionTimeoutMinutes || 15}
+                        onChange={(e) => {
+                          const value = parseInt(e.target.value) || 15
+                          if (value >= 5 && value <= 43200) {
+                            setCompanySettings({ ...companySettings, sessionTimeoutMinutes: value })
+                          }
+                        }}
+                      />
+                      <p className="text-sm text-muted-foreground">
+                        Define cuánto tiempo puede estar inactivo un usuario antes de que su sesión expire.
+                        Mínimo: 5 minutos, Máximo: 43,200 minutos (30 días).
+                      </p>
                     </div>
                   </div>
 
