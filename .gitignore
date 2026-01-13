@@ -148,4 +148,8 @@ nginx/ssl/
 .env.local
 .env.development.local
 .env.test.local
-.env.production.local
+# Deployment
+deploy_key
+deploy.tar.gz
+deploy_temp/
+wizard-backup-*.tar.gz

@@ -22,15 +22,19 @@ POSTGRES_DB=cotizador_mad
 EOF
 
 # Copy files
-cp -r app components lib prisma public scripts hooks maracs middleware.ts next.config.js package.json package-lock.json tsconfig.json postcss.config.js tailwind.config.ts docker-compose.yml Dockerfile nginx deploy_temp/ 2>/dev/null || true
-# Note: ignoring errors for missing optional dirs like hooks/marcas if they don't exist, but copying what we can. 
-# Better: list specific dirs.
-cp -r hooks deploy_temp/ 2>/dev/null
-cp -r marcas deploy_temp/ 2>/dev/null
-cp -r nginx deploy_temp/ 2>/dev/null
-cp -r components.json deploy_temp/ 2>/dev/null
-cp -r next-env.d.ts deploy_temp/ 2>/dev/null
-cp -r .dockerignore deploy_temp/ 2>/dev/null
+cp -r app components lib prisma public scripts hooks marcas nginx imagenes deploy_temp/ 2>/dev/null || true
+cp middleware.ts deploy_temp/ 2>/dev/null
+cp components.json deploy_temp/ 2>/dev/null
+cp next-env.d.ts deploy_temp/ 2>/dev/null
+cp .dockerignore deploy_temp/ 2>/dev/null
+cp next.config.js deploy_temp/ 2>/dev/null
+cp package.json deploy_temp/ 2>/dev/null
+cp package-lock.json deploy_temp/ 2>/dev/null
+cp tsconfig.json deploy_temp/ 2>/dev/null
+cp postcss.config.js deploy_temp/ 2>/dev/null
+cp tailwind.config.ts deploy_temp/ 2>/dev/null
+cp docker-compose.yml deploy_temp/ 2>/dev/null
+cp Dockerfile deploy_temp/ 2>/dev/null
 
 # Tar it up
 tar -czf deploy.tar.gz -C deploy_temp .
