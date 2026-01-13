@@ -417,7 +417,8 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
         edgeBanding: (item.edgeBanding as any) || null,
         optionals: {
           isExhibition: item.isExhibition || false,
-          isExpressDelivery: item.isExpressDelivery || false
+          isExpressDelivery: item.isExpressDelivery || false,
+          isTwoFaces: item.isTwoSided || false
         },
         handle: item.handleModel?.name || 'No aplica',
         pricing: {
