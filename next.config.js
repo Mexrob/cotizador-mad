@@ -17,6 +17,8 @@ const nextConfig = {
     unoptimized: true,
     domains: ['localhost'],
   },
+  // Disable font optimization to avoid network issues during build
+  optimizeFonts: false,
 };
 
 module.exports = nextConfig;
