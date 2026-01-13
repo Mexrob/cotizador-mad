@@ -4,34 +4,53 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Check } from 'lucide-react'
 import { StepProps, EdgeBanding } from '../types'
 
-export default function StepEdgeBanding({ state, updateState }: StepProps) {
+export default function StepEdgeBanding({ state, updateState, stepNumber = 7, configData }: StepProps & { stepNumber?: number, configData?: KitConfigResponse | null }) {
     const handleSelect = (edgeBanding: EdgeBanding) => {
         updateState({ edgeBanding })
     }
 
-    // Get edge banding options based on selected line
-    const materialName = state.line === 'Cerámica' ? 'cerámica' : 'vidrio'
-    const similarToneValue: EdgeBanding = state.line === 'Cerámica'
-        ? 'Similar al tono de la cerámica'
-        : 'Similar al tono del vidrio'
+    const edgeBandingOptions = configData?.lines.find(l => l.name === state.line)?.edgeBandings || []
 
-    const EDGE_BANDING_OPTIONS: { value: EdgeBanding; label: string; description: string }[] = [
-        {
-            value: similarToneValue,
-            label: `Similar al tono de la ${materialName}`,
-            description: `Cubrecanto que coincide con el tono seleccionado de ${materialName}`,
-        },
-        {
-            value: 'Tono Aluminio',
-            label: 'Tono Aluminio',
-            description: 'Cubrecanto con acabado aluminio',
-        },
-    ]
+    let EDGE_BANDING_OPTIONS: { value: EdgeBanding; label: string; description: string }[] = []
+
+    if (edgeBandingOptions.length > 0) {
+        EDGE_BANDING_OPTIONS = edgeBandingOptions.map(eb => ({
+            value: eb.name as EdgeBanding,
+            label: eb.name,
+            description: eb.description || `Cubrecanto ${eb.name}`
+        }))
+    } else if (state.line === 'Alto Brillo') {
+        EDGE_BANDING_OPTIONS = [
+            {
+                value: 'Mismo tono de puerta',
+                label: 'Mismo tono de puerta',
+                description: 'Cubrecanto que coincide con el tono seleccionado de la puerta',
+            }
+        ]
+    } else {
+        const materialName = state.line === 'Cerámica' ? 'cerámica' : 'vidrio'
+        const similarToneValue: EdgeBanding = state.line === 'Cerámica'
+            ? 'Similar al tono de la cerámica'
+            : 'Similar al tono del vidrio'
+
+        EDGE_BANDING_OPTIONS = [
+            {
+                value: similarToneValue,
+                label: `Similar al tono de la ${materialName}`,
+                description: `Cubrecanto que coincide con el tono seleccionado de ${materialName}`,
+            },
+            {
+                value: 'Tono Aluminio',
+                label: 'Tono Aluminio',
+                description: 'Cubrecanto con acabado aluminio',
+            },
+        ]
+    }
 
     return (
         <div className="space-y-6">
             <div className="text-center space-y-2">
-                <h2 className="text-2xl font-bold">Paso 7: Cubrecanto</h2>
+                <h2 className="text-2xl font-bold">Paso {stepNumber}: Cubrecanto</h2>
                 <p className="text-muted-foreground">Selecciona el tipo de cubrecanto</p>
             </div>
 

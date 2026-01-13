@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Check } from 'lucide-react'
 import { StepProps } from '../types'
 
-export default function StepCategory({ state, updateState, onNext }: StepProps) {
+export default function StepCategory({ state, updateState, onNext, stepNumber = 1 }: StepProps & { stepNumber?: number }) {
     const handleSelect = () => {
         updateState({ category: 'Puertas' })
         // Auto-advance to next step
@@ -15,7 +15,7 @@ export default function StepCategory({ state, updateState, onNext }: StepProps) 
     return (
         <div className="space-y-6">
             <div className="text-center space-y-2">
-                <h2 className="text-2xl font-bold">Paso 1: Categoría</h2>
+                <h2 className="text-2xl font-bold">Paso {stepNumber}: Categoría</h2>
                 <p className="text-muted-foreground">Selecciona la categoría de producto base</p>
             </div>
 

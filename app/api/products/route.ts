@@ -12,7 +12,7 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    
+
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
@@ -68,7 +68,11 @@ export async function GET(request: NextRequest) {
       doorType: true,
       doorModel: true,
       colorTone: true,
+      productTone: true,
       woodGrain: true,
+      line: true,
+      edgeBandingRef: true,
+      handleRef: true,
       _count: {
         select: { quoteItems: true }
       }
@@ -105,10 +109,10 @@ export async function GET(request: NextRequest) {
     };
 
     return NextResponse.json(responseData);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching products:', error);
     return NextResponse.json(
-      { success: false, error: 'Error interno del servidor' },
+      { success: false, error: error.message || 'Error interno del servidor' },
       { status: 500 }
     );
   }
@@ -151,7 +155,15 @@ export async function POST(request: NextRequest) {
       doorTypeId,
       doorModelId,
       colorToneId,
-      woodGrainId
+      woodGrainId,
+      minHeight,
+      maxHeight,
+      lineId,
+      productToneId,
+      edgeBandingId,
+      handleId,
+      faces,
+      orientation
     } = body;
 
     if (!name || !sku || !categoryId) {
@@ -212,23 +224,36 @@ export async function POST(request: NextRequest) {
         doorTypeId,
         doorModelId,
         colorToneId,
-        woodGrainId
+        woodGrainId,
+        // New characteristic fields
+        minHeight,
+        maxHeight,
+        lineId,
+        productToneId,
+        edgeBandingId,
+        handleId,
+        faces,
+        orientation
       },
       include: {
         category: true,
         doorType: true,
         doorModel: true,
         colorTone: true,
+        productTone: true,
         woodGrain: true,
+        line: true,
+        edgeBandingRef: true,
+        handleRef: true,
         pricing: true
       }
     });
 
     return NextResponse.json(product, { status: 201 });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creating product:', error);
     return NextResponse.json(
-      { error: 'Error interno del servidor' },
+      { error: error.message || 'Error interno del servidor' },
       { status: 500 }
     );
   }

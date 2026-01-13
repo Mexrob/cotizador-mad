@@ -45,6 +45,7 @@ export async function GET(
             productLine: true,
             productTone: true,
             handleModel: true,
+            woodGrain: true,
           },
         },
       },

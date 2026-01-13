@@ -11,9 +11,15 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import ProductsTable from '@/components/products-table';
 import ProductForm from '@/components/product-form';
-import CategoriesManagement from '@/components/categories-management';
-import { toast } from 'sonner';
 import Link from 'next/link';
+import ProductLinesManagement from '@/components/product-lines-management';
+import ProductTonesManagement from '@/components/product-tones-management';
+import EdgeBandingsManagement from '@/components/edge-bandings-management';
+import HandleModelsManagement from '@/components/handle-models-management';
+import CategoriesManagement from '@/components/categories-management';
+import BackFacesManagement from '@/components/back-faces-management';
+import { Palette, Ruler, ShoppingBag, Layout } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface ProductDetails {
   id: string;
@@ -141,14 +147,34 @@ export default function ProductsAdminPage() {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 lg:w-96">
-            <TabsTrigger value="products" className="flex items-center gap-2">
+          <TabsList className="flex flex-wrap h-auto w-full justify-start border-b rounded-none bg-transparent gap-2 mb-4">
+            <TabsTrigger value="products" className="flex items-center gap-2 px-4 py-2 border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent rounded-none">
               <Package className="h-4 w-4" />
               Productos
             </TabsTrigger>
-            <TabsTrigger value="categories" className="flex items-center gap-2">
+            <TabsTrigger value="categories" className="flex items-center gap-2 px-4 py-2 border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent rounded-none">
               <Folder className="h-4 w-4" />
               Categorías
+            </TabsTrigger>
+            <TabsTrigger value="lines" className="flex items-center gap-2 px-4 py-2 border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent rounded-none">
+              <Layout className="h-4 w-4" />
+              Líneas
+            </TabsTrigger>
+            <TabsTrigger value="tones" className="flex items-center gap-2 px-4 py-2 border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent rounded-none">
+              <Palette className="h-4 w-4" />
+              Tonos
+            </TabsTrigger>
+            <TabsTrigger value="edges" className="flex items-center gap-2 px-4 py-2 border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent rounded-none">
+              <Ruler className="h-4 w-4" />
+              Cubrecantos
+            </TabsTrigger>
+            <TabsTrigger value="handles" className="flex items-center gap-2 px-4 py-2 border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent rounded-none">
+              <ShoppingBag className="h-4 w-4" />
+              Jaladeras
+            </TabsTrigger>
+            <TabsTrigger value="backfaces" className="flex items-center gap-2 px-4 py-2 border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent rounded-none">
+              <Layout className="h-4 w-4" />
+              Caras
             </TabsTrigger>
           </TabsList>
 
@@ -162,6 +188,26 @@ export default function ProductsAdminPage() {
 
           <TabsContent value="categories">
             <CategoriesManagement />
+          </TabsContent>
+
+          <TabsContent value="lines">
+            <ProductLinesManagement />
+          </TabsContent>
+
+          <TabsContent value="tones">
+            <ProductTonesManagement />
+          </TabsContent>
+
+          <TabsContent value="edges">
+            <EdgeBandingsManagement />
+          </TabsContent>
+
+          <TabsContent value="handles">
+            <HandleModelsManagement />
+          </TabsContent>
+
+          <TabsContent value="backfaces">
+            <BackFacesManagement />
           </TabsContent>
         </Tabs>
 

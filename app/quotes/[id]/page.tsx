@@ -144,6 +144,10 @@ interface Quote {
         finalPrice: number
       }>
     }
+    woodGrain?: {
+      id: string
+      name: string
+    }
   }>
   user: {
     name: string
@@ -198,6 +202,8 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
   const [showAddProductModal, setShowAddProductModal] = useState(false)
   const [showProductSelector, setShowProductSelector] = useState(false)
   const [showKitWizard, setShowKitWizard] = useState(false)
+  const [showAlhuWizard, setShowAlhuWizard] = useState(false)
+  const [showProductCatalog, setShowProductCatalog] = useState(false)
   const [editingItem, setEditingItem] = useState<QuoteItem | null>(null)
   const [itemToDelete, setItemToDelete] = useState<string | null>(null)
   const [kitWizardInitialState, setKitWizardInitialState] = useState<WizardState | undefined>(undefined)
@@ -405,7 +411,9 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
         },
         frontDimensions: { width: 0, height: 0 },
         tone: item.productTone?.name || null,
-        backFace: item.isTwoSided ? 'Especialidad' : 'Blanca',
+        backFace: (item.productLine?.name === 'Europea Sincro' || item.productLine?.name === 'Europea Básica')
+          ? (item.woodGrain?.name || 'Vertical') as any
+          : (item.isTwoSided ? 'Especialidad' : 'Blanca'),
         edgeBanding: (item.edgeBanding as any) || null,
         optionals: {
           isExhibition: item.isExhibition || false,
@@ -455,8 +463,10 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
           toneId: config.toneId,
           handleId: config.handleId,
           cars: config.cars,
+          backFace: config.backFace, // For Europea grain direction
           isExhibition: config.isExhibition,
           isExpressDelivery: config.isExpressDelivery,
+          ceramicColor: config.color,
         }),
       })
 
@@ -647,32 +657,50 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
       }
     }
 
-    // Calculate base product subtotal and handles subtotal
-    const { baseProductSubtotal, handlesSubtotal } = quote.items.reduce((acc, item) => {
+    // Calculate base product subtotal, handles subtotal, and additional fees
+    const { baseProductSubtotal, handlesSubtotal, backFaceSubtotal, exhibitionFees, expressDeliveryFees } = quote.items.reduce((acc, item) => {
       const currentQuantity = itemQuantities[item.id] !== undefined
         ? itemQuantities[item.id]
         : item.quantity
 
       const handlePrice = item.handleModel?.price || 0
       // item.unitPrice includes handlePrice, so we subtract it to get base unit price
-      const baseUnitPrice = item.unitPrice - handlePrice
+      // Note: unitPrice from DB currently excludes backFaceFee, so this extraction is safe for Base+Handle legacy logic
+      const baseUnitPrice = (item.unitPrice || 0) - handlePrice
 
-      acc.baseProductSubtotal += baseUnitPrice * currentQuantity
-      acc.handlesSubtotal += handlePrice * currentQuantity
+      const itemBaseTotal = baseUnitPrice * currentQuantity
+      const itemHandleTotal = handlePrice * currentQuantity
+
+      // Back face fee (flat $100 per line item if isTwoSided/Especialidad)
+      // Assuming the fee is per line item (kit), not per unit quantity, matching KitWizard logic
+      const itemBackFaceTotal = item.isTwoSided ? 100 : 0
+
+      // Effective subtotal for this item (Base + Handle + BackFace)
+      const itemSubtotal = itemBaseTotal + itemHandleTotal + itemBackFaceTotal
+
+      // Calculate optional fees percentages based on itemSubtotal
+      // Exhibition: -25% (Discount)
+      const itemExhibitionFee = item.isExhibition ? itemSubtotal * -0.25 : 0
+
+      // Express: +20% (Surcharge)
+      const itemExpressFee = item.isExpressDelivery ? itemSubtotal * 0.20 : 0
+
+      acc.baseProductSubtotal += itemBaseTotal
+      acc.handlesSubtotal += itemHandleTotal
+      acc.backFaceSubtotal += itemBackFaceTotal
+      acc.exhibitionFees += itemExhibitionFee
+      acc.expressDeliveryFees += itemExpressFee
 
       return acc
-    }, { baseProductSubtotal: 0, handlesSubtotal: 0 })
+    }, {
+      baseProductSubtotal: 0,
+      handlesSubtotal: 0,
+      backFaceSubtotal: 0,
+      exhibitionFees: 0,
+      expressDeliveryFees: 0
+    })
 
-    // Calculate fees (Flat fee per item line, matching ProductConfigurator logic)
-    const exhibitionFees = quote.items.reduce((sum, item) => {
-      return sum + (item.isExhibition ? 500 : 0)
-    }, 0)
-
-    const expressDeliveryFees = quote.items.reduce((sum, item) => {
-      return sum + (item.isExpressDelivery ? 500 : 0)
-    }, 0)
-
-    const subtotalWithFees = baseProductSubtotal + handlesSubtotal + exhibitionFees + expressDeliveryFees
+    const subtotalWithFees = baseProductSubtotal + handlesSubtotal + backFaceSubtotal + exhibitionFees + expressDeliveryFees
 
     // Calculate tax (16%)
     const taxAmount = subtotalWithFees * 0.16
@@ -691,7 +719,8 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
       exhibitionFees,
       expressDeliveryFees,
       baseProductSubtotal,
-      handlesSubtotal
+      handlesSubtotal,
+      backFaceSubtotal
     }
   }, [quote, itemQuantities, isEditing, editedQuote.discountAmount])
 
@@ -790,28 +819,64 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
         handle: wizardState.handle,
         isExhibition: wizardState.optionals.isExhibition,
         isExpressDelivery: wizardState.optionals.isExpressDelivery,
+        optionals: wizardState.optionals, // Add this for Alhú API
         pricing: wizardState.pricing,
         pricePerSquareMeter: wizardState.pricing.pricePerSquareMeter,
+        color: wizardState.color,
       }
 
-      let response;
+
+      // Determine the endpoint and method
+      let url: string
+      let method: string
+
       if (editingItem) {
-        response = await fetch(`/api/quotes/${params.id}/items/kit/${editingItem.id}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(config),
-        })
+        // When editing, check the line type and use specific endpoint
+        if (wizardState.line === 'Super Mate') {
+          url = `/api/quotes/${params.id}/items/super-mate/${editingItem.id}`
+          method = 'PUT'
+        } else if (wizardState.line === 'Alto Brillo') {
+          url = `/api/quotes/${params.id}/items/alto-brillo/${editingItem.id}`
+          method = 'PUT'
+        } else if (wizardState.line === 'Europea Básica') {
+          url = `/api/quotes/${params.id}/items/europea/${editingItem.id}`
+          method = 'PUT'
+        } else if (wizardState.line === 'Europea Sincro') {
+          url = `/api/quotes/${params.id}/items/europea-sincro/${editingItem.id}`
+          method = 'PUT'
+        } else if (wizardState.line === 'Línea Alhú') {
+          url = `/api/quotes/${params.id}/items/alhu/${editingItem.id}`
+          method = 'PUT'
+        } else {
+          // Default to generic kit endpoint
+          url = `/api/quotes/${params.id}/items/kit/${editingItem.id}`
+          method = 'PUT'
+        }
       } else {
-        response = await fetch(`/api/quotes/${params.id}/items/kit`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(config),
-        })
+        // When creating new items
+        method = 'POST'
+        if (wizardState.line === 'Línea Alhú') {
+          url = `/api/quotes/${params.id}/items/alhu`
+        } else if (wizardState.line === 'Europea Básica') {
+          url = `/api/quotes/${params.id}/items/europea`
+        } else if (wizardState.line === 'Europea Sincro') {
+          url = `/api/quotes/${params.id}/items/europea-sincro`
+        } else if (wizardState.line === 'Alto Brillo') {
+          url = `/api/quotes/${params.id}/items/alto-brillo`
+        } else if (wizardState.line === 'Super Mate') {
+          url = `/api/quotes/${params.id}/items/super-mate`
+        } else {
+          url = `/api/quotes/${params.id}/items/kit`
+        }
       }
+
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(config),
+      })
 
       // Handle specific HTTP status codes
       if (!response.ok) {
@@ -1377,19 +1442,23 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
                     <Table className="border-collapse">
                       <TableHeader>
                         <TableRow className="border-b">
+                          {isEditing && <TableHead className="w-[100px] border-r">Acciones</TableHead>}
                           <TableHead className="w-[200px] border-r">Producto</TableHead>
                           <TableHead className="border-r">Marca</TableHead>
                           <TableHead className="border-r">Color</TableHead>
+                          {quote.items.some(i => i.productLine?.name?.includes('Europea')) && (
+                            <TableHead className="border-r">Veta</TableHead>
+                          )}
                           <TableHead className="text-right border-r">Alto</TableHead>
                           <TableHead className="text-right border-r">Ancho</TableHead>
                           <TableHead className="text-right border-r">Costo unitario</TableHead>
                           <TableHead className="text-right border-r">Cantidad</TableHead>
                           <TableHead className="text-center border-r">Caras</TableHead>
+                          <TableHead className="text-center border-r">Cubrecanto</TableHead>
                           <TableHead className="border-r">Jaladera</TableHead>
                           <TableHead className="text-right border-r">Precio Jaladera</TableHead>
                           <TableHead className="text-right border-r">Cant. Jaladera</TableHead>
                           <TableHead className="text-right border-r">Total</TableHead>
-                          <TableHead className="w-[50px]"></TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -1404,6 +1473,30 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
 
                           return (
                             <TableRow key={item.id} className="border-b">
+                              {isEditing && (
+                                <TableCell className="border-r">
+                                  <div className="flex items-center justify-start gap-1">
+                                    {item.product.isCustomizable && (
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => handleEditItem(item)}
+                                        className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                      >
+                                        <Pencil className="w-4 h-4" />
+                                      </Button>
+                                    )}
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() => setItemToDelete(item.id)}
+                                      className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </Button>
+                                  </div>
+                                </TableCell>
+                              )}
                               <TableCell className="border-r">
                                 <div className="flex items-center gap-3">
                                   <div className="w-10 h-10 bg-gray-100 rounded-md flex items-center justify-center overflow-hidden flex-shrink-0">
@@ -1431,6 +1524,16 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
                               <TableCell className="border-r text-sm">
                                 {item.ceramicColor || '-'}
                               </TableCell>
+                              {quote.items.some(i => i.productLine?.name?.includes('Europea')) && (
+                                <TableCell className="border-r text-sm">
+                                  {item.woodGrain?.name || (
+                                    // Fallback for older items that might have stored direction in backFace or implied by isTwoSided?
+                                    // But based on my fix, backFace is restored from woodGrain.
+                                    // If strictly relying on woodGrain relation:
+                                    '-'
+                                  )}
+                                </TableCell>
+                              )}
                               <TableCell className="text-right text-sm border-r">
                                 {height > 0 ? `${height} mm` : '-'}
                               </TableCell>
@@ -1443,6 +1546,9 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
                               </TableCell>
                               <TableCell className="text-center text-sm border-r">
                                 {item.isTwoSided ? '2' : '1'}
+                              </TableCell>
+                              <TableCell className="text-center border-r text-sm">
+                                {item.edgeBanding || '-'}
                               </TableCell>
                               <TableCell className="text-sm border-r">
                                 {item.handleModel ? (
@@ -1461,30 +1567,7 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
                                 {item.handleModel ? item.quantity : '-'}
                               </TableCell>
                               <TableCell className="text-right font-medium text-sm border-r">{formatMXN(item.totalPrice)}</TableCell>
-                              <TableCell>
-                                {isEditing && (
-                                  <div className="flex items-center justify-end">
-                                    {item.product.isCustomizable && (
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        onClick={() => handleEditItem(item)}
-                                        className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                                      >
-                                        <Pencil className="w-4 h-4" />
-                                      </Button>
-                                    )}
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      onClick={() => setItemToDelete(item.id)}
-                                      className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
-                                    >
-                                      <Trash2 className="w-4 h-4" />
-                                    </Button>
-                                  </div>
-                                )}
-                              </TableCell>
+
                             </TableRow>
                           )
                         })}
@@ -1751,17 +1834,24 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
                     </div>
                   )}
 
-                  {calculatedSummary.exhibitionFees > 0 && (
+                  {(calculatedSummary.backFaceSubtotal || 0) > 0 && (
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Producto de Exhibición:</span>
-                      <span className="font-medium">{formatMXN(calculatedSummary.exhibitionFees)}</span>
+                      <span className="text-muted-foreground">Acabado Especial:</span>
+                      <span className="font-medium">{formatMXN(calculatedSummary.backFaceSubtotal || 0)}</span>
+                    </div>
+                  )}
+
+                  {calculatedSummary.exhibitionFees !== 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Producto de Exhibición (-25%):</span>
+                      <span className="font-medium text-green-600">{formatMXN(calculatedSummary.exhibitionFees)}</span>
                     </div>
                   )}
 
                   {calculatedSummary.expressDeliveryFees > 0 && (
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Envío Express:</span>
-                      <span className="font-medium">{formatMXN(calculatedSummary.expressDeliveryFees)}</span>
+                      <span className="text-muted-foreground">Envío Express (+20%):</span>
+                      <span className="font-medium text-blue-600">+{formatMXN(calculatedSummary.expressDeliveryFees)}</span>
                     </div>
                   )}
 
@@ -1839,6 +1929,7 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
           onStandardProductAdd={handleStandardProductAdd}
         />
         */}
+
 
         {/* Kit Wizard Dialog */}
         <Dialog open={showKitWizard} onOpenChange={setShowKitWizard}>

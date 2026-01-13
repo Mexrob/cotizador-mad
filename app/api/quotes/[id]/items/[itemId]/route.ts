@@ -80,9 +80,13 @@ export async function PUT(
         productLineId: body.lineId,
         productToneId: body.toneId,
         handleModelId: body.handleId,
-        isTwoSided: body.cars === 2,
+        woodGrainId: body.backFace && (body.backFace === 'Horizontal' || body.backFace === 'Vertical') 
+            ? (await prisma.woodGrain.findUnique({ where: { name: body.backFace } }))?.id 
+            : undefined,
+        isTwoSided: body.cars === 2 || (body.backFace === 'Horizontal' || body.backFace === 'Vertical'),
         isExhibition: body.isExhibition ?? currentItem.isExhibition,
         isExpressDelivery: body.isExpressDelivery ?? currentItem.isExpressDelivery,
+        ceramicColor: body.ceramicColor,
       },
       include: {
         product: {
@@ -96,7 +100,21 @@ export async function PUT(
       },
     })
 
-    console.log('Item updated successfully')
+    // Verify woodGrain if part of the update (or infer from backFace logic if passed in body?)
+    // The previous implementation used 'cars' for isTwoSided? Or backFace?
+    // Checking body log in previous step: lineId, toneId, handleId, cars.
+    // It seems 'cars' maps to isTwoSided.
+    // However, for Europea Sincro/Basic, we used 'backFace' in the wizard state, but here the body seems to expect specific fields?
+    // Let's check page.tsx handleEditComplete body payload.
+    // Wait, page.tsx sends:
+    // quantity, customWidth, customHeight, item configuration...
+    // I need to check page.tsx handleEditComplete to see what is sent.
+
+    // Assuming for now I need to inspect page.tsx first to ensure 'backFace' is sent.
+    // But assuming I can add woodGrainId logic here if I get the right field.
+
+    // Let's hold off on this replace until I verify page.tsx payload.
+    console.log('Update payload:', body)
 
     // Recalculate quote totals
     await recalculateQuoteTotals(params.id)

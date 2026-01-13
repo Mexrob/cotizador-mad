@@ -32,7 +32,6 @@ function SignInForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
-    console.log('Attempting sign in with credentials:', { email, password });
 
     try {
       const result = await signIn('credentials', {

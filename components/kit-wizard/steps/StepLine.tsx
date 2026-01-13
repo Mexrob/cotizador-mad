@@ -2,40 +2,74 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Check } from 'lucide-react'
-import { StepProps, Line } from '../types'
+import { StepProps, Line, KitConfigResponse } from '../types'
 import Image from 'next/image'
 
-export default function StepLine({ state, updateState, onNext }: StepProps) {
+export default function StepLine({
+    state,
+    updateState,
+    onNext,
+    stepNumber = 2,
+    configData
+}: StepProps & { stepNumber?: number, configData?: KitConfigResponse | null }) {
     const handleSelect = (line: Line) => {
         updateState({ line })
         // Auto-advance to next step
         setTimeout(onNext, 300)
     }
 
-    const lines: { value: Line; label: string; description: string; image: string }[] = [
-        {
-            value: 'Vidrio',
-            label: 'Vidrio',
+    const lineMetadata: Record<string, { description: string; image: string }> = {
+        'Vidrio': {
             description: 'Puertas con acabado de vidrio templado de alta calidad',
             image: '/images/lines/vidrio.png'
         },
-        {
-            value: 'Cerámica',
-            label: 'Cerámica',
+        'Cerámica': {
             description: 'Puertas con acabado cerámico de alta resistencia',
             image: '/images/lines/ceramica.png'
+        },
+        'Línea Alhú': {
+            description: 'Perfilería de aluminio con cristal',
+            image: '/images/lines/alhu.png'
+        },
+        'Europea Básica': {
+            description: 'Puertas con acabado europeo básico',
+            image: '/images/lines/europea.png'
+        },
+        'Europea Sincro': {
+            description: 'Puertas con acabado europeo sincro',
+            image: '/images/lines/europea-sincro.png'
+        },
+        'Alto Brillo': {
+            description: 'Puertas con acabado alto brillo',
+            image: '/images/lines/alto-brillo.png'
+        },
+        'Super Mate': {
+            description: 'Puertas con acabado super mate',
+            image: '/images/lines/alto-brillo.png' // Placeholder image
         }
-    ]
+    }
+
+    // Prepare lines from configData if available, fallback to hardcoded list
+    const availableLines = configData?.lines.map(l => ({
+        value: l.name as Line,
+        label: l.name,
+        description: lineMetadata[l.name]?.description || 'Línea de producto personalizada',
+        image: lineMetadata[l.name]?.image || '/images/lines/europea.png'
+    })) || Object.entries(lineMetadata).map(([name, meta]) => ({
+        value: name as Line,
+        label: name,
+        ...meta
+    }))
 
     return (
         <div className="space-y-6">
             <div className="text-center space-y-2">
-                <h2 className="text-2xl font-bold">Paso 2: Línea</h2>
+                <h2 className="text-2xl font-bold">Paso {stepNumber}: Línea</h2>
                 <p className="text-muted-foreground">Selecciona la línea de producto</p>
             </div>
 
-            <div className="grid gap-4 max-w-2xl mx-auto sm:grid-cols-2">
-                {lines.map((line) => (
+            <div className="grid gap-4 max-w-5xl mx-auto sm:grid-cols-2 lg:grid-cols-3">
+                {availableLines.map((line) => (
                     <Card
                         key={line.value}
                         className={`cursor-pointer transition-all hover:shadow-lg ${state.line === line.value ? 'border-primary ring-2 ring-primary' : ''

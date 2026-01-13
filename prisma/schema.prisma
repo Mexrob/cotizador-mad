@@ -270,13 +270,17 @@ model Product {
   modelName       String?       // Modelo
   colorToneText   String?       // Tono o Color (texto libre)
   woodGrainText   String?       // Veta (Horizontal/Vertical - texto libre)
-  edgeBanding     String?       // Cubrecanto
+  edgeBanding     String?       // Cubrecanto (legacy/text)
+  edgeBandingId   String?       // Reference to EdgeBanding model
+  edgeBandingRef  EdgeBanding?  @relation(fields: [edgeBandingId], references: [id])
   faces           Int?          // Caras (1 o 2)
   minWidth        Float?        // Ancho mínimo (mm)
   maxWidth        Float?        // Ancho máximo (mm)
   minHeight       Float?        // Alto mínimo (mm)
   maxHeight       Float?        // Alto máximo (mm)
-  handleType      String?       // Jaladera
+  handleType      String?       // Jaladera (legacy/text)
+  handleId        String?       // Reference to HandleModel
+  handleRef       HandleModel?  @relation(fields: [handleId], references: [id])
   orientation     String?       // Horizontal o Vertical
   
   // Pricing
@@ -309,12 +313,14 @@ model Product {
   doorTypeId      String?
   doorModelId     String?
   colorToneId     String?
+  productToneId   String?
   woodGrainId     String?
   lineId          String?       // Link to ProductLine for guided configuration
   
   doorType        DoorType?     @relation(fields: [doorTypeId], references: [id])
   doorModel       DoorModel?    @relation(fields: [doorModelId], references: [id])
   colorTone       ColorTone?    @relation(fields: [colorToneId], references: [id])
+  productTone     ProductTone?  @relation(fields: [productToneId], references: [id])
   woodGrain       WoodGrain?    @relation(fields: [woodGrainId], references: [id])
   line            ProductLine?  @relation(fields: [lineId], references: [id])
   
@@ -634,12 +640,30 @@ model ProductTone {
   sortOrder   Int      @default(0)
   
   quoteItems  QuoteItem[] // Back-reference to quote items using this tone
+  products    Product[]
   
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   
   @@unique([lineId, name])
   @@map("product_tones")
+}
+
+model EdgeBanding {
+  id          String   @id @default(cuid())
+  name        String   @unique // "PVC BLANCO", "MELAMINA NOGAL", etc.
+  description String?
+  imageUrl    String?
+  
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  
+  products    Product[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("edge_bandings")
 }
 
 model HandleModel {
@@ -662,10 +686,26 @@ model HandleModel {
   isActive    Boolean  @default(true)
   sortOrder   Int      @default(0)
   
+  products    Product[]
   quoteItems  QuoteItem[] // Back-reference to quote items using this handle
   
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   
   @@map("handle_models")
+}
+
+model ProductBackFace {
+  id              String   @id @default(cuid())
+  name            String   @unique // "Blanca", "Especialidad", "Dos Caras"
+  description     String?
+  priceAdjustment Decimal  @default(0) @db.Decimal(10, 2)
+  isTwoSided      Boolean  @default(false) // Flag for special "Dos Caras" logic
+  isActive        Boolean  @default(true)
+  sortOrder       Int      @default(0)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("product_back_faces")
 }
