@@ -1,9 +1,9 @@
 // Types for Kit Wizard Configurator
 
 export type Category = 'Puertas' | null
-export type Line = 'Vidrio' | 'Cerámica' | null
-export type BackFace = 'Blanca' | 'Especialidad' | null
-export type EdgeBanding = 'Similar al tono del vidrio' | 'Similar al tono de la cerámica' | 'Tono Aluminio' | null
+export type Line = 'Vidrio' | 'Cerámica' | 'Línea Alhú' | 'Europea Básica' | 'Europea Sincro' | 'Alto Brillo' | 'Super Mate' | null
+export type BackFace = 'Blanca' | 'Especialidad' | 'Dos Caras' | null
+export type EdgeBanding = 'Similar al tono del vidrio' | 'Similar al tono de la cerámica' | 'Tono Aluminio' | 'Mismo tono de puerta' | null
 
 export interface Dimensions {
     width: number  // Ancho en mm
@@ -19,6 +19,7 @@ export interface FrontDimensions {
 export interface Optionals {
     isExhibition: boolean
     isExpressDelivery: boolean
+    isTwoFaces: boolean
 }
 
 export interface Pricing {
@@ -67,6 +68,46 @@ export interface WizardState {
     color?: string | null
 }
 
+// Interfaces for API data
+export interface DBProductTone {
+    id: string;
+    name: string;
+    lineId: string;
+    priceAdjustment: number;
+    twoCarsAdjustment: number;
+    isActive: boolean;
+}
+
+export interface DBProductLine {
+    id: string;
+    name: string;
+    isActive: boolean;
+    tones: DBProductTone[];
+}
+
+export interface DBHandleModel {
+    id: string;
+    name: string;
+    price: number;
+    isActive: boolean;
+}
+
+export interface DBProductBackFace {
+    id: string;
+    name: string;
+    description?: string;
+    priceAdjustment: number;
+    isTwoSided: boolean;
+    isActive: boolean;
+}
+
+export interface KitConfigResponse {
+    lines: DBProductLine[];
+    handles: DBHandleModel[];
+    backFaces: DBProductBackFace[];
+}
+
+// Fallback constants (will be used if API fails or while loading)
 export const TONES = [
     'Blanco - Brillante',
     'Blanco - Mate',
@@ -108,11 +149,11 @@ export const CERAMIC_COLORS: Record<string, string[]> = {
         'ESSENCE',
         'LIMESTONE',
     ],
-    'Abk Stone': [], // TODO: Add colors
-    'Xtone': [], // TODO: Add colors
-    'Infinity': [], // TODO: Add colors
-    'Antolini': [], // TODO: Add colors
-    'Lioli': [], // TODO: Add colors
+    'Abk Stone': [],
+    'Xtone': [],
+    'Infinity': [],
+    'Antolini': [],
+    'Lioli': [],
 }
 
 export const TONE_PRICES: Record<string, number> = {
@@ -180,6 +221,22 @@ export const DIMENSION_LIMITS = {
         height: { min: 100, max: 2400 },
         frontWidth: { min: 100, max: 1200 },
         frontHeight: { min: 100, max: 2400 },
+    },
+    alhu: {
+        width: { min: 240, max: 1200 },
+        height: { min: 240, max: 2500 },
+    },
+    europea: {
+        width: { min: 100, max: 2000 },
+        height: { min: 100, max: 2700 },
+    },
+    altoBrillo: {
+        width: { min: 100, max: 1200 },
+        height: { min: 100, max: 2400 }
+    },
+    superMate: {
+        width: { min: 100, max: 1200 },
+        height: { min: 100, max: 2400 }
     }
 } as const
 

@@ -21,6 +21,10 @@ export async function GET(
         category: true,
         materials: true,
         hardware: true,
+        productTone: true,
+        line: true,
+        edgeBandingRef: true,
+        handleRef: true,
         pricing: session ? {
           where: { userRole: session.user.role as UserRole }
         } : false, // Only include pricing if session exists
@@ -53,10 +57,10 @@ export async function GET(
     }
 
     return NextResponse.json(product);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching product:', error);
     return NextResponse.json(
-      { error: 'Error interno del servidor' },
+      { error: error.message || 'Error interno del servidor' },
       { status: 500 }
     );
   }
@@ -98,7 +102,15 @@ export async function PUT(
       maxQuantity,
       tags,
       featured,
-      status
+      status,
+      minHeight,
+      maxHeight,
+      lineId,
+      productToneId,
+      edgeBandingId,
+      handleId,
+      faces,
+      orientation
     } = body;
 
     if (!name || !sku || !categoryId) {
@@ -168,21 +180,34 @@ export async function PUT(
         maxQuantity,
         tags,
         featured,
-        status
+        status,
+        // New characteristic fields
+        minHeight,
+        maxHeight,
+        lineId,
+        productToneId,
+        edgeBandingId,
+        handleId,
+        faces,
+        orientation
       },
       include: {
         category: true,
         materials: true,
         hardware: true,
+        productTone: true,
+        line: true,
+        edgeBandingRef: true,
+        handleRef: true,
         pricing: true
       }
     });
 
     return NextResponse.json(product);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error updating product:', error);
     return NextResponse.json(
-      { error: 'Error interno del servidor' },
+      { error: error.message || 'Error interno del servidor' },
       { status: 500 }
     );
   }
@@ -231,10 +256,10 @@ export async function DELETE(
     });
 
     return NextResponse.json({ message: 'Producto eliminado exitosamente' });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error deleting product:', error);
     return NextResponse.json(
-      { error: 'Error interno del servidor' },
+      { error: error.message || 'Error interno del servidor' },
       { status: 500 }
     );
   }

@@ -265,7 +265,7 @@ export default function ProductsTable({ onAddProduct, onEditProduct, onViewProdu
                     <TableHead>Estado</TableHead>
                     <TableHead>Tiempo Entrega</TableHead>
                     <TableHead>Cotizaciones</TableHead>
-                    <TableHead>Acciones</TableHead>
+                    <TableHead className="text-right">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -323,8 +323,8 @@ export default function ProductsTable({ onAddProduct, onEditProduct, onViewProdu
                           {product._count.quoteItems}
                         </Badge>
                       </TableCell>
-                      <TableCell>
-                        <div className="flex items-center space-x-2">
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end space-x-2">
                           <Button
                             variant="ghost"
                             size="sm"

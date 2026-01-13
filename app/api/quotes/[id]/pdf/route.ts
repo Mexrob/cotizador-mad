@@ -472,10 +472,12 @@ function generateQuotePDFHTML(quote: any, companySettings: any): string {
                         <th style="text-align: right;">Precio m²</th>
                         <th style="text-align: right;">Cantidad</th>
                         <th style="text-align: center;">Caras</th>
+                        <th style="text-align: center;">Cubrecanto</th>
                         <th style="text-align: right;">Costo unitario</th>
                         <th>Jaladera</th>
                         <th style="text-align: right;">Precio Jaladera</th>
                         <th style="text-align: right;">Cant. Jaladera</th>
+                        <th style="text-align: right;">Acabado Especial</th>
                         <th style="text-align: center;">Prod. Exhibición</th>
                         <th style="text-align: center;">Envío Express</th>
                         <th style="text-align: right;">Total</th>
@@ -495,8 +497,24 @@ function generateQuotePDFHTML(quote: any, companySettings: any): string {
         const handlePriceFormatted = item.handleModel ? formatMXN(item.handleModel.price) : '-'
         const handleQuantity = item.handleModel ? item.quantity : '-'
 
-        const exhibitionFee = item.isExhibition ? formatMXN(500) : '-'
-        const expressDeliveryFee = item.isExpressDelivery ? formatMXN(500) : '-'
+        // Calculate totals for this item
+        const itemBaseTotal = baseUnitPrice * item.quantity
+        const itemHandleTotal = handlePrice * item.quantity // handlePrice is already unit price
+        const itemBackFaceFee = item.isTwoSided ? 100 : 0
+
+        // Effective subtotal (Base + Handle + BackFace)
+        const itemSubtotal = itemBaseTotal + itemHandleTotal + itemBackFaceFee
+
+        // Calculate optional fees percentages
+        const exhibitionFeeAmount = item.isExhibition ? itemSubtotal * -0.25 : 0
+        const expressDeliveryFeeAmount = item.isExpressDelivery ? itemSubtotal * 0.20 : 0
+
+        const exhibitionFeeFormatted = item.isExhibition ? formatMXN(exhibitionFeeAmount) : '-'
+        const expressDeliveryFeeFormatted = item.isExpressDelivery ? "+" + formatMXN(expressDeliveryFeeAmount) : '-'
+        const backFaceFeeFormatted = item.isTwoSided ? formatMXN(100) : '-'
+
+        // Total for line item
+        const itemTotal = itemSubtotal + exhibitionFeeAmount + expressDeliveryFeeAmount
 
         return `
                         <tr>
@@ -506,13 +524,15 @@ function generateQuotePDFHTML(quote: any, companySettings: any): string {
                             <td style="text-align: right;">${pricePerM2 > 0 ? formatMXN(pricePerM2) : '-'}</td>
                             <td style="text-align: right;">${item.quantity}</td>
                             <td style="text-align: center;">${item.isTwoSided ? '2' : '1'}</td>
-                            <td style="text-align: right;">${formatMXN(baseUnitPrice * item.quantity)}</td>
+                            <td style="text-align: center;">${item.edgeBanding || '-'}</td>
+                            <td style="text-align: right;">${formatMXN(itemBaseTotal)}</td>
                             <td>${handleName}</td>
                             <td style="text-align: right;">${handlePriceFormatted}</td>
                             <td style="text-align: right;">${handleQuantity}</td>
-                            <td style="text-align: center;">${exhibitionFee}</td>
-                            <td style="text-align: center;">${expressDeliveryFee}</td>
-                            <td style="text-align: right;">${formatMXN(item.totalPrice)}</td>
+                            <td style="text-align: right;">${backFaceFeeFormatted}</td>
+                            <td style="text-align: center; color: ${item.isExhibition ? '#059669' : 'inherit'};">${exhibitionFeeFormatted}</td>
+                            <td style="text-align: center; color: ${item.isExpressDelivery ? '#2563eb' : 'inherit'};">${expressDeliveryFeeFormatted}</td>
+                            <td style="text-align: right;">${formatMXN(itemTotal)}</td>
                         </tr>
                         `;
     }).join('')}

@@ -127,10 +127,12 @@ export async function GET(
         'Precio m²',
         'Cantidad',
         'Caras',
+        'Cubrecanto',
         'Costo unitario',
         'Jaladera',
         'Precio Jaladera',
         'Cant. Jaladeras',
+        'Acabado Especial',
         'Producto Exhibición',
         'Envío Express',
         'Total'
@@ -146,8 +148,20 @@ export async function GET(
 
         const handleQuantity = item.handleModel ? item.quantity : 0
 
-        const exhibitionFee = item.isExhibition ? 500 : 0
-        const expressDeliveryFee = item.isExpressDelivery ? 500 : 0
+        // Calculate totals for this item
+        const itemBaseTotal = baseUnitPrice * item.quantity
+        const itemHandleTotal = handlePrice * item.quantity // handlePrice is already unit price
+        const itemBackFaceFee = item.isTwoSided ? 100 : 0
+
+        // Effective subtotal (Base + Handle + BackFace)
+        const itemSubtotal = itemBaseTotal + itemHandleTotal + itemBackFaceFee
+
+        // Calculate optional fees percentages
+        const exhibitionFeeAmount = item.isExhibition ? itemSubtotal * -0.25 : 0
+        const expressDeliveryFeeAmount = item.isExpressDelivery ? itemSubtotal * 0.20 : 0
+
+        // Total for line item
+        const itemTotal = itemSubtotal + exhibitionFeeAmount + expressDeliveryFeeAmount
 
         return [
           item.product.name,
@@ -156,13 +170,15 @@ export async function GET(
           pricePerM2,
           item.quantity,
           item.isTwoSided ? '2' : '1',
-          baseUnitPrice,
+          item.edgeBanding || '-',
+          itemBaseTotal, // Using calculated base total
           item.handleModel ? `${item.handleModel.model} - ${item.handleModel.finish}` : 'Sin jaladera',
           handlePrice,
           handleQuantity,
-          exhibitionFee,
-          expressDeliveryFee,
-          parseFloat(item.totalPrice.toFixed(2))
+          itemBackFaceFee > 0 ? itemBackFaceFee : 0,
+          exhibitionFeeAmount,
+          expressDeliveryFeeAmount,
+          parseFloat(itemTotal.toFixed(2))
         ]
       })
     ]
@@ -179,36 +195,44 @@ export async function GET(
         wsProducts[priceM2Cell].t = 'n'
       }
 
-      // Columna G (6): Costo unitario (Shifted by 1 due to Caras)
-      const unitCostCell = XLSX.utils.encode_cell({ r: row, c: 6 })
+      // Columna G (7): Costo unitario (Shifted by 1 due to Caras and Cubrecanto)
+      const unitCostCell = XLSX.utils.encode_cell({ r: row, c: 7 })
       if (wsProducts[unitCostCell] && typeof wsProducts[unitCostCell].v === 'number') {
         wsProducts[unitCostCell].z = '$#,##0.00'
         wsProducts[unitCostCell].t = 'n'
       }
 
-      // Columna I (8): Precio Jaladera (Shifted by 1)
-      const handlePriceCell = XLSX.utils.encode_cell({ r: row, c: 8 })
+      // Columna I (9): Precio Jaladera
+      const handlePriceCell = XLSX.utils.encode_cell({ r: row, c: 9 })
       if (wsProducts[handlePriceCell] && typeof wsProducts[handlePriceCell].v === 'number') {
         wsProducts[handlePriceCell].z = '$#,##0.00'
         wsProducts[handlePriceCell].t = 'n'
       }
 
-      // Columna K (10): Producto Exhibición (Shifted by 1)
-      const exhibitionFeeCell = XLSX.utils.encode_cell({ r: row, c: 10 })
+      // Columna K (11): Acabado Especial (Nuevo)
+      const backFaceCell = XLSX.utils.encode_cell({ r: row, c: 11 })
+      if (wsProducts[backFaceCell] && typeof wsProducts[backFaceCell].v === 'number') {
+        wsProducts[backFaceCell].z = '$#,##0.00'
+        wsProducts[backFaceCell].t = 'n'
+      }
+
+      // Columna L (12): Producto Exhibición
+      const exhibitionFeeCell = XLSX.utils.encode_cell({ r: row, c: 12 })
       if (wsProducts[exhibitionFeeCell] && typeof wsProducts[exhibitionFeeCell].v === 'number') {
         wsProducts[exhibitionFeeCell].z = '$#,##0.00'
         wsProducts[exhibitionFeeCell].t = 'n'
+        // Optional: Color formatting for discount could be added here if library supports it easily, skipping for standard xlsx basic usage
       }
 
-      // Columna L (11): Envío Express (Shifted by 1)
-      const expressFeeCell = XLSX.utils.encode_cell({ r: row, c: 11 })
+      // Columna M (13): Envío Express
+      const expressFeeCell = XLSX.utils.encode_cell({ r: row, c: 13 })
       if (wsProducts[expressFeeCell] && typeof wsProducts[expressFeeCell].v === 'number') {
         wsProducts[expressFeeCell].z = '$#,##0.00'
         wsProducts[expressFeeCell].t = 'n'
       }
 
-      // Columna M (12): Total (Shifted by 1)
-      const totalCell = XLSX.utils.encode_cell({ r: row, c: 12 })
+      // Columna N (14): Total
+      const totalCell = XLSX.utils.encode_cell({ r: row, c: 14 })
       if (wsProducts[totalCell] && typeof wsProducts[totalCell].v === 'number') {
         wsProducts[totalCell].z = '$#,##0.00'
         wsProducts[totalCell].t = 'n'
@@ -223,10 +247,12 @@ export async function GET(
       { wch: 15 }, // Precio m²
       { wch: 10 }, // Cantidad
       { wch: 8 },  // Caras
+      { wch: 15 }, // Cubrecanto
       { wch: 15 }, // Costo unitario
       { wch: 25 }, // Jaladera
       { wch: 15 }, // Precio Jaladera
       { wch: 15 }, // Cant. Jaladeras
+      { wch: 18 }, // Acabado Especial
       { wch: 18 }, // Producto Exhibición
       { wch: 15 }, // Envío Express
       { wch: 15 }, // Total

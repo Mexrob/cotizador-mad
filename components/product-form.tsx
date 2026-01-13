@@ -21,21 +21,15 @@ import ProductImageUpload from './product-image-upload';
 const productSchema = z.object({
   name: z.string().min(1, 'El nombre es requerido'),
   description: z.string().optional(),
+  sku: z.string().min(1, 'El SKU es requerido'),
   categoryId: z.string().min(1, 'La categoría es requerida'),
-
-  // Nuevas características de producto
-  modelName: z.string().optional(),
-  colorToneText: z.string().optional(),
-  edgeBanding: z.string().optional(),
-  faces: z.number().int().min(1).max(2).optional(),
-  handleType: z.string().optional(),
-  orientation: z.enum(['Horizontal', 'Vertical']).optional(), // Unifica Veta y Orientación
 
   // Rangos de dimensiones
   minWidth: z.number().positive().optional(),
   maxWidth: z.number().positive().optional(),
   minHeight: z.number().positive().optional(),
   maxHeight: z.number().positive().optional(),
+  lineId: z.string().optional().nullable(),
 
   // Dimensiones estándar
   width: z.number().positive().optional(),
@@ -64,15 +58,9 @@ interface Product {
   id: string;
   name: string;
   description?: string;
+  sku: string;
   categoryId: string;
 
-  // Nuevas características
-  modelName?: string;
-  colorToneText?: string;
-  edgeBanding?: string;
-  faces?: number;
-  handleType?: string;
-  orientation?: string; // Veta/Orientación unificada
 
   // Rangos de dimensiones
   minWidth?: number;
@@ -96,6 +84,7 @@ interface Product {
   tags: string[];
   featured: boolean;
   status: string;
+  lineId?: string;
 }
 
 interface ProductFormProps {
@@ -107,6 +96,7 @@ interface ProductFormProps {
 
 export default function ProductForm({ product, onSubmit, onCancel, isLoading }: ProductFormProps) {
   const [categories, setCategories] = useState<Category[]>([]);
+  const [productLines, setProductLines] = useState<any[]>([]);
   const [images, setImages] = useState<string[]>(product?.images || []);
   const [tags, setTags] = useState<string[]>(product?.tags || []);
   const [newTag, setNewTag] = useState('');
@@ -123,15 +113,9 @@ export default function ProductForm({ product, onSubmit, onCancel, isLoading }: 
     defaultValues: {
       name: product?.name || '',
       description: product?.description || '',
+      sku: product?.sku || '',
       categoryId: product?.categoryId || '',
 
-      // Nuevas características
-      modelName: product?.modelName || '',
-      colorToneText: product?.colorToneText || '',
-      edgeBanding: product?.edgeBanding || '',
-      faces: product?.faces || undefined,
-      handleType: product?.handleType || '',
-      orientation: product?.orientation as any || undefined,
 
       // Rangos de dimensiones
       minWidth: product?.minWidth || undefined,
@@ -152,12 +136,26 @@ export default function ProductForm({ product, onSubmit, onCancel, isLoading }: 
       maxQuantity: product?.maxQuantity || undefined,
       featured: product?.featured || false,
       status: (product?.status as any) || 'ACTIVE',
+      lineId: product?.lineId || undefined,
     }
   });
 
   useEffect(() => {
     fetchCategories();
+    fetchProductLines();
   }, []);
+
+  const fetchProductLines = async () => {
+    try {
+      const response = await fetch('/api/admin/lines');
+      if (response.ok) {
+        const data = await response.json();
+        setProductLines(data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching product lines:', error);
+    }
+  };
 
   const fetchCategories = async () => {
     try {
@@ -186,6 +184,7 @@ export default function ProductForm({ product, onSubmit, onCancel, isLoading }: 
   const onFormSubmit = async (data: ProductFormData) => {
     const formData = {
       ...data,
+      lineId: data.lineId === 'none' ? null : data.lineId,
       images,
       tags,
       thumbnail: images[0] || null,
@@ -212,6 +211,18 @@ export default function ProductForm({ product, onSubmit, onCancel, isLoading }: 
               />
               {errors.name && (
                 <p className="text-sm text-red-600 mt-1">{errors.name.message}</p>
+              )}
+            </div>
+
+            <div>
+              <Label htmlFor="sku">SKU *</Label>
+              <Input
+                id="sku"
+                {...register('sku')}
+                className={errors.sku ? 'border-red-500' : ''}
+              />
+              {errors.sku && (
+                <p className="text-sm text-red-600 mt-1">{errors.sku.message}</p>
               )}
             </div>
 
@@ -243,6 +254,28 @@ export default function ProductForm({ product, onSubmit, onCancel, isLoading }: 
               )}
             </div>
 
+            <div>
+              <Label htmlFor="lineId">Línea de Producto (opcional para Kit Wizard)</Label>
+              <Select
+                onValueChange={(value) => {
+                  setValue('lineId', value);
+                }}
+                value={watch('lineId') || 'none'}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Sin línea (producto estándar)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Ninguna / Producto Estándar</SelectItem>
+                  {productLines.map((line) => (
+                    <SelectItem key={line.id} value={line.id}>
+                      {line.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="status">Estado</Label>
@@ -270,77 +303,6 @@ export default function ProductForm({ product, onSubmit, onCancel, isLoading }: 
           </CardContent>
         </Card>
 
-        {/* Product Characteristics */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Características del Producto</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <Label htmlFor="modelName">Modelo</Label>
-              <Input
-                id="modelName"
-                {...register('modelName')}
-                placeholder="Ej: Modelo Premium 2024"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="colorToneText">Tono o Color</Label>
-              <Input
-                id="colorToneText"
-                {...register('colorToneText')}
-                placeholder="Ej: Nogal oscuro, Blanco mate"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="orientation">Veta / Orientación</Label>
-                <Select onValueChange={(value) => setValue('orientation', value as ProductFormData["orientation"])} value={watch('orientation') || ''}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleccionar orientación" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Horizontal">Horizontal</SelectItem>
-                    <SelectItem value="Vertical">Vertical</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label htmlFor="faces">Caras</Label>
-                <Select onValueChange={(value) => setValue('faces', parseInt(value))} value={watch('faces')?.toString() || ''}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleccionar caras" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1">1 Cara</SelectItem>
-                    <SelectItem value="2">2 Caras</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div>
-              <Label htmlFor="edgeBanding">Cubrecanto</Label>
-              <Input
-                id="edgeBanding"
-                {...register('edgeBanding')}
-                placeholder="Ej: PVC, Melamina"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="handleType">Jaladera</Label>
-              <Input
-                id="handleType"
-                {...register('handleType')}
-                placeholder="Ej: Acero inoxidable, Cromada"
-              />
-            </div>
-          </CardContent>
-        </Card>
 
         {/* Pricing */}
         <Card>
