@@ -2,19 +2,19 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Check } from 'lucide-react'
-import { StepProps, EdgeBanding } from '../types'
+import { StepProps, EdgeBanding, KitConfigResponse, DBProductLine, DBEdgeBanding } from '../types'
 
 export default function StepEdgeBanding({ state, updateState, stepNumber = 7, configData }: StepProps & { stepNumber?: number, configData?: KitConfigResponse | null }) {
     const handleSelect = (edgeBanding: EdgeBanding) => {
         updateState({ edgeBanding })
     }
 
-    const edgeBandingOptions = configData?.lines.find(l => l.name === state.line)?.edgeBandings || []
+    const edgeBandingOptions = configData?.lines.find((l: DBProductLine) => l.name === state.line)?.edgeBandings || []
 
     let EDGE_BANDING_OPTIONS: { value: EdgeBanding; label: string; description: string }[] = []
 
     if (edgeBandingOptions.length > 0) {
-        EDGE_BANDING_OPTIONS = edgeBandingOptions.map(eb => ({
+        EDGE_BANDING_OPTIONS = edgeBandingOptions.map((eb: DBEdgeBanding) => ({
             value: eb.name as EdgeBanding,
             label: eb.name,
             description: eb.description || `Cubrecanto ${eb.name}`

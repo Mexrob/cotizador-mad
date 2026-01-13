@@ -78,11 +78,21 @@ export interface DBProductTone {
     isActive: boolean;
 }
 
+export interface DBEdgeBanding {
+    id: string;
+    name: string;
+    description?: string;
+    priceAdjustment: number;
+    isActive: boolean;
+    lineId: string;
+}
+
 export interface DBProductLine {
     id: string;
     name: string;
     isActive: boolean;
     tones: DBProductTone[];
+    edgeBandings: DBEdgeBanding[];
 }
 
 export interface DBHandleModel {
