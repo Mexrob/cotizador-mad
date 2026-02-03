@@ -19,7 +19,7 @@ function SignInForm() {
   const searchParams = useSearchParams()
   const { toast } = useToast()
 
-  const callbackUrl = searchParams?.get('callbackUrl') || '/dashboard'
+  const callbackUrl = '/dashboard'
 
   useEffect(() => {
     getSession().then((session) => {
@@ -52,8 +52,12 @@ function SignInForm() {
           title: 'Inicio de sesión exitoso',
           description: 'Bienvenido de vuelta',
         })
+        setLoading(false)
 
-        router.push(callbackUrl)
+        // Redirect after a short delay to ensure session is set
+        setTimeout(() => {
+          window.location.href = callbackUrl
+        }, 500)
       }
     } catch (error) {
       console.error('Login error:', error)

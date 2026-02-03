@@ -106,7 +106,7 @@ POSTGRES_DB=cotizador_mad
 DATABASE_URL=postgresql://cotizador:TuPasswordSeguro123!@postgres:5432/cotizador_mad?schema=public
 
 # NextAuth
-NEXTAUTH_URL=http://localhost:3000
+NEXTAUTH_URL=https://cotizador-mad.cloudsrv.online
 NEXTAUTH_SECRET=tu-secret-generado-con-openssl
 
 # Application

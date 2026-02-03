@@ -45,9 +45,9 @@ export async function POST(request: NextRequest) {
         const line = await prisma.productLine.create({
             data: {
                 name,
-                description,
-                code,
-                imageUrl,
+                description: description || null,
+                code: code || null,
+                imageUrl: imageUrl || null,
                 isActive: isActive ?? true,
                 sortOrder: sortOrder ?? 0,
             }

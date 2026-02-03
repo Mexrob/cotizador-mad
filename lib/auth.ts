@@ -30,7 +30,10 @@ export const authOptions: NextAuthOptions = {
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
+        console.log('🔐 [Auth] Attempting login for:', credentials?.email)
+
         if (!credentials?.email || !credentials?.password) {
+          console.log('❌ [Auth] Missing credentials')
           return null
         }
 
@@ -40,16 +43,25 @@ export const authOptions: NextAuthOptions = {
           },
         })
 
-        if (!user || !user.password) {
+        if (!user) {
+          console.log('❌ [Auth] User not found:', credentials.email)
+          return null
+        }
+
+        if (!user.password) {
+          console.log('❌ [Auth] User has no password set')
           return null
         }
 
         const isPasswordValid = await compare(credentials.password, user.password)
+        console.log('🔐 [Auth] Password validation result:', isPasswordValid)
 
         if (!isPasswordValid) {
+          console.log('❌ [Auth] Invalid password')
           return null
         }
 
+        console.log('✅ [Auth] Login successful for:', user.email)
         return {
           id: user.id,
           email: user.email,

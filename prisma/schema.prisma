@@ -669,8 +669,8 @@ model EdgeBanding {
 model HandleModel {
   id          String   @id @default(cuid())
   name        String   @unique // "JALADERA MODELO SORENTO A NEGRO"
-  model       String   // "SORENTO A", "SORENTO L", "SORENTO G"
-  finish      String   // "NEGRO", "ALUMINIO"
+  model       String?  // "SORENTO A", "SORENTO L", "SORENTO G"
+  finish      String?  // "NEGRO", "ALUMINIO"
   
   description String?
   imageUrl    String?

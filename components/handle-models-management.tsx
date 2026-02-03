@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { Plus, Edit, Trash2 } from 'lucide-react';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,15 +11,17 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import ProductImageUpload from '@/components/product-image-upload';
 import { toast } from 'sonner';
 
 interface HandleModel {
     id: string;
     name: string;
-    model: string;
-    finish: string;
+    model?: string;
+    finish?: string;
     price: number;
     priceUnit: string;
+    imageUrl?: string | null;
     _count: { products: number };
 }
 
@@ -28,7 +31,7 @@ export default function HandleModelsManagement() {
     const [dialogOpen, setDialogOpen] = useState(false);
     const [editingHandle, setEditingHandle] = useState<HandleModel | null>(null);
     const [formData, setFormData] = useState({
-        name: '', model: '', finish: '', price: 0, priceUnit: 'unit', sortOrder: 0
+        name: '', price: 0, priceUnit: 'ml', sortOrder: 0, imageUrl: ''
     });
     const [submitting, setSubmitting] = useState(false);
 
@@ -49,18 +52,25 @@ export default function HandleModelsManagement() {
         if (handle) {
             setEditingHandle(handle);
             setFormData({
-                name: handle.name, model: handle.model, finish: handle.finish,
-                price: Number(handle.price), priceUnit: handle.priceUnit, sortOrder: 0
+                name: handle.name,
+                price: Number(handle.price),
+                priceUnit: handle.priceUnit || 'ml',
+                sortOrder: 0,
+                imageUrl: handle.imageUrl || ''
             });
         } else {
             setEditingHandle(null);
-            setFormData({ name: '', model: '', finish: '', price: 0, priceUnit: 'unit', sortOrder: 0 });
+            setFormData({ name: '', price: 0, priceUnit: 'ml', sortOrder: 0, imageUrl: '' });
         }
         setDialogOpen(true);
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!formData.name.trim() || !formData.price) {
+            toast.error('Nombre y precio son obligatorios');
+            return;
+        }
         try {
             setSubmitting(true);
             const url = editingHandle ? `/api/admin/handles/${editingHandle.id}` : '/api/admin/handles';
@@ -140,10 +150,19 @@ export default function HandleModelsManagement() {
                             </div>
                         </CardHeader>
                         <CardContent>
+                            {handle.imageUrl && (
+                                <div className="relative w-full h-32 mb-4 rounded-md overflow-hidden bg-gray-100">
+                                    <Image 
+                                        src={handle.imageUrl} 
+                                        alt={handle.name} 
+                                        fill 
+                                        className="object-cover" 
+                                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                                    />
+                                </div>
+                            )}
                             <div className="text-sm space-y-1 text-gray-600 mb-2">
-                                <p>Modelo: {handle.model}</p>
-                                <p>Acabado: {handle.finish}</p>
-                                <p className="font-bold text-green-600">${Number(handle.price)} / {handle.priceUnit}</p>
+                                <p className="font-bold text-green-600">${Number(handle.price)} / ml</p>
                             </div>
                             <Badge variant="outline">{handle._count.products} Productos</Badge>
                         </CardContent>
@@ -160,15 +179,18 @@ export default function HandleModelsManagement() {
                         </DialogDescription>
                     </DialogHeader>
                     <form onSubmit={handleSubmit} className="space-y-4">
-                        <div><Label>Nombre *</Label><Input value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} /></div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div><Label>Modelo *</Label><Input value={formData.model} onChange={e => setFormData({ ...formData, model: e.target.value })} /></div>
-                            <div><Label>Acabado *</Label><Input value={formData.finish} onChange={e => setFormData({ ...formData, finish: e.target.value })} /></div>
+                        <div><Label>Nombre *</Label><Input required value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} /></div>
+                        
+                        <div>
+                            <Label className="mb-2 block">Imagen</Label>
+                            <ProductImageUpload
+                                images={formData.imageUrl ? [formData.imageUrl] : []}
+                                onImagesChange={(imgs) => setFormData({ ...formData, imageUrl: imgs[0] || '' })}
+                                maxImages={1}
+                            />
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div><Label>Precio *</Label><Input type="number" value={formData.price} onChange={e => setFormData({ ...formData, price: parseFloat(e.target.value) })} /></div>
-                            <div><Label>Unidad</Label><Input value={formData.priceUnit} onChange={e => setFormData({ ...formData, priceUnit: e.target.value })} /></div>
-                        </div>
+
+                        <div><Label>Precio metro lineal *</Label><Input required type="number" step="0.01" value={formData.price} onChange={e => setFormData({ ...formData, price: parseFloat(e.target.value) })} /></div>
                         <DialogFooter><Button type="submit" disabled={submitting}>Guardar</Button></DialogFooter>
                     </form>
                 </DialogContent>

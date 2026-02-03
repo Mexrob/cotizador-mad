@@ -1,5 +1,8 @@
 import { PrismaClient } from '@prisma/client'
 import { hash } from 'bcryptjs'
+import dotenv from 'dotenv'
+
+dotenv.config({ path: '.env.docker' })
 
 const prisma = new PrismaClient()
 

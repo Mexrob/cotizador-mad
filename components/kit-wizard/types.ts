@@ -100,6 +100,7 @@ export interface DBHandleModel {
     name: string;
     price: number;
     isActive: boolean;
+    imageUrl?: string | null;
 }
 
 export interface DBProductBackFace {
