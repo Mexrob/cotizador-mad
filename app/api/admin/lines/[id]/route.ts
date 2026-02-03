@@ -23,9 +23,9 @@ export async function PUT(
             where: { id: params.id },
             data: {
                 name,
-                description,
-                code,
-                imageUrl,
+                description: description || null,
+                code: code || null,
+                imageUrl: imageUrl || null,
                 isActive,
                 sortOrder,
             }

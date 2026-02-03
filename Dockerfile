@@ -67,6 +67,9 @@ RUN addgroup --system --gid 1001 nodejs && \
 # Copiar archivos estáticos desde el contexto de build (no desde builder)
 COPY --chown=nextjs:nodejs public ./public
 
+# Copiar .env.docker
+COPY .env.docker ./.env.docker
+
 # Copiar archivos necesarios desde builder
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/next.config.js ./
@@ -75,6 +78,9 @@ COPY --from=builder /app/prisma ./prisma
 # Copiar archivos de build de Next.js
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./app/.next/static
+
+# Copiar scripts
+COPY --from=builder /app/scripts ./scripts
 
 # Copiar node_modules con Prisma Client generado
 COPY --from=builder /app/node_modules ./node_modules

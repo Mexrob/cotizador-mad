@@ -50,19 +50,19 @@ export async function POST(request: NextRequest) {
             sortOrder
         } = body;
 
-        if (!name || !model || !finish || price === undefined) {
-            return NextResponse.json({ error: 'Nombre, modelo, acabado y precio son requeridos' }, { status: 400 });
+        if (!name || price === undefined) {
+            return NextResponse.json({ error: 'Nombre y precio son requeridos' }, { status: 400 });
         }
 
         const handle = await (prisma as any).handleModel.create({
             data: {
                 name,
-                model,
-                finish,
+                model: model || null,
+                finish: finish || null,
                 description,
                 imageUrl,
                 price,
-                priceUnit: priceUnit ?? 'unit',
+                priceUnit: priceUnit ?? 'ml',
                 length,
                 width,
                 isActive: isActive ?? true,

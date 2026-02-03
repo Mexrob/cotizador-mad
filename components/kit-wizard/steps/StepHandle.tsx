@@ -31,15 +31,17 @@ export default function StepHandle({
     // Use dynamic handles from configData if available, otherwise fallback
     const dynamicHandles = configData?.handles.map(h => ({
         name: h.name,
-        price: Number(h.price)
+        price: Number(h.price),
+        imageUrl: h.imageUrl
     })) || HANDLES.map(name => ({
         name,
-        price: HANDLE_PRICES[name] || 0
+        price: HANDLE_PRICES[name] || 0,
+        imageUrl: null as string | null
     }))
 
     // Add "No aplica" if not present
     if (!dynamicHandles.some(h => h.name === 'No aplica')) {
-        dynamicHandles.unshift({ name: 'No aplica', price: 0 })
+        dynamicHandles.unshift({ name: 'No aplica', price: 0, imageUrl: null })
     }
 
     // Filter handles if prop provided
@@ -51,23 +53,27 @@ export default function StepHandle({
         })
     }
 
-    const getHandleImage = (handle: string) => {
-        if (handle === 'No aplica') return null
+    const getHandleImage = (handle: { name: string, imageUrl?: string | null }) => {
+        if (handle.name === 'No aplica') return null
+
+        if (handle.imageUrl) return handle.imageUrl
+
+        const name = handle.name
 
         // Check for Romo/Romulo handles
-        if (handle.includes('Romo') || handle.includes('Romulo')) {
-            const handleName = handle.split(' ')[0].toLowerCase()
+        if (name.includes('Romo') || name.includes('Romulo')) {
+            const handleName = name.split(' ')[0].toLowerCase()
             return `/images/handles/${handleName}.png`
         }
 
         // Check for Remo handles
-        if (handle.includes('Remo')) {
-            const handleName = handle.split(' ')[0].toLowerCase()
+        if (name.includes('Remo')) {
+            const handleName = name.split(' ')[0].toLowerCase()
             return `/images/handles/${handleName}.png`
         }
 
         // Sorento handles
-        const model = handle.split(' ')[1]?.toLowerCase()
+        const model = name.split(' ')[1]?.toLowerCase()
         if (model) {
             return `/images/handles/sorento-${model}.png`
         }
@@ -92,10 +98,10 @@ export default function StepHandle({
                             onClick={() => handleSelect(handle.name)}
                         >
                             <CardContent className="p-0">
-                                {getHandleImage(handle.name) && (
+                                {getHandleImage(handle) && (
                                     <div className="relative aspect-[4/3] w-full overflow-hidden rounded-t-xl bg-white">
                                         <Image
-                                            src={getHandleImage(handle.name)!}
+                                            src={getHandleImage(handle)!}
                                             alt={handle.name}
                                             fill
                                             className="object-contain p-4 transition-transform hover:scale-105"
