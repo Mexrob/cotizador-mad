@@ -5,6 +5,7 @@ import { Providers } from '@/components/providers'
 import { Header } from '@/components/header'
 import { Footer } from '@/components/footer'
 import { Toaster } from '@/components/ui/toaster'
+import { DemoAlert } from '@/components/demo-alert'
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -64,6 +65,7 @@ export default function RootLayout({
       <body className="font-sans" suppressHydrationWarning>
         <Providers>
           <div className="min-h-screen bg-background text-foreground">
+            <DemoAlert />
             <Header />
             <main className="flex-1">
               {children}

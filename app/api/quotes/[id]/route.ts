@@ -59,6 +59,7 @@ export async function GET(
           },
         },
         items: {
+          orderBy: { createdAt: 'desc' },
           select: {
             id: true,
             quantity: true,
@@ -192,6 +193,7 @@ export async function PUT(
       data: updateData,
       include: {
         items: {
+          orderBy: { createdAt: 'desc' },
           include: {
             product: true,
           },

@@ -233,6 +233,7 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
   const [alhuWizardInitialData, setAlhuWizardInitialData] = useState<any>(undefined)
   const [europaBasicaWizardInitialData, setEuropaBasicaWizardInitialData] = useState<any>(undefined)
   const [europaSincroWizardInitialData, setEuropaSincroWizardInitialData] = useState<any>(undefined)
+  const [loadingAction, setLoadingAction] = useState<string | null>(null)
 
   useEffect(() => {
     if (params.id) {
@@ -788,6 +789,37 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
     }
   }
 
+  const handleDuplicateItem = async (itemId: string) => {
+    try {
+      const response = await fetch(`/api/quotes/${params.id}/items/${itemId}/duplicate`, {
+        method: 'POST',
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast({
+          title: 'Partida duplicada',
+          description: 'La partida ha sido clonada exitosamente',
+        });
+        fetchQuote(true); // Refrescar en segundo plano
+      } else {
+        toast({
+          title: 'Error',
+          description: data.error || 'No se pudo duplicar la partida',
+          variant: 'destructive',
+        });
+      }
+    } catch (err) {
+      console.error('Error duplicating item:', err);
+      toast({
+        title: 'Error',
+        description: 'Error de conexión al duplicar la partida',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const handleEditComplete = async (config: any) => {
     if (!editingItem) return
 
@@ -1327,12 +1359,23 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <div className="flex items-center space-x-4">
-              <Link href="/quotes">
-                <Button variant="ghost" size="sm" className="text-white hover:bg-white/20">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="text-white hover:bg-white/20"
+                onClick={() => {
+                  setLoadingAction('back')
+                  router.push('/quotes')
+                }}
+                disabled={loadingAction !== null}
+              >
+                {loadingAction === 'back' ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
                   <ArrowLeft className="w-4 h-4 mr-2" />
-                  Volver a Cotizaciones
-                </Button>
-              </Link>
+                )}
+                Volver a Cotizaciones
+              </Button>
 
               {/* Company Logo */}
               {companySettings?.logo && (
@@ -1424,38 +1467,73 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
                 ) : (
                   <>
                     <Button
-                      onClick={startEditing}
+                      onClick={() => {
+                        setLoadingAction('edit')
+                        startEditing()
+                      }}
                       variant="secondary"
                       size="sm"
+                      disabled={loadingAction !== null}
                     >
-                      <Edit className="w-4 h-4 mr-2" />
+                      {loadingAction === 'edit' ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <Edit className="w-4 h-4 mr-2" />
+                      )}
                       Editar Cotización
                     </Button>
                     <Button
-                      onClick={handleDownloadPDF}
+                      onClick={async () => {
+                        setLoadingAction('pdf')
+                        await handleDownloadPDF()
+                        setLoadingAction(null)
+                      }}
                       variant="outline"
                       size="sm"
                       className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+                      disabled={loadingAction !== null}
                     >
-                      <Download className="w-4 h-4 mr-2" />
+                      {loadingAction === 'pdf' ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <Download className="w-4 h-4 mr-2" />
+                      )}
                       PDF
                     </Button>
                     <Button
-                      onClick={handleDownloadExcel}
+                      onClick={async () => {
+                        setLoadingAction('excel')
+                        await handleDownloadExcel()
+                        setLoadingAction(null)
+                      }}
                       variant="outline"
                       size="sm"
                       className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+                      disabled={loadingAction !== null}
                     >
-                      <FileSpreadsheet className="w-4 h-4 mr-2" />
+                      {loadingAction === 'excel' ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <FileSpreadsheet className="w-4 h-4 mr-2" />
+                      )}
                       Excel
                     </Button>
                     <Button
-                      onClick={handleDuplicateQuote}
+                      onClick={() => {
+                        setLoadingAction('duplicate')
+                        handleDuplicateQuote()
+                        setLoadingAction(null)
+                      }}
                       variant="outline"
                       size="sm"
                       className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+                      disabled={loadingAction !== null}
                     >
-                      <Copy className="w-4 h-4 mr-2" />
+                      {loadingAction === 'duplicate' ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <Copy className="w-4 h-4 mr-2" />
+                      )}
                       Duplicar
                     </Button>
                   </>
@@ -1556,17 +1634,41 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
                 </CardHeader>
                 <CardContent>
                   {quote.items.map((item) => {
+                    // Lógica para obtener el nombre dinámico correcto
+                    const lineName = item.productLine?.name;
+                    const toneName = item.productTone?.name || item.ceramicColor;
+                    
+                    let displayName = item.product?.name || 'Producto';
+                    
+                    if (toneName) {
+                      if (lineName && toneName.toLowerCase().includes(lineName.toLowerCase())) {
+                        displayName = toneName;
+                      } else if (lineName) {
+                        displayName = `${lineName} - ${toneName}`;
+                      } else {
+                        displayName = toneName;
+                      }
+                    }
+
                     return (
                       <div key={item.id} className="mb-8 border rounded-lg shadow-sm">
                         <div className="bg-muted/30 px-4 py-2 border-b font-semibold flex justify-between items-center">
                           <div className="flex items-center gap-3">
-                            <span>Producto: {item.product.name}</span>
+                            <span>Producto: {displayName}</span>
                             <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded">
                               {(item.product as any)?.tiempoEntrega || 7} días de entrega
                             </span>
                           </div>
                           {isEditing && (
                             <div className="flex gap-2">
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                onClick={() => handleDuplicateItem(item.id)}
+                                title="Duplicar partida"
+                              >
+                                <Copy className="w-4 h-4 text-blue-500" />
+                              </Button>
                               <Button variant="ghost" size="sm" onClick={() => handleEditItem(item)}><Pencil className="w-4 h-4" /></Button>
                               <Button variant="ghost" size="sm" onClick={() => setItemToDelete(item.id)}><Trash2 className="w-4 h-4" /></Button>
                             </div>

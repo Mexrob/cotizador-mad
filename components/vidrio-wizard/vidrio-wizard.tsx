@@ -44,6 +44,7 @@ interface Product {
   name: string
   precioBaseM2: number
   tonoVidrio: string | null
+  tiempoEntrega: number | null
 }
 
 interface WizardState {
@@ -231,6 +232,9 @@ export default function VidrioWizard({
               <div className="text-center">
                 <h4 className="font-semibold text-sm">{product.name}</h4>
                 <p className="text-sm text-green-600">${product.precioBaseM2}/m²</p>
+                {product.tiempoEntrega && (
+                  <p className="text-xs text-muted-foreground mt-1">🚚 {product.tiempoEntrega} días</p>
+                )}
               </div>
             </WizardOptionCard>
           ))}

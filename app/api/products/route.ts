@@ -42,8 +42,9 @@ export async function GET(request: NextRequest) {
         }
       });
       if (line) {
-        params.push(`%${line.name}%`);
-        sqlFilters.push(`p.linea ILIKE $${params.length}`);
+        // Products store the line ID in the 'linea' field, not the name
+        params.push(line.id);
+        sqlFilters.push(`p.linea = $${params.length}`);
       }
     }
 
