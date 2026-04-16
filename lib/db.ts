@@ -16,9 +16,20 @@ if (process.env.NODE_ENV !== 'production') {
   } else {
     // If it exists but is stale (missing new models), force a refresh
     const currentPrisma = globalForPrisma.prisma as any
-    if (!currentPrisma.productBackFace) {
+    if (!currentPrisma.productBackFace || !currentPrisma.quoteItem) {
       console.log('--- FORCING PRISMA RE-INSTANTIATION (New Models Detected) ---');
       globalForPrisma.prisma = prismaClientSingleton()
+    } else {
+      // Check if quoteItem has jaladera field
+      try {
+        const prismaSchema = currentPrisma._engine?.config?.datamodel
+        if (!prismaSchema || !prismaSchema.includes('jaladera') || !prismaSchema.includes('status')) {
+          console.log('--- FORCING PRISMA RE-INSTANTIATION (New Fields Detected: status) ---');
+          globalForPrisma.prisma = prismaClientSingleton()
+        }
+      } catch (e) {
+        // Engine might not be available, skip check
+      }
     }
   }
 }

@@ -1,12 +1,24 @@
 
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import Image from 'next/image'
+import dynamic from 'next/dynamic'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+
+
+const ConfigurableWizard = dynamic(() => import('@/components/configurable-wizard').then(m => m.ConfigurableWizard), { ssr: false })
+const VidrioWizard = dynamic(() => import('@/components/vidrio-wizard/vidrio-wizard'), { ssr: false })
+const CeramicaWizard = dynamic(() => import('@/components/ceramica-wizard/ceramica-wizard'), { ssr: false })
+const AltoBrilloWizard = dynamic(() => import('@/components/alto-brillo-wizard/alto-brillo-wizard'), { ssr: false })
+const SuperMateWizard = dynamic(() => import('@/components/super-mate-wizard/super-mate-wizard'), { ssr: false })
+const AlhuWizard = dynamic(() => import('@/components/alhu-wizard/alhu-wizard'), { ssr: false })
+const EuropaBasicaWizard = dynamic(() => import('@/components/europa-basica-wizard/europa-basica-wizard'), { ssr: false })
+const EuropaSincroWizard = dynamic(() => import('@/components/europa-sincro-wizard/europa-sincro-wizard'), { ssr: false })
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -26,8 +38,8 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { useToast } from '@/hooks/use-toast'
+import SmartWizard from '@/components/smart-wizard/smart-wizard'
 import { formatMXN, formatDate } from '@/lib/utils'
 import {
   ArrowLeft,
@@ -60,10 +72,7 @@ import {
   ChevronDown,
   ChevronUp
 } from 'lucide-react'
-// TODO: Re-implementar configurador de productos
-// import ProductSelectorDialog from '@/components/product-selector-dialog'
-// import ProductConfigurator from '@/components/product-configurator'
-import { KitWizard, WizardState } from '@/components/kit-wizard'
+
 import FileUpload from '@/components/file-upload'
 
 interface Quote {
@@ -128,7 +137,6 @@ interface Quote {
     product: {
       id: string
       name: string
-      sku: string
       lineId?: string
       thumbnail?: string
       basePrice: number
@@ -159,7 +167,6 @@ interface Quote {
 interface Product {
   id: string
   name: string
-  sku: string
   thumbnail?: string
   basePrice: number
   currency: string
@@ -201,12 +208,9 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
   // Add product modal states
   const [showAddProductModal, setShowAddProductModal] = useState(false)
   const [showProductSelector, setShowProductSelector] = useState(false)
-  const [showKitWizard, setShowKitWizard] = useState(false)
-  const [showAlhuWizard, setShowAlhuWizard] = useState(false)
   const [showProductCatalog, setShowProductCatalog] = useState(false)
   const [editingItem, setEditingItem] = useState<QuoteItem | null>(null)
   const [itemToDelete, setItemToDelete] = useState<string | null>(null)
-  const [kitWizardInitialState, setKitWizardInitialState] = useState<WizardState | undefined>(undefined)
   const [showEditConfigurator, setShowEditConfigurator] = useState(false)
   const [availableProducts, setAvailableProducts] = useState<Product[]>([])
   const [productSearch, setProductSearch] = useState('')
@@ -214,13 +218,46 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
   const [newProductQuantity, setNewProductQuantity] = useState(1)
   const [newProductWidth, setNewProductWidth] = useState('')
   const [newProductHeight, setNewProductHeight] = useState('')
+  const [showSmartWizard, setShowSmartWizard] = useState(false)
+  const [showVidrioWizard, setShowVidrioWizard] = useState(false)
+  const [showCeramicaWizard, setShowCeramicaWizard] = useState(false)
+  const [showAlhuWizard, setShowAlhuWizard] = useState(false)
+  const [showEuropaBasicaWizard, setShowEuropaBasicaWizard] = useState(false)
+  const [showEuropaSincroWizard, setShowEuropaSincroWizard] = useState(false)
+  const [showAltoBrilloWizard, setShowAltoBrilloWizard] = useState(false)
+  const [altoBrilloWizardInitialData, setAltoBrilloWizardInitialData] = useState<any>(undefined)
+  const [showSuperMateWizard, setShowSuperMateWizard] = useState(false)
+  const [superMateWizardInitialData, setSuperMateWizardInitialData] = useState<any>(undefined)
+  const [vidrioWizardInitialData, setVidrioWizardInitialData] = useState<any>(undefined)
+  const [ceramicaWizardInitialData, setCeramicaWizardInitialData] = useState<any>(undefined)
+  const [alhuWizardInitialData, setAlhuWizardInitialData] = useState<any>(undefined)
+  const [europaBasicaWizardInitialData, setEuropaBasicaWizardInitialData] = useState<any>(undefined)
+  const [europaSincroWizardInitialData, setEuropaSincroWizardInitialData] = useState<any>(undefined)
 
   useEffect(() => {
     if (params.id) {
       fetchQuote()
       fetchCompanySettings()
+      // Preload products for wizards to improve initial load time
+      prefetchWizardsData()
     }
   }, [params.id])
+
+  const prefetchWizardsData = async () => {
+    try {
+      // Prefetch all product lines needed by wizards in parallel
+      await Promise.all([
+        fetch('/api/products?linea=cmm84mnhv0000le11rk32wdq1&limit=100', { cache: 'force-cache' }),
+        fetch('/api/products?search=Cerámica&limit=100', { cache: 'force-cache' }),
+        fetch('/api/products?linea=Alhú&limit=100', { cache: 'force-cache' }),
+        fetch('/api/products?linea=Europa%20Básica&limit=100', { cache: 'force-cache' }),
+        fetch('/api/products?linea=Europa%20Sincro&limit=100', { cache: 'force-cache' }),
+        fetch('/api/handle-models', { cache: 'force-cache' }),
+      ])
+    } catch (error) {
+      console.error('Error prefetching wizards data:', error)
+    }
+  }
 
   useEffect(() => {
     if (quote) {
@@ -277,7 +314,7 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
       const data = await response.json()
 
       if (data.success) {
-        setAvailableProducts(data.data)
+        setAvailableProducts(data.products || [])
       }
     } catch (err) {
       console.error('Error fetching products:', err)
@@ -295,6 +332,282 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
     } catch (err) {
       console.error('Error fetching company settings:', err)
     }
+  }
+
+  const renderItemTable = (item: any) => {
+    const width = item.customWidth || item.product.width || 0
+    const height = item.customHeight || item.product.height || 0
+    const area = width && height ? ((width * height / 1000000) * item.quantity).toFixed(2) : '-'
+    const lineName = item.productLine?.name?.toLowerCase() || ''
+    const isVidrio = lineName.includes('vidrio')
+    const isCeramica = lineName.includes('cerám')
+    const isAlhu = lineName.includes('alh')
+    const isEuropaBasica = lineName.includes('europa') && lineName.includes('básica')
+    const isEuropaSincro = lineName.includes('europa') && lineName.includes('sincro')
+    const isAltoBrillo = lineName.includes('alto brillo') || (lineName.includes('alto') && lineName.includes('brillo'))
+    const isSuperMate = lineName.includes('super mate') || lineName.includes('super-mate')
+    
+    const vetaOrientation = (item as any)?.vetaOrientation || item.woodGrain?.name || (item.isTwoSided ? 'Vertical' : null)
+    const hasVetaOrientation = vetaOrientation && typeof vetaOrientation === 'string' && vetaOrientation.trim() !== ''
+    const faces = item.isTwoSided ? '2' : '1'
+    
+    if (isAltoBrillo) {
+      const expressAmount = (item as any).expressAmount || 0
+      const exhibitionAmount = (item as any).exhibitionAmount || 0
+      const handlePrice = (item as any).handlePrice || (item as any).packagingCost || 0
+      const handleOrientation = (item as any).jaladeraOrientation || (item as any).handleOrientation || null
+      const subtotal = item.totalPrice - expressAmount + exhibitionAmount
+      return (
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Tono</TableHead>
+              <TableHead>Dimensiones</TableHead>
+              <TableHead>Cantidad</TableHead>
+              <TableHead>Área total</TableHead>
+              <TableHead>Costo unitario</TableHead>
+              <TableHead>Subtotal</TableHead>
+              <TableHead>Caras</TableHead>
+              <TableHead>Cubrecanto</TableHead>
+              <TableHead>Jaladera</TableHead>
+              <TableHead>Orientación jaladera</TableHead>
+              <TableHead>Costo Jaladera</TableHead>
+              <TableHead>Envío express (+20%)</TableHead>
+              <TableHead>Desc. exhibición (-25%)</TableHead>
+              <TableHead className="text-right">Total</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <TableRow>
+              <TableCell>{item.productTone?.name || item.ceramicColor || item.product?.name?.split('-')[1]?.trim() || '-'}</TableCell>
+              <TableCell>{height > 0 && width > 0 ? `${height} x ${width} mm` : '-'}</TableCell>
+              <TableCell>{item.quantity}</TableCell>
+              <TableCell>{area} m²</TableCell>
+              <TableCell>{formatMXN(item.unitPrice)}</TableCell>
+              <TableCell>{formatMXN(subtotal)}</TableCell>
+              <TableCell>{faces}</TableCell>
+              <TableCell>{item.edgeBanding || '-'}</TableCell>
+              <TableCell>{(item as any).jaladera || item.handleModel?.name || '-'}</TableCell>
+              <TableCell>{handleOrientation ? (handleOrientation === 'vertical' ? 'Vertical' : 'Horizontal') : '-'}</TableCell>
+              <TableCell>{handlePrice > 0 ? formatMXN(handlePrice) : '-'}</TableCell>
+              <TableCell>{expressAmount > 0 ? '+' + formatMXN(expressAmount) : '-'}</TableCell>
+              <TableCell>{exhibitionAmount > 0 ? '-' + formatMXN(exhibitionAmount) : '-'}</TableCell>
+              <TableCell className="font-bold">{formatMXN(item.totalPrice)}</TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
+      )
+    }
+
+    if (isSuperMate) {
+      const expressAmount = (item as any).expressAmount || 0
+      const exhibitionAmount = (item as any).exhibitionAmount || 0
+      const handlePrice = (item as any).handlePrice || (item as any).packagingCost || 0
+      const handleOrientation = (item as any).jaladeraOrientation || (item as any).handleOrientation || null
+      const subtotal = item.totalPrice - expressAmount + exhibitionAmount
+      return (
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Tono</TableHead>
+              <TableHead>Dimensiones</TableHead>
+              <TableHead>Cantidad</TableHead>
+              <TableHead>Área total</TableHead>
+              <TableHead>Costo unitario</TableHead>
+              <TableHead>Subtotal</TableHead>
+              <TableHead>Caras</TableHead>
+              <TableHead>Cubrecanto</TableHead>
+              <TableHead>Jaladera</TableHead>
+              <TableHead>Orientación jaladera</TableHead>
+              <TableHead>Costo Jaladera</TableHead>
+              <TableHead>Envío express (+20%)</TableHead>
+              <TableHead>Desc. exhibición (-25%)</TableHead>
+              <TableHead className="text-right">Total</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <TableRow>
+              <TableCell>{item.productTone?.name || item.ceramicColor || item.product?.name?.split('-')[1]?.trim() || '-'}</TableCell>
+              <TableCell>{height > 0 && width > 0 ? `${height} x ${width} mm` : '-'}</TableCell>
+              <TableCell>{item.quantity}</TableCell>
+              <TableCell>{area} m²</TableCell>
+              <TableCell>{formatMXN(item.unitPrice)}</TableCell>
+              <TableCell>{formatMXN(subtotal)}</TableCell>
+              <TableCell>{faces}</TableCell>
+              <TableCell>{item.edgeBanding || '-'}</TableCell>
+              <TableCell>{(item as any).jaladera || item.handleModel?.name || '-'}</TableCell>
+              <TableCell>{handleOrientation ? (handleOrientation === 'vertical' ? 'Vertical' : 'Horizontal') : '-'}</TableCell>
+              <TableCell>{handlePrice > 0 ? formatMXN(handlePrice) : '-'}</TableCell>
+              <TableCell>{expressAmount > 0 ? '+' + formatMXN(expressAmount) : '-'}</TableCell>
+              <TableCell>{exhibitionAmount > 0 ? '-' + formatMXN(exhibitionAmount) : '-'}</TableCell>
+              <TableCell className="font-bold">{formatMXN(item.totalPrice)}</TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
+      )
+    }
+
+    if (isEuropaBasica || isEuropaSincro) {
+      const handlePrice = (item as any).handlePrice || (item as any).packagingCost || 0
+      const expressAmount = (item as any).expressAmount || 0
+      const exhibitionAmount = (item as any).exhibitionAmount || 0
+      const handleOrientation = (item as any).handleOrientation || (item as any).jaladeraOrientation || null
+      return (
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Producto</TableHead>
+              <TableHead>Tono/Color</TableHead>
+              <TableHead>Orientación veta</TableHead>
+              <TableHead>Dimensiones</TableHead>
+              <TableHead>Cantidad</TableHead>
+              <TableHead>Área total</TableHead>
+              <TableHead>Costo unitario</TableHead>
+              <TableHead>Caras</TableHead>
+              <TableHead>Cubrecanto</TableHead>
+              <TableHead>Jaladera</TableHead>
+              <TableHead>Orientación jaladera</TableHead>
+              <TableHead>Costo Jaladera</TableHead>
+              <TableHead>Envío express (+20%)</TableHead>
+              <TableHead>Desc. exhibición (-25%)</TableHead>
+              <TableHead className="text-right">Total</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <TableRow>
+              <TableCell>{item.productLine?.name || item.product?.name?.split('-')[0]?.trim() || '-'}</TableCell>
+              <TableCell>{item.productTone?.name || item.ceramicColor || '-'}</TableCell>
+              <TableCell>{hasVetaOrientation ? vetaOrientation : '-'}</TableCell>
+              <TableCell>{height > 0 ? `${height} x ${width} mm` : '-'}</TableCell>
+              <TableCell>{item.quantity}</TableCell>
+              <TableCell>{area} m²</TableCell>
+              <TableCell>{formatMXN(item.unitPrice)}</TableCell>
+              <TableCell>{faces}</TableCell>
+              <TableCell>{item.edgeBanding || '-'}</TableCell>
+              <TableCell>{(item as any).jaladera || item.handleModel?.name || '-'}</TableCell>
+              <TableCell>{handleOrientation ? (handleOrientation === 'vertical' ? 'Vertical' : 'Horizontal') : '-'}</TableCell>
+              <TableCell>{handlePrice > 0 ? formatMXN(handlePrice) : '-'}</TableCell>
+              <TableCell>{expressAmount > 0 ? '+' + formatMXN(expressAmount) : '-'}</TableCell>
+              <TableCell>{exhibitionAmount > 0 ? '-' + formatMXN(exhibitionAmount) : '-'}</TableCell>
+              <TableCell className="font-bold">{formatMXN(item.totalPrice)}</TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
+      )
+    }
+
+    if (isCeramica) {
+      const handlePrice = (item as any).handlePrice || (item as any).packagingCost || 0
+      const expressAmount = (item as any).expressAmount || 0
+      const exhibitionAmount = (item as any).exhibitionAmount || 0
+      return (
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Dimensiones</TableHead>
+              <TableHead>Cantidad</TableHead>
+              <TableHead>Área total</TableHead>
+              <TableHead>Costo unitario</TableHead>
+              <TableHead>Caras</TableHead>
+              <TableHead>Orientación veta</TableHead>
+              <TableHead>Cubrecanto</TableHead>
+              <TableHead>Jaladera</TableHead>
+              <TableHead>Orientación</TableHead>
+              <TableHead>Costo Jaladera</TableHead>
+              <TableHead>Envío express (+20%)</TableHead>
+              <TableHead>Producto demostración (-25%)</TableHead>
+              <TableHead className="text-right">Total</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <TableRow>
+              <TableCell>{width} x {height} mm</TableCell>
+              <TableCell>{item.quantity} unidades</TableCell>
+              <TableCell>{area} m²</TableCell>
+              <TableCell>{formatMXN(item.unitPrice)}</TableCell>
+              <TableCell>{item.ceramicColor || '-'}</TableCell>
+              <TableCell>{vetaOrientation}</TableCell>
+              <TableCell>{(item as any).cubrecanto || item.edgeBanding || '-'}</TableCell>
+              <TableCell>{item.handleModel?.name || item.jaladera || '-'}</TableCell>
+              <TableCell>{(item as any).jaladeraOrientation === 'vertical' ? 'Vertical' : (item as any).jaladeraOrientation === 'horizontal' ? 'Horizontal' : '-'}</TableCell>
+              <TableCell>{handlePrice > 0 ? formatMXN(handlePrice) : '-'}</TableCell>
+              <TableCell>{expressAmount > 0 ? formatMXN(expressAmount) : '-'}</TableCell>
+              <TableCell>{exhibitionAmount > 0 ? '-' + formatMXN(exhibitionAmount) : '-'}</TableCell>
+              <TableCell className="font-bold">{formatMXN(item.totalPrice)}</TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
+      )
+    }
+
+    if (isVidrio || isAlhu) {
+      const expressAmount = (item as any).expressAmount || 0
+      const exhibitionAmount = (item as any).exhibitionAmount || 0
+      const subtotal = item.totalPrice - expressAmount + exhibitionAmount
+      return (
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Producto</TableHead>
+              <TableHead>Dimensiones</TableHead>
+              <TableHead>Cantidad</TableHead>
+              <TableHead>Área total</TableHead>
+              <TableHead>Precio unitario</TableHead>
+              <TableHead>Subtotal</TableHead>
+              <TableHead>Envío express (+20%)</TableHead>
+              <TableHead>Desc. exhibición (-25%)</TableHead>
+              <TableHead className="text-right">Total</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <TableRow>
+              <TableCell>{item.productLine?.name || item.product?.name?.split('-')[0]?.trim() || '-'}</TableCell>
+              <TableCell>{height > 0 && width > 0 ? `${height} x ${width} mm` : '-'}</TableCell>
+              <TableCell>{item.quantity}</TableCell>
+              <TableCell>{area} m²</TableCell>
+              <TableCell>{formatMXN(item.unitPrice)}</TableCell>
+              <TableCell>{formatMXN(subtotal)}</TableCell>
+              <TableCell>{expressAmount > 0 ? '+' + formatMXN(expressAmount) : '-'}</TableCell>
+              <TableCell>{exhibitionAmount > 0 ? '-' + formatMXN(exhibitionAmount) : '-'}</TableCell>
+              <TableCell className="font-bold">{formatMXN(item.totalPrice)}</TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
+      )
+    }
+
+    return (
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Alto</TableHead>
+            <TableHead>Ancho</TableHead>
+            <TableHead>Cantidad</TableHead>
+            <TableHead>Color/Tono</TableHead>
+            <TableHead>Cubrecanto</TableHead>
+            <TableHead>Jaladera</TableHead>
+            <TableHead>Orientación Veta</TableHead>
+            <TableHead>Envío Express</TableHead>
+            <TableHead>Exhibición</TableHead>
+            <TableHead className="text-right">Total</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          <TableRow>
+            <TableCell>{height} mm</TableCell>
+            <TableCell>{width} mm</TableCell>
+            <TableCell>{item.quantity}</TableCell>
+            <TableCell>{item.productTone?.name || item.ceramicColor || '-'}</TableCell>
+            <TableCell>{item.edgeBanding || '-'}</TableCell>
+            <TableCell>{item.handleModel?.name || '-'}</TableCell>
+            <TableCell>{vetaOrientation}</TableCell>
+            <TableCell>{(item as any).expressAmount ? formatMXN((item as any).expressAmount) : '-'}</TableCell>
+            <TableCell>{(item as any).exhibitionAmount ? formatMXN((item as any).exhibitionAmount) : '-'}</TableCell>
+            <TableCell className="font-bold">{formatMXN(item.totalPrice)}</TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>
+    )
   }
 
   const toggleItemDetails = (itemId: string) => {
@@ -399,48 +712,78 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
   }
 
   const handleEditItem = (item: QuoteItem) => {
-    if (item.product.isCustomizable) {
-      // Construct WizardState from item
-      const initialState: WizardState = {
-        category: 'Puertas', // Default
-        line: (item.productLine?.name as any) || 'Vidrio',
-        dimensions: {
-          width: item.customWidth || 0,
-          height: item.customHeight || 0,
-          quantity: item.quantity
-        },
-        frontDimensions: { width: 0, height: 0 },
-        tone: item.productTone?.name || null,
-        backFace: (item.productLine?.name === 'Europea Sincro' || item.productLine?.name === 'Europea Básica')
-          ? (item.woodGrain?.name || 'Vertical') as any
-          : (item.isTwoSided ? 'Especialidad' : 'Blanca'),
-        edgeBanding: (item.edgeBanding as any) || null,
-        optionals: {
-          isExhibition: item.isExhibition || false,
-          isExpressDelivery: item.isExpressDelivery || false,
-          isTwoFaces: item.isTwoSided || false
-        },
-        handle: item.handleModel?.name || 'No aplica',
-        pricing: {
-          basePrice: 0,
-          handlePrice: 0,
-          exhibitionFee: 0,
-          expressDeliveryFee: 0,
-          subtotal: 0,
-          total: item.totalPrice,
-          pricePerSquareMeter: item.pricePerSquareMeter || 0
-        },
-        deliveryDays: item.productLine?.name === 'Cerámica' ? 20 : 0,
-        color: item.ceramicColor || null
-      }
-
-      setEditingItem(item)
-      setKitWizardInitialState(initialState)
-      setShowKitWizard(true)
-    } else {
-      // Logic for standard products if needed
+    if (!item.product) {
       toast({
-        description: 'Edición de productos estándar no implementada aún',
+        title: 'Edición no disponible',
+        description: 'Producto no encontrado',
+        variant: 'default'
+      })
+      return
+    }
+
+    const lineName = item.productLine?.name?.toLowerCase() || ''
+    
+    // Normalizamos el mapeo de campos comunes que todos los wizards usan
+    const itemData = {
+      productId: item.product?.id,
+      productName: item.product?.name,
+      width: item.customWidth || item.product?.width || 0,
+      height: item.customHeight || item.product?.height || 0,
+      quantity: item.quantity,
+      // Booleanos de opciones (estandarizados)
+      expressShipping: !!item.isExpressDelivery,
+      demoProduct: !!item.isExhibition,
+      isTwoSided: !!item.isTwoSided,
+      // Datos adicionales específicos
+      handle: (item as any).jaladera || item.handleModel?.name || 'No aplica',
+      handleModelId: item.handleModelId || item.handleModel?.id || '',
+      handleOrientation: (item as any).jaladeraOrientation || 'vertical',
+      handlePrice: item.packagingCost || 0,
+      edgeBanding: item.edgeBanding,
+      ceramicColor: item.ceramicColor,
+      vetaOrientation: (item as any).vetaOrientation,
+      jaladera: (item as any).jaladera || item.handleModel?.name || 'none',
+      jaladeraOrientation: (item as any).jaladeraOrientation || 'vertical',
+      totalPrice: item.totalPrice,
+      unitPrice: item.unitPrice,
+      // Datos específicos para Alto Brillo
+      // Usar ceramicColor primero (es donde se guarda el tono seleccionado)
+      toneId: item.productToneId || item.productTone?.id || '',
+      tone: item.ceramicColor || item.productTone?.name || (item.product?.name?.includes('-') ? item.product.name.split('-')[1]?.trim() : ''),
+      backFace: (item as any).backFace || item.edgeBanding || '',
+      backFaceId: (item as any).backFaceId || '',
+    }
+    
+    const isAlhuLine = lineName.includes('alh') || item.product?.name?.toLowerCase().includes('alh') || item.productLine?.name?.toLowerCase().includes('alh')
+    
+    setEditingItem(item)
+
+    if (isAlhuLine) {
+      setAlhuWizardInitialData(itemData)
+      setShowAlhuWizard(true)
+    } else if (lineName.includes('vidrio')) {
+      setVidrioWizardInitialData(itemData)
+      setShowVidrioWizard(true)
+    } else if (lineName.includes('cerám')) {
+      setCeramicaWizardInitialData(itemData)
+      setShowCeramicaWizard(true)
+    } else if (lineName === 'europa básica') {
+      setEuropaBasicaWizardInitialData(itemData)
+      setShowEuropaBasicaWizard(true)
+    } else if (lineName === 'europa sincro') {
+      setEuropaSincroWizardInitialData(itemData)
+      setShowEuropaSincroWizard(true)
+    } else if (lineName.includes('alto brillo') || lineName.includes('brillo')) {
+      setAltoBrilloWizardInitialData(itemData)
+      setShowAltoBrilloWizard(true)
+    } else if (lineName.includes('super mate') || lineName.includes('super-mate')) {
+      setSuperMateWizardInitialData(itemData)
+      setShowSuperMateWizard(true)
+    } else {
+      toast({
+        title: 'Edición no disponible',
+        description: `La edición para la línea "${item.productLine?.name}" aún no está disponible`,
+        variant: 'default'
       })
     }
   }
@@ -535,6 +878,9 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
 
   // Get selected product price - now with useMemo for reactivity
   const selectedProductPrice = useMemo(() => {
+    if (!availableProducts || availableProducts.length === 0) {
+      return 0
+    }
     const selectedProduct = availableProducts.find(p => p.id === selectedProductId)
     if (!selectedProduct) {
       console.log('No selected product found for ID:', selectedProductId)
@@ -571,6 +917,10 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
   const pricePerUnit = useMemo(() => {
     if (selectedProductPrice === 0) {
       console.log('Price per unit = 0 because selectedProductPrice is 0')
+      return 0
+    }
+
+    if (!availableProducts || availableProducts.length === 0) {
       return 0
     }
 
@@ -658,72 +1008,46 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
       }
     }
 
-    // Calculate base product subtotal, handles subtotal, and additional fees
-    const { baseProductSubtotal, handlesSubtotal, backFaceSubtotal, exhibitionFees, expressDeliveryFees } = quote.items.reduce((acc, item) => {
-      const currentQuantity = itemQuantities[item.id] !== undefined
-        ? itemQuantities[item.id]
-        : item.quantity
-
-      const handlePrice = item.handleModel?.price || 0
-      // item.unitPrice includes handlePrice, so we subtract it to get base unit price
-      // Note: unitPrice from DB currently excludes backFaceFee, so this extraction is safe for Base+Handle legacy logic
-      const baseUnitPrice = (item.unitPrice || 0) - handlePrice
-
-      const itemBaseTotal = baseUnitPrice * currentQuantity
-      const itemHandleTotal = handlePrice * currentQuantity
-
-      // Back face fee (flat $100 per line item if isTwoSided/Especialidad)
-      // Assuming the fee is per line item (kit), not per unit quantity, matching KitWizard logic
-      const itemBackFaceTotal = item.isTwoSided ? 100 : 0
-
-      // Effective subtotal for this item (Base + Handle + BackFace)
-      const itemSubtotal = itemBaseTotal + itemHandleTotal + itemBackFaceTotal
-
-      // Calculate optional fees percentages based on itemSubtotal
-      // Exhibition: -25% (Discount)
-      const itemExhibitionFee = item.isExhibition ? itemSubtotal * -0.25 : 0
-
-      // Express: +20% (Surcharge)
-      const itemExpressFee = item.isExpressDelivery ? itemSubtotal * 0.20 : 0
-
-      acc.baseProductSubtotal += itemBaseTotal
-      acc.handlesSubtotal += itemHandleTotal
-      acc.backFaceSubtotal += itemBackFaceTotal
-      acc.exhibitionFees += itemExhibitionFee
-      acc.expressDeliveryFees += itemExpressFee
-
+    // Simply sum the stored values from the database
+    const { totalPrices, expressDeliveryFees, exhibitionFees } = quote.items.reduce((acc, item) => {
+      const itemAny = item as any
+      acc.totalPrices += itemAny.totalPrice || 0
+      acc.expressDeliveryFees += itemAny.expressAmount || 0
+      acc.exhibitionFees += itemAny.exhibitionAmount || 0
       return acc
     }, {
-      baseProductSubtotal: 0,
-      handlesSubtotal: 0,
-      backFaceSubtotal: 0,
-      exhibitionFees: 0,
-      expressDeliveryFees: 0
+      totalPrices: 0,
+      expressDeliveryFees: 0,
+      exhibitionFees: 0
     })
 
-    const subtotalWithFees = baseProductSubtotal + handlesSubtotal + backFaceSubtotal + exhibitionFees + expressDeliveryFees
+    // Calculate Base Subtotal (Total minus adjustments)
+    const baseProductSubtotal = totalPrices - expressDeliveryFees + exhibitionFees
+
+    // Apply manual quote discount
+    const quoteDiscount = (isEditing ? (editedQuote.discountAmount || 0) : (quote.discountAmount || 0))
+
+    // Subtotal before tax (Net)
+    const subtotal = totalPrices - quoteDiscount
 
     // Calculate tax (16%)
-    const taxAmount = subtotalWithFees * 0.16
-
-    // Apply discount
-    const discountAmount = (isEditing ? (editedQuote.discountAmount || 0) : (quote.discountAmount || 0))
+    const taxAmount = subtotal * 0.16
 
     // Calculate total
-    const totalAmount = subtotalWithFees + taxAmount - discountAmount
+    const totalAmount = subtotal + taxAmount
 
     return {
-      subtotal: subtotalWithFees,
+      baseProductSubtotal,
+      expressDeliveryFees,
+      exhibitionFees,
+      discountAmount: quoteDiscount,
+      subtotal,
       taxAmount,
       totalAmount,
-      discountAmount,
-      exhibitionFees,
-      expressDeliveryFees,
-      baseProductSubtotal,
-      handlesSubtotal,
-      backFaceSubtotal
+      handlesSubtotal: 0,
+      backFaceSubtotal: 0
     }
-  }, [quote, itemQuantities, isEditing, editedQuote.discountAmount])
+  }, [quote, isEditing, editedQuote.discountAmount])
 
   const addProduct = async () => {
     if (!selectedProductId) return
@@ -807,143 +1131,51 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
     setShowAddProductModal(true)
   }
 
-  const handleKitWizardComplete = async (wizardState: WizardState) => {
+  const handleNewWizardComplete = async (data: Record<string, unknown>, pricing: { subtotal: number; total: number; adjustments: Array<{ name: string; amount: number }> }) => {
     try {
+      const selectedProducts = data.selectedProducts as Array<{ id: string; name: string; price: number }> | undefined
+      const productIds = data.productIds as string[] | undefined
+
       const config = {
-        category: wizardState.category,
-        line: wizardState.line,
-        dimensions: wizardState.dimensions,
-        frontDimensions: wizardState.frontDimensions,
-        tone: wizardState.tone,
-        backFace: wizardState.backFace,
-        edgeBanding: wizardState.edgeBanding,
-        handle: wizardState.handle,
-        isExhibition: wizardState.optionals.isExhibition,
-        isExpressDelivery: wizardState.optionals.isExpressDelivery,
-        optionals: wizardState.optionals, // Add this for Alhú API
-        pricing: wizardState.pricing,
-        pricePerSquareMeter: wizardState.pricing.pricePerSquareMeter,
-        color: wizardState.color,
+        // Mapeo de datos que coincida con lo que el backend espera
+        quantity: (data.dimensions as any)?.quantity || 1,
+        width: (data.dimensions as any)?.width || 0,
+        height: (data.dimensions as any)?.height || 0,
+        unitPrice: pricing.total / ((data.dimensions as any)?.quantity || 1), // Aproximación
+        totalPrice: pricing.total,
+        lineId: data.lineId,
+        toneId: data.toneId,
+        handleId: data.handleId,
+        // ... otros campos
+        isExhibition: (data.optionals as any)?.isExhibition,
+        isExpressDelivery: (data.optionals as any)?.isExpressDelivery,
+        isTwoSided: (data.optionals as any)?.isTwoFaces,
+        ceramicColor: data.color,
       }
 
-
-      // Determine the endpoint and method
-      let url: string
-      let method: string
-
-      if (editingItem) {
-        // When editing, check the line type and use specific endpoint
-        if (wizardState.line === 'Super Mate') {
-          url = `/api/quotes/${params.id}/items/super-mate/${editingItem.id}`
-          method = 'PUT'
-        } else if (wizardState.line === 'Alto Brillo') {
-          url = `/api/quotes/${params.id}/items/alto-brillo/${editingItem.id}`
-          method = 'PUT'
-        } else if (wizardState.line === 'Europea Básica') {
-          url = `/api/quotes/${params.id}/items/europea/${editingItem.id}`
-          method = 'PUT'
-        } else if (wizardState.line === 'Europea Sincro') {
-          url = `/api/quotes/${params.id}/items/europea-sincro/${editingItem.id}`
-          method = 'PUT'
-        } else if (wizardState.line === 'Línea Alhú') {
-          url = `/api/quotes/${params.id}/items/alhu/${editingItem.id}`
-          method = 'PUT'
-        } else {
-          // Default to generic kit endpoint
-          url = `/api/quotes/${params.id}/items/kit/${editingItem.id}`
-          method = 'PUT'
-        }
-      } else {
-        // When creating new items
-        method = 'POST'
-        if (wizardState.line === 'Línea Alhú') {
-          url = `/api/quotes/${params.id}/items/alhu`
-        } else if (wizardState.line === 'Europea Básica') {
-          url = `/api/quotes/${params.id}/items/europea`
-        } else if (wizardState.line === 'Europea Sincro') {
-          url = `/api/quotes/${params.id}/items/europea-sincro`
-        } else if (wizardState.line === 'Alto Brillo') {
-          url = `/api/quotes/${params.id}/items/alto-brillo`
-        } else if (wizardState.line === 'Super Mate') {
-          url = `/api/quotes/${params.id}/items/super-mate`
-        } else {
-          url = `/api/quotes/${params.id}/items/kit`
-        }
-      }
-
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
+      // Persistir la partida en la base de datos
+      const response = await fetch(`/api/quotes/${params.id}/items/configured`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(config),
       })
 
-      // Handle specific HTTP status codes
-      if (!response.ok) {
-        let errorMessage = 'Error al guardar el kit configurado'
-        let errorTitle = 'Error'
+      const result = await response.json()
 
-        switch (response.status) {
-          case 401:
-            errorTitle = 'Sesión expirada'
-            errorMessage = 'Tu sesión ha expirado. Por favor, recarga la página e inicia sesión nuevamente.'
-            break
-          case 403:
-            errorTitle = 'Acceso denegado'
-            errorMessage = 'No tienes permisos para realizar esta acción.'
-            break
-          case 404:
-            errorTitle = 'Recurso no encontrado'
-            errorMessage = 'No se encontró la línea de producto seleccionada. Por favor, contacta al administrador.'
-            break
-          case 500:
-            errorTitle = 'Error del servidor'
-            errorMessage = 'Ocurrió un error en el servidor. Por favor, intenta nuevamente.'
-            break
-          default:
-            // Try to get error message from response
-            try {
-              const data = await response.json()
-              if (data.error) {
-                errorMessage = data.error
-              }
-            } catch {
-              // If we can't parse the response, use default message
-            }
-        }
-
-        toast({
-          title: errorTitle,
-          description: errorMessage,
-          variant: 'destructive',
-        })
-        return
-      }
-
-      const data = await response.json()
-
-      if (data.success) {
-        await fetchQuote()
-        setShowKitWizard(false)
+      if (result.success) {
+        await fetchQuote() // Refresca la tabla automáticamente
         setEditingItem(null)
-        setKitWizardInitialState(undefined)
         toast({
-          title: editingItem ? 'Kit actualizado' : 'Kit agregado',
-          description: editingItem ? 'El kit ha sido actualizado exitosamente' : 'El kit personalizado ha sido agregado a la cotización',
+          title: 'Éxito',
+          description: 'Partida agregada a la cotización',
         })
       } else {
-        throw new Error(data.error || 'Error desconocido al guardar el kit')
+        throw new Error(result.error)
       }
     } catch (err) {
-      console.error('Error adding/updating kit:', err)
-
-      // Handle network errors
-      const errorMessage = err instanceof Error ? err.message : 'Error al guardar el kit configurado'
-
       toast({
         title: 'Error',
-        description: errorMessage,
+        description: 'No se pudo guardar la partida',
         variant: 'destructive',
       })
     }
@@ -1088,9 +1320,6 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
     )
   }
 
-  const statusConfig = getStatusConfig(quote.status)
-  const StatusIcon = statusConfig.icon
-
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -1160,10 +1389,10 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
             >
               <Badge
                 variant="secondary"
-                className={`${statusConfig.color} flex items-center gap-1 px-3 py-1`}
+                className={`${getStatusConfig(quote.status).color} flex items-center gap-1 px-3 py-1`}
               >
-                <StatusIcon className="w-4 h-4" />
-                {statusConfig.label}
+                {React.createElement(getStatusConfig(quote.status).icon, { className: "w-4 h-4" })}
+                {getStatusConfig(quote.status).label}
               </Badge>
               <div className="flex gap-2">
                 {isEditing ? (
@@ -1259,322 +1488,94 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
                     </div>
                     {isEditing && (
                       <>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setShowKitWizard(true)}
-                          className="w-full sm:w-auto"
-                        >
-                          <Plus className="w-4 h-4 mr-2" />
-                          <span className="text-sm">Configurar Kit</span>
-                        </Button>
-                        <Dialog open={showAddProductModal} onOpenChange={setShowAddProductModal}>
-                          <DialogContent className="max-w-3xl">
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button size="sm" className="w-full sm:w-auto">
+                              <Plus className="w-4 h-4 mr-2" />
+                              <span className="text-sm">Agregar partida</span>
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-2xl">
                             <DialogHeader>
-                              <DialogTitle>Agregar Producto a la Cotización</DialogTitle>
+                              <DialogTitle>Seleccionar Cotizador</DialogTitle>
                             </DialogHeader>
-                            <div className="space-y-4">
-                              <div>
-                                <Label htmlFor="productSearch">Buscar Producto</Label>
-                                <div className="relative">
-                                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                                  <Input
-                                    id="productSearch"
-                                    placeholder="Buscar por nombre o SKU..."
-                                    value={productSearch}
-                                    onChange={(e) => setProductSearch(e.target.value)}
-                                    className="pl-10"
-                                  />
-                                </div>
-                              </div>
-
-                              <div>
-                                <Label>Seleccionar Producto</Label>
-                                <Select value={selectedProductId} onValueChange={setSelectedProductId}>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Selecciona un producto" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {availableProducts
-                                      .filter(product =>
-                                        productSearch === '' ||
-                                        product.name.toLowerCase().includes(productSearch.toLowerCase()) ||
-                                        product.sku.toLowerCase().includes(productSearch.toLowerCase())
-                                      )
-                                      .map((product) => (
-                                        <SelectItem key={product.id} value={product.id}>
-                                          <div className="flex items-center gap-2">
-                                            <span className="font-medium">{product.name}</span>
-                                            <span className="text-sm text-gray-500">({product.sku})</span>
-                                          </div>
-                                        </SelectItem>
-                                      ))}
-                                  </SelectContent>
-                                </Select>
-                              </div>
-
-                              {/* Quantity and Dimensions */}
-                              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <div>
-                                  <Label htmlFor="quantity">Cantidad</Label>
-                                  <Input
-                                    id="quantity"
-                                    type="number"
-                                    min="1"
-                                    max="1000"
-                                    value={newProductQuantity}
-                                    onChange={(e) => {
-                                      const value = parseInt(e.target.value) || 1
-                                      if (value >= 1 && value <= 1000) {
-                                        setNewProductQuantity(value)
-                                      }
-                                    }}
-                                    className={newProductQuantity < 1 || newProductQuantity > 1000 ? 'border-red-500' : ''}
-                                  />
-                                  {(newProductQuantity < 1 || newProductQuantity > 1000) && (
-                                    <p className="text-red-500 text-xs mt-1">Entre 1 y 1,000 unidades</p>
-                                  )}
-                                </div>
-
-                                <div>
-                                  <Label htmlFor="width">Ancho (mm)</Label>
-                                  <Input
-                                    id="width"
-                                    type="number"
-                                    min="10"
-                                    max="50000"
-                                    value={newProductWidth}
-                                    onChange={(e) => {
-                                      const value = e.target.value
-                                      setNewProductWidth(value)
-                                    }}
-                                    placeholder="Ingrese el ancho en mm"
-                                    autoComplete="off"
-                                    className={newProductWidth && (parseFloat(newProductWidth) < 10 || parseFloat(newProductWidth) > 50000) ? 'border-red-500' : ''}
-                                  />
-                                  {newProductWidth && (parseFloat(newProductWidth) < 10 || parseFloat(newProductWidth) > 50000) && (
-                                    <p className="text-red-500 text-xs mt-1">Entre 10mm y 50,000mm</p>
-                                  )}
-                                </div>
-
-                                <div>
-                                  <Label htmlFor="height">Alto (mm)</Label>
-                                  <Input
-                                    id="height"
-                                    type="number"
-                                    min="10"
-                                    max="50000"
-                                    value={newProductHeight}
-                                    onChange={(e) => {
-                                      const value = e.target.value
-                                      setNewProductHeight(value)
-                                    }}
-                                    placeholder="Ingrese la altura en mm"
-                                    autoComplete="off"
-                                    className={newProductHeight && (parseFloat(newProductHeight) < 10 || parseFloat(newProductHeight) > 50000) ? 'border-red-500' : ''}
-                                  />
-                                  {newProductHeight && (parseFloat(newProductHeight) < 10 || parseFloat(newProductHeight) > 50000) && (
-                                    <p className="text-red-500 text-xs mt-1">Entre 10mm y 50,000mm</p>
-                                  )}
-                                </div>
-                              </div>
-
-                              {/* Price Calculation Preview */}
-                              {selectedProductId && (
-                                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                                  <h4 className="font-medium text-foreground mb-2">Vista Previa del Cálculo</h4>
-                                  <div className="grid grid-cols-2 gap-4 text-sm">
-                                    <div>
-                                      <p className="text-muted-foreground">Cantidad: <span className="font-medium">{newProductQuantity} unidades</span></p>
-                                      <p className="text-muted-foreground">Dimensiones: <span className="font-medium">{newProductWidth || '0'}mm × {newProductHeight || '0'}mm</span></p>
-                                      <p className="text-muted-foreground">Área por unidad: <span className="font-medium">{areaInSquareMeters.toFixed(4)} m²</span></p>
-                                    </div>
-                                    <div>
-                                      {(() => {
-                                        const selectedProduct = availableProducts.find(p => p.id === selectedProductId);
-                                        if (selectedProduct && selectedProduct.isCustomizable) {
-                                          const standardArea = (selectedProduct.width / 1000) * (selectedProduct.height / 1000);
-                                          const pricePerSquareMeter = selectedProductPrice / standardArea;
-                                          return (
-                                            <>
-                                              <p className="text-muted-foreground">Precio base por unidad estándar: <span className="font-medium">{formatBasePriceMXN(selectedProductPrice)}</span></p>
-                                              <p className="text-muted-foreground">Dimensión estándar: <span className="font-medium">{selectedProduct.width}mm × {selectedProduct.height}mm ({standardArea.toFixed(4)} m²)</span></p>
-                                              <p className="text-muted-foreground">Precio por m²: <span className="font-medium">{formatMXN(pricePerSquareMeter)}</span></p>
-                                            </>
-                                          );
-                                        } else {
-                                          return <p className="text-muted-foreground">Precio base: <span className="font-medium">{formatBasePriceMXN(selectedProductPrice)} / unidad</span></p>;
-                                        }
-                                      })()}
-                                      <p className="text-muted-foreground">Precio por unidad: <span className="font-medium">{formatMXN(pricePerUnit)}</span></p>
-                                      <p className="text-foreground font-semibold text-lg">Precio Total: {formatMXN(totalPrice)}</p>
-                                    </div>
-                                  </div>
-                                  {selectedProductPrice === 0 && (
-                                    <div className="mt-2 p-2 bg-yellow-100 border border-yellow-300 rounded text-yellow-800 text-xs">
-                                      <strong>Nota:</strong> No se encontró precio para este producto. Verifique la configuración de precios.
-                                    </div>
-                                  )}
-                                </div>
-                              )}
-
-                              <div className="flex justify-end gap-2">
-                                <Button variant="outline" onClick={() => setShowAddProductModal(false)}>
-                                  Cancelar
-                                </Button>
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                              {[
+                                { id: 'vidrio', name: 'Vidrio' },
+                                { id: 'ceramica', name: 'Cerámica' },
+                                // { id: 'alhu', name: 'Alhú' }, // Desactivado temporalmente
+                                { id: 'europa-basica', name: 'Europa Básica' },
+                                { id: 'europa-sincro', name: 'Europa Sincro' },
+                                { id: 'alto-brillo', name: 'Alto brillo' },
+                                { id: 'super-mate', name: 'Super mate' },
+                                { id: 'foil', name: 'Foil' },
+                                { id: 'ventana', name: 'Ventana' },
+                                { id: 'vista', name: 'Vista' },
+                                { id: 'hoja-enchape', name: 'Hoja Enchape' },
+                                { id: 'tapetes-foil', name: 'Tapetes de foil' },
+                              ].map((configurator) => (
                                 <Button
-                                  onClick={addProduct}
-                                  disabled={!selectedProductId || newProductQuantity < 1 || newProductQuantity > 1000 || !newProductWidth || !newProductHeight || parseFloat(newProductWidth) < 10 || parseFloat(newProductWidth) > 50000 || parseFloat(newProductHeight) < 10 || parseFloat(newProductHeight) > 50000}
+                                  key={configurator.id}
+                                  variant="outline"
+                                  className="h-20 text-sm"
+                                  onClick={() => {
+                                    if (configurator.id === 'vidrio') {
+                                      setShowVidrioWizard(true)
+                                    } else if (configurator.id === 'ceramica') {
+                                      setShowCeramicaWizard(true)
+                                    } // else if (configurator.id === 'alhu') {
+                                    //   setAlhuWizardInitialData(undefined)
+                                    //   setShowAlhuWizard(true)
+                                    // }
+                                    else if (configurator.id === 'europa-basica') {
+                                      setEuropaBasicaWizardInitialData(undefined)
+                                      setShowEuropaBasicaWizard(true)
+                                    } else if (configurator.id === 'europa-sincro') {
+                                      setEuropaSincroWizardInitialData(undefined)
+                                      setShowEuropaSincroWizard(true)
+                                    } else if (configurator.id === 'alto-brillo') {
+                                      setAltoBrilloWizardInitialData(undefined)
+                                      setShowAltoBrilloWizard(true)
+                                    } else if (configurator.id === 'super-mate') {
+                                      setSuperMateWizardInitialData(undefined)
+                                      setShowSuperMateWizard(true)
+                                    } else {
+                                      console.log('Configurator not implemented:', configurator.id)
+                                    }
+                                  }}
                                 >
-                                  Agregar Producto
+                                  {configurator.name}
                                 </Button>
-                              </div>
+                              ))}
                             </div>
                           </DialogContent>
                         </Dialog>
                       </>
                     )}
-
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-
-                  <div className="rounded-md border overflow-x-auto">
-                    <Table className="border-collapse">
-                      <TableHeader>
-                        <TableRow className="border-b">
-                          {isEditing && <TableHead className="w-[100px] border-r">Acciones</TableHead>}
-                          <TableHead className="w-[200px] border-r">Producto</TableHead>
-                          <TableHead className="border-r">Marca</TableHead>
-                          <TableHead className="border-r">Color</TableHead>
-                          {quote.items.some(i => i.productLine?.name?.includes('Europea')) && (
-                            <TableHead className="border-r">Veta</TableHead>
+                  {quote.items.map((item) => {
+                    return (
+                      <div key={item.id} className="mb-8 border rounded-lg shadow-sm">
+                        <div className="bg-muted/30 px-4 py-2 border-b font-semibold flex justify-between items-center">
+                          <div className="flex items-center gap-3">
+                            <span>Producto: {item.product.name}</span>
+                            <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded">
+                              {(item.product as any)?.tiempoEntrega || 7} días de entrega
+                            </span>
+                          </div>
+                          {isEditing && (
+                            <div className="flex gap-2">
+                              <Button variant="ghost" size="sm" onClick={() => handleEditItem(item)}><Pencil className="w-4 h-4" /></Button>
+                              <Button variant="ghost" size="sm" onClick={() => setItemToDelete(item.id)}><Trash2 className="w-4 h-4" /></Button>
+                            </div>
                           )}
-                          <TableHead className="text-right border-r">Alto</TableHead>
-                          <TableHead className="text-right border-r">Ancho</TableHead>
-                          <TableHead className="text-right border-r">Costo unitario</TableHead>
-                          <TableHead className="text-right border-r">Cantidad</TableHead>
-                          <TableHead className="text-center border-r">Caras</TableHead>
-                          <TableHead className="text-center border-r">Cubrecanto</TableHead>
-                          <TableHead className="border-r">Jaladera</TableHead>
-                          <TableHead className="text-right border-r">Precio Jaladera</TableHead>
-                          <TableHead className="text-right border-r">Cant. Jaladera</TableHead>
-                          <TableHead className="text-right border-r">Total</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {quote.items.map((item) => {
-                          const width = item.customWidth || item.product.width || 0
-                          const height = item.customHeight || item.product.height || 0
-                          const handlePrice = item.handleModel?.price || 0
-
-                          // Calculate unit cost: (height × width × price per m²) ÷ 1,000,000
-                          const pricePerM2 = item.pricePerSquareMeter || 0
-                          const unitCost = (height * width * pricePerM2) / 1000000
-
-                          return (
-                            <TableRow key={item.id} className="border-b">
-                              {isEditing && (
-                                <TableCell className="border-r">
-                                  <div className="flex items-center justify-start gap-1">
-                                    {item.product.isCustomizable && (
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        onClick={() => handleEditItem(item)}
-                                        className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                                      >
-                                        <Pencil className="w-4 h-4" />
-                                      </Button>
-                                    )}
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      onClick={() => setItemToDelete(item.id)}
-                                      className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
-                                    >
-                                      <Trash2 className="w-4 h-4" />
-                                    </Button>
-                                  </div>
-                                </TableCell>
-                              )}
-                              <TableCell className="border-r">
-                                <div className="flex items-center gap-3">
-                                  <div className="w-10 h-10 bg-gray-100 rounded-md flex items-center justify-center overflow-hidden flex-shrink-0">
-                                    {item.product.thumbnail ? (
-                                      <Image
-                                        src={item.product.thumbnail}
-                                        alt={item.product.name}
-                                        width={40}
-                                        height={40}
-                                        className="object-cover w-full h-full"
-                                      />
-                                    ) : (
-                                      <Package className="w-5 h-5 text-gray-400" />
-                                    )}
-                                  </div>
-                                  <div className="min-w-0">
-                                    <div className="font-medium text-sm truncate" title={item.product.name}>{item.product.name}</div>
-                                    <div className="text-xs text-muted-foreground truncate">{item.product.sku}</div>
-                                  </div>
-                                </div>
-                              </TableCell>
-                              <TableCell className="border-r text-sm">
-                                {item.productTone?.name || '-'}
-                              </TableCell>
-                              <TableCell className="border-r text-sm">
-                                {item.ceramicColor || '-'}
-                              </TableCell>
-                              {quote.items.some(i => i.productLine?.name?.includes('Europea')) && (
-                                <TableCell className="border-r text-sm">
-                                  {item.woodGrain?.name || (
-                                    // Fallback for older items that might have stored direction in backFace or implied by isTwoSided?
-                                    // But based on my fix, backFace is restored from woodGrain.
-                                    // If strictly relying on woodGrain relation:
-                                    '-'
-                                  )}
-                                </TableCell>
-                              )}
-                              <TableCell className="text-right text-sm border-r">
-                                {height > 0 ? `${height} mm` : '-'}
-                              </TableCell>
-                              <TableCell className="text-right text-sm border-r">
-                                {width > 0 ? `${width} mm` : '-'}
-                              </TableCell>
-                              <TableCell className="text-right text-sm border-r">{formatMXN(unitCost)}</TableCell>
-                              <TableCell className="text-right border-r">
-                                <span className="text-sm">{item.quantity}</span>
-                              </TableCell>
-                              <TableCell className="text-center text-sm border-r">
-                                {item.isTwoSided ? '2' : '1'}
-                              </TableCell>
-                              <TableCell className="text-center border-r text-sm">
-                                {item.edgeBanding || '-'}
-                              </TableCell>
-                              <TableCell className="text-sm border-r">
-                                {item.handleModel ? (
-                                  <div className="flex flex-col">
-                                    <span className="truncate" title={item.handleModel.model}>{item.handleModel.model}</span>
-                                    <span className="text-[10px] text-muted-foreground truncate">{item.handleModel.finish}</span>
-                                  </div>
-                                ) : (
-                                  <span className="text-muted-foreground italic">-</span>
-                                )}
-                              </TableCell>
-                              <TableCell className="text-right text-sm border-r">
-                                {item.handleModel ? formatMXN(item.handleModel.price) : '-'}
-                              </TableCell>
-                              <TableCell className="text-right text-sm border-r">
-                                {item.handleModel ? item.quantity : '-'}
-                              </TableCell>
-                              <TableCell className="text-right font-medium text-sm border-r">{formatMXN(item.totalPrice)}</TableCell>
-
-                            </TableRow>
-                          )
-                        })}
-                      </TableBody>
-                    </Table>
-                  </div>
+                        </div>
+                        {renderItemTable(item)}
+                      </div>
+                    )
+                  })}
                 </CardContent>
               </Card>
 
@@ -1605,6 +1606,62 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
 
           {/* Sidebar */}
           < div className="space-y-6" >
+            {/* Quote Summary */}
+            < motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.3 }}
+            >
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <DollarSign className="w-5 h-5" />
+                    Resumen de Costos
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Suma de Subtotales:</span>
+                    <span className="font-medium">{formatMXN(calculatedSummary.baseProductSubtotal)}</span>
+                  </div>
+                  
+                  {calculatedSummary.expressDeliveryFees > 0 && (
+                    <div className="flex justify-between text-amber-600">
+                      <span className="text-muted-foreground font-medium">Envío Express:</span>
+                      <span className="font-medium">+{formatMXN(calculatedSummary.expressDeliveryFees)}</span>
+                    </div>
+                  )}
+
+                  {calculatedSummary.exhibitionFees > 0 && (
+                    <div className="flex justify-between text-green-600">
+                      <span className="text-muted-foreground font-medium">Descuento Exhibición:</span>
+                      <span className="font-medium">-{formatMXN(calculatedSummary.exhibitionFees)}</span>
+                    </div>
+                  )}
+
+                  {calculatedSummary.discountAmount > 0 && (
+                    <div className="flex justify-between text-blue-600">
+                      <span className="text-muted-foreground font-medium">Descuento Adicional:</span>
+                      <span className="font-medium">-{formatMXN(calculatedSummary.discountAmount)}</span>
+                    </div>
+                  )}
+
+                  <Separator />
+
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">IVA (16%):</span>
+                    <span className="font-medium">{formatMXN(calculatedSummary.taxAmount)}</span>
+                  </div>
+
+                  <Separator />
+                  <div className="flex justify-between text-lg font-bold">
+                    <span>Total:</span>
+                    <span>{formatMXN(calculatedSummary.totalAmount)}</span>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+
             {/* Customer Information */}
             < motion.div
               initial={{ opacity: 0, y: 20 }
@@ -1809,73 +1866,6 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
               </Card>
             </motion.div>
 
-            {/* Quote Summary */}
-            < motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.3 }}
-            >
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <DollarSign className="w-5 h-5" />
-                    Resumen de Costos
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Subtotal Productos:</span>
-                    <span className="font-medium">{formatMXN(calculatedSummary.baseProductSubtotal)}</span>
-                  </div>
-
-                  {calculatedSummary.handlesSubtotal > 0 && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Jaladeras:</span>
-                      <span className="font-medium">{formatMXN(calculatedSummary.handlesSubtotal)}</span>
-                    </div>
-                  )}
-
-                  {(calculatedSummary.backFaceSubtotal || 0) > 0 && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Acabado Especial:</span>
-                      <span className="font-medium">{formatMXN(calculatedSummary.backFaceSubtotal || 0)}</span>
-                    </div>
-                  )}
-
-                  {calculatedSummary.exhibitionFees !== 0 && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Producto de Exhibición (-25%):</span>
-                      <span className="font-medium text-green-600">{formatMXN(calculatedSummary.exhibitionFees)}</span>
-                    </div>
-                  )}
-
-                  {calculatedSummary.expressDeliveryFees > 0 && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Envío Express (+20%):</span>
-                      <span className="font-medium text-blue-600">+{formatMXN(calculatedSummary.expressDeliveryFees)}</span>
-                    </div>
-                  )}
-
-                  <Separator />
-
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Subtotal:</span>
-                    <span className="font-medium">{formatMXN(calculatedSummary.subtotal)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">IVA (16%):</span>
-                    <span className="font-medium">{formatMXN(calculatedSummary.taxAmount)}</span>
-                  </div>
-
-                  <Separator />
-                  <div className="flex justify-between text-lg font-bold">
-                    <span>Total:</span>
-                    <span>{formatMXN(calculatedSummary.totalAmount)}</span>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div >
-
             {/* Quote Details */}
             < motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -1929,29 +1919,7 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
           onConfiguredProductAdd={handleConfiguredProductAdd}
           onStandardProductAdd={handleStandardProductAdd}
         />
-        */}
-
-
-        {/* Kit Wizard Dialog */}
-        <Dialog open={showKitWizard} onOpenChange={setShowKitWizard}>
-          <DialogContent className="max-w-6xl h-[90vh] overflow-hidden flex flex-col p-0">
-            <DialogHeader className="px-6 py-4 border-b">
-              <DialogTitle>Configurador de Kits</DialogTitle>
-            </DialogHeader>
-            <div className="flex-1 overflow-hidden">
-              <KitWizard
-                key={editingItem?.id || `new-${Date.now()}`}
-                initialState={kitWizardInitialState}
-                onComplete={handleKitWizardComplete}
-                onCancel={() => {
-                  setShowKitWizard(false)
-                  setEditingItem(null)
-                  setKitWizardInitialState(undefined)
-                }}
-              />
-            </div>
-          </DialogContent>
-        </Dialog>
+         */}
 
         {/* Delete Confirmation Dialog */}
         <AlertDialog open={!!itemToDelete} onOpenChange={() => setItemToDelete(null)}>
@@ -2024,8 +1992,650 @@ export default function QuoteDetailPage({ params }: { params: { id: string } }) 
             )}
           </DialogContent>
         </Dialog>
-        */}
-      </div >
-    </div >
+         */}
+
+        {/* Vidrio Wizard Dialog */}
+        <Dialog open={showVidrioWizard} onOpenChange={setShowVidrioWizard}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+            <DialogHeader>
+              <DialogTitle>Cotizador Vidrio</DialogTitle>
+            </DialogHeader>
+            <div className="flex-1">
+              <VidrioWizard
+                key={editingItem?.id || `vidrio-${Date.now()}`}
+                quoteId={params.id}
+                initialData={vidrioWizardInitialData}
+                expressDeliveryPercentage={companySettings?.expressDeliveryPercentage}
+                exhibitionPercentage={companySettings?.exhibitionPercentage}
+                onComplete={async (data) => {
+                  console.log('Vidrio wizard complete:', data)
+                  try {
+                    const payload = {
+                      lineId: 'cmm84mnhv0000le11rk32wdq1',
+                      productId: data.productId,
+                      quantity: data.quantity,
+                      width: data.width,
+                      height: data.height,
+                      unitPrice: data.unitPrice,
+                      totalPrice: data.totalPrice,
+                      packagingCost: data.handlePrice,
+                      isExpressDelivery: data.expressShipping,
+                      isExhibition: data.demoProduct,
+                      expressAmount: data.expressAmount || 0,
+                      exhibitionAmount: data.exhibitionAmount || 0,
+                      // Asegurar consistencia con las opciones
+                      expressShipping: data.expressShipping,
+                      demoProduct: data.demoProduct
+                    }
+
+                    const url = editingItem 
+                      ? `/api/quotes/${params.id}/items/${editingItem.id}` 
+                      : `/api/quotes/${params.id}/items/configured`
+                    
+                    const response = await fetch(url, {
+                      method: editingItem ? 'PUT' : 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify(payload),
+                    })
+
+                    const result = await response.json()
+                    if (result.success) {
+                      await fetchQuote() // Refresca la tabla
+                      setEditingItem(null)
+                      setVidrioWizardInitialData(undefined)
+                      toast({
+                        title: editingItem ? 'Producto actualizado' : 'Producto agregado',
+                        description: editingItem ? 'La partida ha sido actualizada' : 'El producto ha sido agregado a la cotización',
+                      })
+                    } else {
+                      throw new Error(result.error)
+                    }
+                  } catch (err) {
+                    console.error('Error procesando vidrio:', err)
+                    toast({
+                      title: 'Error',
+                      description: 'Error al procesar el producto',
+                      variant: 'destructive',
+                    })
+                  }
+                  setShowVidrioWizard(false)
+                }}
+                onCancel={() => {
+                  setShowVidrioWizard(false)
+                  setEditingItem(null)
+                  setVidrioWizardInitialData(undefined)
+                }}
+              />
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Ceramica Wizard Dialog */}
+        <Dialog open={showCeramicaWizard} onOpenChange={setShowCeramicaWizard}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+            <DialogHeader>
+              <DialogTitle>Cotizador Cerámica</DialogTitle>
+            </DialogHeader>
+            <div className="flex-1">
+              <CeramicaWizard
+                key={editingItem?.id || `ceramica-${Date.now()}`}
+                quoteId={params.id}
+                initialData={ceramicaWizardInitialData}
+                expressDeliveryPercentage={companySettings?.expressDeliveryPercentage}
+                exhibitionPercentage={companySettings?.exhibitionPercentage}
+                onComplete={async (data) => {
+                  console.log('Ceramica wizard complete:', data)
+                  try {
+                    const payload = {
+                      lineId: data.lineId,
+                      productId: data.productId,
+                      quantity: data.quantity,
+                      customWidth: data.customWidth || data.width,
+                      customHeight: data.customHeight || data.height,
+                      unitPrice: data.unitPrice,
+                      totalPrice: data.totalPrice,
+                      handleModelId: data.handleModelId,
+                      edgeBanding: data.edgeBanding,
+                      ceramicColor: data.ceramicColor,
+                      vetaOrientation: data.vetaOrientation,
+                      packagingCost: data.handlePrice,
+                      isExpressDelivery: data.isExpressDelivery,
+                      isExhibition: data.isExhibition,
+                      expressAmount: data.expressAmount || 0,
+                      exhibitionAmount: data.exhibitionAmount || 0,
+                      jaladera: data.jaladera,
+                      jaladeraOrientation: data.jaladeraOrientation,
+                      cubrecanto: data.cubrecanto,
+                      handlePrice: data.handlePrice,
+                    }
+
+                    const url = editingItem 
+                      ? `/api/quotes/${params.id}/items/${editingItem.id}` 
+                      : `/api/quotes/${params.id}/items/configured`
+                    
+                    const response = await fetch(url, {
+                      method: editingItem ? 'PUT' : 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify(payload),
+                    })
+
+                    const result = await response.json()
+                    if (result.success) {
+                      await fetchQuote()
+                      setEditingItem(null)
+                      setCeramicaWizardInitialData(undefined)
+                      toast({
+                        title: editingItem ? 'Producto actualizado' : 'Producto agregado',
+                        description: editingItem ? 'La partida ha sido actualizada' : 'El producto ha sido agregado a la cotización',
+                      })
+                    } else {
+                      throw new Error(result.error || 'Error desconocido')
+                    }
+                  } catch (err: any) {
+                    console.error('Error procesando ceramica:', err)
+                    toast({
+                      title: 'Error',
+                      description: err.message || 'Error al procesar el producto',
+                      variant: 'destructive',
+                    })
+                  }
+                  setShowCeramicaWizard(false)
+                }}
+                onCancel={() => {
+                  setShowCeramicaWizard(false)
+                  setEditingItem(null)
+                  setCeramicaWizardInitialData(undefined)
+                }}
+              />
+            </div>
+</DialogContent>
+        </Dialog>
+
+        {/* Alto Brillo Wizard Dialog */}
+        <Dialog open={showAltoBrilloWizard} onOpenChange={setShowAltoBrilloWizard}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+            <DialogHeader>
+              <DialogTitle>Cotizador Alto Brillo</DialogTitle>
+            </DialogHeader>
+            <div className="flex-1">
+              <AltoBrilloWizard
+                quoteId={params.id}
+                initialData={altoBrilloWizardInitialData}
+                expressDeliveryPercentage={companySettings?.expressDeliveryPercentage}
+                exhibitionPercentage={companySettings?.exhibitionPercentage}
+                onComplete={async (data) => {
+                  console.log('Alto Brillo wizard complete:', data)
+                  try {
+                    let response
+                    if (editingItem) {
+                      response = await fetch(`/api/quotes/${params.id}/items/${editingItem.id}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          quantity: data.quantity,
+                          unitPrice: data.unitPrice,
+                          totalPrice: data.totalPrice,
+                          customWidth: data.width,
+                          customHeight: data.height,
+                          isTwoSided: data.isTwoSided,
+                          ceramicColor: data.tone || '',
+                          edgeBanding: data.edgeBanding,
+                          jaladera: data.handle,
+                          jaladeraOrientation: data.handleOrientation,
+                          handlePrice: data.handlePrice,
+                          packagingCost: data.handlePrice,
+                          isExpressDelivery: data.expressShipping,
+                          isExhibition: data.demoProduct,
+                          expressAmount: data.expressAmount || 0,
+                          exhibitionAmount: data.exhibitionAmount || 0,
+                          expressShipping: data.expressShipping,
+                          demoProduct: data.demoProduct
+                        }),
+                      })
+                    } else {
+                      response = await fetch(`/api/quotes/${params.id}/items/configured`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          lineId: 'cmm84o1r80004le11x2p8qhbw',
+                          productId: data.productId, // Añadir productId
+                          toneId: data.toneId,
+                          ceramicColor: data.tone || data.ceramicColor || '',
+                          quantity: data.quantity,
+                          width: data.width,
+                          height: data.height,
+                          unitPrice: data.unitPrice,
+                          totalPrice: data.totalPrice,
+                          handleModelId: '',
+                          edgeBanding: data.edgeBanding,
+                          isTwoSided: data.isTwoSided,
+                          isExpressDelivery: data.expressShipping,
+                          isExhibition: data.demoProduct,
+                          pricePerSquareMeter: data.pricePerSquareMeter,
+                          packagingCost: data.handlePrice,
+                          expressAmount: data.expressAmount || 0,
+                          exhibitionAmount: data.exhibitionAmount || 0,
+                          jaladera: data.handle,
+                          jaladeraOrientation: data.handleOrientation,
+                        }),
+                      })
+                    }
+                    const result = await response.json()
+                    if (result.success) {
+                      await fetchQuote()
+                      setEditingItem(null)
+                      setAltoBrilloWizardInitialData(undefined)
+                      toast({
+                        title: editingItem ? 'Producto actualizado' : 'Producto agregado',
+                        description: editingItem ? 'La partida ha sido actualizada' : 'El producto ha sido agregado a la cotización',
+                      })
+                    } else {
+                      throw new Error(result.error)
+                    }
+                  } catch (err) {
+                    console.error('Error adding/updating alto brillo product:', err)
+                    toast({
+                      title: 'Error',
+                      description: 'Error al procesar el producto',
+                      variant: 'destructive',
+                    })
+                  }
+                  setShowAltoBrilloWizard(false)
+                }}
+                onCancel={() => {
+                  setShowAltoBrilloWizard(false)
+                  setEditingItem(null)
+                  setAltoBrilloWizardInitialData(undefined)
+                }}
+              />
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Super Mate Wizard Dialog */}
+        <Dialog open={showSuperMateWizard} onOpenChange={setShowSuperMateWizard}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+            <DialogHeader>
+              <DialogTitle>Cotizador Super Mate</DialogTitle>
+            </DialogHeader>
+            <div className="flex-1">
+              <SuperMateWizard
+                quoteId={params.id}
+                initialData={superMateWizardInitialData}
+                expressDeliveryPercentage={companySettings?.expressDeliveryPercentage}
+                exhibitionPercentage={companySettings?.exhibitionPercentage}
+                onComplete={async (data) => {
+                  console.log('Super Mate wizard complete:', data)
+                  try {
+                    let response
+                    if (editingItem) {
+                      response = await fetch(`/api/quotes/${params.id}/items/${editingItem.id}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          quantity: data.quantity,
+                          unitPrice: data.unitPrice,
+                          totalPrice: data.totalPrice,
+                          customWidth: data.width,
+                          customHeight: data.height,
+                          isTwoSided: data.isTwoSided,
+                          ceramicColor: data.tone || '',
+                          edgeBanding: data.edgeBanding,
+                          jaladera: data.handle,
+                          jaladeraOrientation: data.handleOrientation,
+                          handlePrice: data.handlePrice,
+                          packagingCost: data.handlePrice,
+                          isExpressDelivery: data.expressShipping,
+                          isExhibition: data.demoProduct,
+                          expressAmount: data.expressAmount || 0,
+                          exhibitionAmount: data.exhibitionAmount || 0,
+                          expressShipping: data.expressShipping,
+                          demoProduct: data.demoProduct
+                        }),
+                      })
+                    } else {
+                      response = await fetch(`/api/quotes/${params.id}/items/configured`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          lineId: 'cmm84ogp30005le11zrjxio1p',
+                          productId: data.productId,
+                          toneId: data.toneId,
+                          ceramicColor: data.tone || data.ceramicColor || '',
+                          quantity: data.quantity,
+                          width: data.width,
+                          height: data.height,
+                          unitPrice: data.unitPrice,
+                          totalPrice: data.totalPrice,
+                          handleModelId: '',
+                          edgeBanding: data.edgeBanding,
+                          isTwoSided: data.isTwoSided,
+                          isExpressDelivery: data.expressShipping,
+                          isExhibition: data.demoProduct,
+                          pricePerSquareMeter: data.pricePerSquareMeter,
+                          packagingCost: data.handlePrice,
+                          expressAmount: data.expressAmount || 0,
+                          exhibitionAmount: data.exhibitionAmount || 0,
+                          jaladera: data.handle,
+                          jaladeraOrientation: data.handleOrientation,
+                        }),
+                      })
+                    }
+                    const result = await response.json()
+                    if (result.success) {
+                      await fetchQuote()
+                      setEditingItem(null)
+                      setSuperMateWizardInitialData(undefined)
+                      toast({
+                        title: editingItem ? 'Producto actualizado' : 'Producto agregado',
+                        description: editingItem ? 'La partida ha sido actualizada' : 'El producto ha sido agregado a la cotización',
+                      })
+                    } else {
+                      throw new Error(result.error)
+                    }
+                  } catch (err) {
+                    console.error('Error adding/updating super mate product:', err)
+                    toast({
+                      title: 'Error',
+                      description: 'Error al procesar el producto',
+                      variant: 'destructive',
+                    })
+                  }
+                  setShowSuperMateWizard(false)
+                }}
+                onCancel={() => {
+                  setShowSuperMateWizard(false)
+                  setEditingItem(null)
+                  setSuperMateWizardInitialData(undefined)
+                }}
+              />
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Alhú Wizard Dialog */}
+        <Dialog open={showAlhuWizard} onOpenChange={setShowAlhuWizard}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+            <DialogHeader>
+              <DialogTitle>Cotizador Alhú</DialogTitle>
+            </DialogHeader>
+            <div className="flex-1">
+              <AlhuWizard
+                quoteId={params.id}
+                initialData={alhuWizardInitialData}
+                expressDeliveryPercentage={companySettings?.expressDeliveryPercentage}
+                exhibitionPercentage={companySettings?.exhibitionPercentage}
+                onComplete={async (data) => {
+                  console.log('Alhú wizard complete:', data)
+                  try {
+                    let response
+                    if (editingItem) {
+                      response = await fetch(`/api/quotes/${params.id}/items/${editingItem.id}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          quantity: data.quantity,
+                          unitPrice: data.unitPrice,
+                          totalPrice: data.totalPrice,
+                          customWidth: data.width,
+                          customHeight: data.height,
+                          handleModelId: data.handleModelId,
+                          edgeBanding: data.tonoAluminio,
+                          ceramicColor: data.tonoVidrio,
+                          packagingCost: data.handlePrice,
+                          isExpressDelivery: data.expressShipping,
+                          isExhibition: data.demoProduct,
+                          expressAmount: data.expressAmount || 0,
+                          exhibitionAmount: data.exhibitionAmount || 0,
+                        }),
+                      })
+                    } else {
+                      response = await fetch(`/api/quotes/${params.id}/items/configured`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          lineId: 'cmm84n8050002le11gtoiaf93',
+                          productId: data.productId,
+                          quantity: data.quantity,
+                          width: data.width,
+                          height: data.height,
+                          unitPrice: data.unitPrice,
+                          totalPrice: data.totalPrice,
+                          handleModelId: '',
+                          edgeBanding: data.tonoAluminio,
+                          ceramicColor: data.tonoVidrio,
+                          packagingCost: data.handlePrice,
+                          isExpressDelivery: data.expressShipping,
+                          isExhibition: data.demoProduct,
+                          expressAmount: data.expressAmount || 0,
+                          exhibitionAmount: data.exhibitionAmount || 0,
+                        }),
+                      })
+                    }
+                    const result = await response.json()
+                    if (result.success) {
+                      await fetchQuote()
+                      setEditingItem(null)
+                      setAlhuWizardInitialData(undefined)
+                      toast({
+                        title: editingItem ? 'Producto actualizado' : 'Producto agregado',
+                        description: editingItem ? 'La partida ha sido actualizada' : 'El producto ha sido agregado a la cotización',
+                      })
+                    } else {
+                      throw new Error(result.error)
+                    }
+                  } catch (err) {
+                    console.error('Error adding/updating Alhú product:', err)
+                    toast({
+                      title: 'Error',
+                      description: 'Error al procesar el producto',
+                      variant: 'destructive',
+                    })
+                  }
+                  setShowAlhuWizard(false)
+                }}
+                onCancel={() => {
+                  setShowAlhuWizard(false)
+                  setEditingItem(null)
+                  setAlhuWizardInitialData(undefined)
+                }}
+              />
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Europa Básica Wizard Dialog */}
+        <Dialog open={showEuropaBasicaWizard} onOpenChange={setShowEuropaBasicaWizard}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+            <DialogHeader>
+              <DialogTitle>Cotizador Europa Básica</DialogTitle>
+            </DialogHeader>
+            <div className="flex-1">
+              <EuropaBasicaWizard
+                quoteId={params.id}
+                initialData={europaBasicaWizardInitialData}
+                expressDeliveryPercentage={companySettings?.expressDeliveryPercentage}
+                exhibitionPercentage={companySettings?.exhibitionPercentage}
+                onComplete={async (data) => {
+                  console.log('Europa Básica wizard complete:', data)
+                  try {
+                    let response
+                    if (editingItem) {
+                      response = await fetch(`/api/quotes/${params.id}/items/${editingItem.id}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          quantity: data.quantity,
+                          unitPrice: data.unitPrice,
+                          totalPrice: data.totalPrice,
+                          customWidth: data.width,
+                          customHeight: data.height,
+                          handleModelId: data.handleModelId,
+                          edgeBanding: data.edgeBanding,
+                          ceramicColor: data.ceramicColor,
+                          vetaOrientation: data.vetaOrientation,
+                          jaladera: data.handle,
+                          jaladeraOrientation: data.handleOrientation,
+                          handlePrice: data.handlePrice,
+                          packagingCost: data.handlePrice,
+                          isExpressDelivery: data.expressShipping,
+                          isExhibition: data.demoProduct,
+                          expressAmount: data.expressAmount || 0,
+                          exhibitionAmount: data.exhibitionAmount || 0,
+                        }),
+                      })
+                    } else {
+                      response = await fetch(`/api/quotes/${params.id}/items/configured`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          lineId: 'cmm79y3oz0004le1105bhlipk',
+                          productId: data.productId,
+                          quantity: data.quantity,
+                          width: data.width,
+                          height: data.height,
+                          unitPrice: data.unitPrice,
+                          totalPrice: data.totalPrice,
+                          handleModelId: data.handleModelId,
+                          edgeBanding: data.edgeBanding,
+                          ceramicColor: data.ceramicColor,
+                          vetaOrientation: data.vetaOrientation,
+                          jaladera: data.handle,
+                          jaladeraOrientation: data.handleOrientation,
+                          handlePrice: data.handlePrice,
+                          packagingCost: data.handlePrice,
+                          isExpressDelivery: data.expressShipping,
+                          isExhibition: data.demoProduct,
+                          expressAmount: data.expressAmount || 0,
+                          exhibitionAmount: data.exhibitionAmount || 0,
+                        }),
+                      })
+                    }
+                    const result = await response.json()
+                    if (result.success) {
+                      await fetchQuote()
+                      setEditingItem(null)
+                      setEuropaBasicaWizardInitialData(undefined)
+                      toast({
+                        title: editingItem ? 'Producto actualizado' : 'Producto agregado',
+                        description: editingItem ? 'La partida ha sido actualizada' : 'El producto ha sido agregado a la cotización',
+                      })
+                    } else {
+                      throw new Error(result.error)
+                    }
+                  } catch (err) {
+                    console.error('Error adding/updating Europa Básica product:', err)
+                    toast({
+                      title: 'Error',
+                      description: 'Error al procesar el producto',
+                      variant: 'destructive',
+                    })
+                  }
+                  setShowEuropaBasicaWizard(false)
+                }}
+                onCancel={() => {
+                  setShowEuropaBasicaWizard(false)
+                  setEditingItem(null)
+                  setEuropaBasicaWizardInitialData(undefined)
+                }}
+              />
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Europa Sincro Wizard Dialog */}
+        <Dialog open={showEuropaSincroWizard} onOpenChange={setShowEuropaSincroWizard}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+            <DialogHeader>
+              <DialogTitle>Cotizador Europa Sincro</DialogTitle>
+            </DialogHeader>
+            <div className="flex-1">
+              <EuropaSincroWizard
+                quoteId={params.id}
+                initialData={europaSincroWizardInitialData}
+                expressDeliveryPercentage={companySettings?.expressDeliveryPercentage}
+                exhibitionPercentage={companySettings?.exhibitionPercentage}
+                onComplete={async (data) => {
+                  console.log('Europa Sincro wizard complete:', data)
+                  try {
+                    let response
+                    if (editingItem) {
+                      response = await fetch(`/api/quotes/${params.id}/items/${editingItem.id}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          quantity: data.quantity,
+                          unitPrice: data.unitPrice,
+                          totalPrice: data.totalPrice,
+                          customWidth: data.width,
+                          customHeight: data.height,
+                          handleModelId: data.handleModelId,
+                          edgeBanding: data.edgeBanding,
+                          ceramicColor: data.ceramicColor,
+                          tonoColor: data.tonoColor,
+                          packagingCost: data.handlePrice,
+                          isExpressDelivery: data.expressShipping,
+                          isExhibition: data.demoProduct,
+                          expressAmount: data.expressAmount || 0,
+                          exhibitionAmount: data.exhibitionAmount || 0,
+                        }),
+                      })
+                    } else {
+                      response = await fetch(`/api/quotes/${params.id}/items/configured`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        lineId: 'cmm84mnhv0000le11rk32wdq1',
+                        productId: data.productId,
+                        quantity: data.quantity,
+                        width: data.width,
+                        height: data.height,
+                        unitPrice: data.unitPrice,
+                        totalPrice: data.totalPrice,
+                        packagingCost: data.handlePrice,
+                        isExpressDelivery: data.expressShipping,
+                        isExhibition: data.demoProduct,
+                        expressAmount: data.expressAmount || 0,
+                        exhibitionAmount: data.exhibitionAmount || 0,
+                        // Añadimos estas nuevas opciones que faltaban
+                        expressShipping: data.expressShipping,
+                        demoProduct: data.demoProduct
+                      }),
+
+                      })
+                    }
+                    const result = await response.json()
+                    if (result.success) {
+                      await fetchQuote()
+                      setEditingItem(null)
+                      setEuropaSincroWizardInitialData(undefined)
+                      toast({
+                        title: editingItem ? 'Producto actualizado' : 'Producto agregado',
+                        description: editingItem ? 'La partida ha sido actualizada' : 'El producto ha sido agregado a la cotización',
+                      })
+                    } else {
+                      throw new Error(result.error)
+                    }
+                  } catch (err) {
+                    console.error('Error adding/updating Europa Sincro product:', err)
+                    toast({
+                      title: 'Error',
+                      description: 'Error al procesar el producto',
+                      variant: 'destructive',
+                    })
+                  }
+                  setShowEuropaSincroWizard(false)
+                }}
+                onCancel={() => {
+                  setShowEuropaSincroWizard(false)
+                  setEditingItem(null)
+                  setEuropaSincroWizardInitialData(undefined)
+                }}
+              />
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </div>
   )
 }

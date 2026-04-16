@@ -21,7 +21,8 @@ import {
   Clock,
   CheckCircle,
   AlertCircle,
-  Loader2
+  Loader2,
+  Settings
 } from 'lucide-react'
 import { DashboardStats, Quote } from '@/lib/types'
 
@@ -267,6 +268,7 @@ export default function DashboardPage() {
                         key={quote.id}
                         quote={quote}
                         onDownloadPDF={handleDownloadPDF}
+                        onRefresh={fetchDashboardStats}
                         showUserInfo={session?.user?.role === 'ADMIN'}
                       />
                     ))}
@@ -320,12 +322,20 @@ export default function DashboardPage() {
                   </Button>
                 </Link>
                 {session?.user?.role === 'ADMIN' && (
-                  <Link href="/admin" className="block">
-                    <Button className="w-full justify-start text-sm" variant="outline">
-                      <BarChart3 className="w-4 h-4 mr-2" />
-                      Panel Admin
-                    </Button>
-                  </Link>
+                  <>
+                    <Link href="/admin" className="block">
+                      <Button className="w-full justify-start text-sm" variant="outline">
+                        <BarChart3 className="w-4 h-4 mr-2" />
+                        Panel Admin
+                      </Button>
+                    </Link>
+                    <Link href="/admin/products" className="block">
+                      <Button className="w-full justify-start text-sm" variant="outline">
+                        <Package className="w-4 h-4 mr-2" />
+                        Gestión Productos
+                      </Button>
+                    </Link>
+                  </>
                 )}
               </CardContent>
             </Card>

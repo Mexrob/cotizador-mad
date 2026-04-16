@@ -23,7 +23,32 @@ export async function GET(
 
     const quote = await prisma.quote.findUnique({
       where: { id: params.id },
-      include: {
+      select: {
+        id: true,
+        quoteNumber: true,
+        status: true,
+        customerName: true,
+        customerEmail: true,
+        customerPhone: true,
+        customerAddress: true,
+        projectName: true,
+        projectAddress: true,
+        roomDimensions: true,
+        notes: true,
+        subtotal: true,
+        taxAmount: true,
+        discountAmount: true,
+        totalAmount: true,
+        isExpressOrder: true,
+        isExhibitionOrder: true,
+        attachments: true,
+        validUntil: true,
+        deliveryDate: true,
+        validationDate: true,
+        productionEndDate: true,
+        userId: true,
+        createdAt: true,
+        updatedAt: true,
         user: {
           select: {
             id: true,
@@ -34,21 +59,35 @@ export async function GET(
           },
         },
         items: {
-          include: {
-            product: {
-              include: {
-                category: true,
-                materials: true,
-                pricing: true,
-              },
-            },
+          select: {
+            id: true,
+            quantity: true,
+            unitPrice: true,
+            totalPrice: true,
+            customWidth: true,
+            customHeight: true,
+            customDepth: true,
+            product: true,
             productLine: true,
             productTone: true,
             handleModel: true,
             woodGrain: true,
+            isTwoSided: true,
+            isExhibition: true,
+            isExpressDelivery: true,
+            edgeBanding: true,
+            ceramicColor: true,
+            vetaOrientation: true,
+            jaladera: true,
+            jaladeraOrientation: true,
+            cubrecanto: true,
+            handlePrice: true,
+            packagingCost: true,
+            expressAmount: true,
+            exhibitionAmount: true,
           },
         },
-      },
+       },
     })
 
     if (!quote) {
@@ -71,9 +110,11 @@ export async function GET(
       data: quote,
     })
   } catch (error) {
-    console.error('Quote fetch error:', error)
+    const err = error as Error
+    console.error('Quote fetch error:', err.message || error)
+    console.error('Error stack:', err.stack)
     return NextResponse.json(
-      { error: 'Error al obtener cotización' },
+      { error: 'Error al obtener cotización', details: err.message },
       { status: 500 }
     )
   }

@@ -50,7 +50,6 @@ export default function FileUpload({
         try {
             setUploading(true)
             setUploadProgress(0)
-
             const formData = new FormData()
             formData.append('file', file)
 

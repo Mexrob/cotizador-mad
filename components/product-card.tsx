@@ -96,7 +96,6 @@ export function ProductCard({ product, onAddToQuote, onQuickView }: ProductCardP
             </p>
             
             <div className="flex items-center justify-between">
-              <span className="text-xs text-gray-500">SKU: {product.sku}</span>
               {product.leadTime && (
                 <span className="text-xs text-module-black">
                   Entrega: {product.leadTime} días

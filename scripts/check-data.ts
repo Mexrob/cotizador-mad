@@ -45,16 +45,13 @@ async function checkData() {
       select: {
         id: true,
         name: true,
-        sku: true,
-        status: true,
-        category: {
-          select: { name: true }
-        }
+        linea: true,
+        categoria: true,
       }
     })
     console.log(`\n📦 Products: ${products.length}`)
     products.forEach(product => {
-      console.log(`  - ${product.sku}: ${product.name} (${product.category.name}) - ${product.status}`)
+      console.log(`  - ${product.name} (${product.linea || 'Sin línea'}) - ${product.categoria || 'Sin categoría'}`)
     })
     
     // Check categories
@@ -63,14 +60,11 @@ async function checkData() {
         id: true,
         name: true,
         status: true,
-        _count: {
-          select: { products: true }
-        }
       }
     })
     console.log(`\n📂 Categories: ${categories.length}`)
     categories.forEach(category => {
-      console.log(`  - ${category.name} (${category.status}) - ${category._count.products} products`)
+      console.log(`  - ${category.name} (${category.status})`)
     })
     
     // Check materials

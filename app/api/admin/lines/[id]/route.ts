@@ -47,19 +47,19 @@ export async function DELETE(
         const authGuardResponse = adminAuthGuard(session);
         if (authGuardResponse) return authGuardResponse;
 
-        // Check if line is used in products
-        const lineWithProducts = await prisma.productLine.findUnique({
+        // Check if line has tones
+        const lineWithTones = await prisma.productLine.findUnique({
             where: { id: params.id },
             include: {
                 _count: {
-                    select: { products: true }
+                    select: { tones: true }
                 }
             }
         });
 
-        if (lineWithProducts && lineWithProducts._count.products > 0) {
+        if (lineWithTones && lineWithTones._count.tones > 0) {
             return NextResponse.json({
-                error: 'No se puede eliminar una línea que tiene productos asociados.'
+                error: 'No se puede eliminar una línea que tiene tonos asociados.'
             }, { status: 400 });
         }
 

@@ -22,7 +22,7 @@ interface HandleModel {
     price: number;
     priceUnit: string;
     imageUrl?: string | null;
-    _count: { products: number };
+    isActive?: boolean;
 }
 
 export default function HandleModelsManagement() {
@@ -79,19 +79,22 @@ export default function HandleModelsManagement() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData),
             });
+            const data = await res.json();
             if (res.ok) {
                 toast.success('Guardado');
                 fetchHandles();
                 setDialogOpen(false);
+                setEditingHandle(null);
+                setFormData({ name: '', price: 0, priceUnit: 'ml', sortOrder: 0, imageUrl: '' });
             } else {
-                const errorData = await res.json().catch(() => ({}));
-                console.error('Error response:', errorData);
-                toast.error(errorData.error || 'Error al guardar');
+                toast.error(data.error || 'Error al guardar');
             }
         } catch (error) {
             console.error('Submission error:', error);
             toast.error('Error de conexión');
-        } finally { setSubmitting(false); }
+        } finally {
+            setSubmitting(false);
+        }
     };
 
     const handleDelete = async (id: string) => {
@@ -164,7 +167,9 @@ export default function HandleModelsManagement() {
                             <div className="text-sm space-y-1 text-gray-600 mb-2">
                                 <p className="font-bold text-green-600">${Number(handle.price)} / ml</p>
                             </div>
-                            <Badge variant="outline">{handle._count.products} Productos</Badge>
+                            <Badge variant={handle.isActive ? 'default' : 'secondary'}>
+                                {handle.isActive ? 'Activo' : 'Inactivo'}
+                            </Badge>
                         </CardContent>
                     </Card>
                 ))}

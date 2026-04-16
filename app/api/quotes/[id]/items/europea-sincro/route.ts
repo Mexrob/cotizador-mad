@@ -17,6 +17,8 @@ export async function POST(
 
         const config = await request.json()
         console.log('Europea Sincro config received:', JSON.stringify(config, null, 2))
+        
+        const backFace = config.backFace || config.dimensions?.backFace || config.vetaOrientation || null
 
         // 1. Find ProductLine "Europea Sincro"
         const productLine = await prisma.productLine.findUnique({
@@ -32,7 +34,7 @@ export async function POST(
         let product = await prisma.product.findFirst({
             where: {
                 name: 'Puerta Europea Sincro',
-                lineId: productLine.id
+                linea: productLine.id
             }
         })
 
@@ -52,15 +54,24 @@ export async function POST(
             product = await prisma.product.create({
                 data: {
                     name: 'Puerta Europea Sincro',
-                    description: 'Puerta fabricada con tecnología Sincro',
-                    sku: 'EUROPEA-SINCRO',
                     categoryId: category.id,
-                    lineId: productLine.id,
-                    basePrice: 1400,
-
-                    dimensionUnit: 'mm'
+                    linea: productLine.id,
+                    precioBaseM2: 1400,
                 }
             })
+        }
+
+        // Validate tiempo de entrega - prevent mixing different delivery times
+        const existingItems = await prisma.quoteItem.findMany({
+            where: { quoteId: params.id },
+            include: { product: { select: { tiempoEntrega: true } } }
+        })
+        const existingTiempoEntrega = existingItems[0]?.product?.tiempoEntrega
+        if (existingItems.length > 0 && existingTiempoEntrega !== product.tiempoEntrega) {
+            return NextResponse.json(
+                { success: false, error: `Error en el tiempo de entrega. Esta cotización tiene productos con ${existingTiempoEntrega} días. Solo puedes agregar productos con el mismo tiempo de entrega.` },
+                { status: 400 }
+            )
         }
 
         // 3. Find ProductTone
@@ -102,9 +113,14 @@ export async function POST(
 
         const subtotal = basePrice + handlePrice
 
-        const exhibitionFee = optionals.isExhibition ? subtotal * -0.25 : 0
-        const expressDeliveryFee = optionals.isExpressDelivery ? subtotal * 0.20 : 0
-        const total = subtotal + exhibitionFee + expressDeliveryFee
+        // Get company settings for dynamic percentages
+        const companySettings = await prisma.companySettings.findFirst()
+        const expressPercentage = companySettings?.expressDeliveryPercentage || 20
+        const exhibitionPercentage = companySettings?.exhibitionPercentage || 25
+
+        const expressDeliveryFee = optionals.isExpressDelivery ? subtotal * (expressPercentage / 100) : 0
+        const exhibitionFee = optionals.isExhibition ? subtotal * (exhibitionPercentage / 100) : 0
+        const total = subtotal + expressDeliveryFee - exhibitionFee
 
         // Find WoodGrain
         let woodGrainId = null
@@ -129,12 +145,14 @@ export async function POST(
                 customHeight: dimensions.height,
                 productToneId: toneId,
                 handleModelId: handleId,
-                woodGrainId: woodGrainId, // Save the grain direction relation
+                woodGrainId: woodGrainId,
                 edgeBanding: config.edgeBanding,
-                // Use same logic as Basic for consistency
-                isTwoSided: config.backFace === 'Horizontal' || config.backFace === 'Vertical',
+                isTwoSided: backFace === 'Horizontal' || backFace === 'Vertical',
+                vetaOrientation: backFace === 'Horizontal' || backFace === 'Vertical' ? backFace : null,
                 isExhibition: optionals.isExhibition,
                 isExpressDelivery: optionals.isExpressDelivery,
+                expressAmount: expressDeliveryFee,
+                exhibitionAmount: exhibitionFee,
             }
         })
 

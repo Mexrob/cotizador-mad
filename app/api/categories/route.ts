@@ -37,9 +37,6 @@ export async function GET(request: NextRequest) {
         parent: true,
         children: {
           where: includeInactive ? {} : { status: 'ACTIVE' }
-        },
-        _count: {
-          select: { products: true }
         }
       },
       orderBy: { name: 'asc' }
@@ -82,13 +79,6 @@ export async function POST(request: NextRequest) {
         parentId: parentId || null,
         image,
         status: status || 'ACTIVE'
-      },
-      include: {
-        parent: true,
-        children: true,
-        _count: {
-          select: { products: true }
-        }
       }
     });
 

@@ -14,12 +14,7 @@ export async function GET() {
         if (authGuardResponse) return authGuardResponse;
 
         const handles = await (prisma as any).handleModel.findMany({
-            orderBy: { sortOrder: 'asc' },
-            include: {
-                _count: {
-                    select: { products: true }
-                }
-            }
+            orderBy: { sortOrder: 'asc' }
         });
 
         return NextResponse.json({ success: true, data: handles });
@@ -50,8 +45,17 @@ export async function POST(request: NextRequest) {
             sortOrder
         } = body;
 
-        if (!name || price === undefined) {
+        if (!name || price === undefined || price === null || price === '') {
             return NextResponse.json({ error: 'Nombre y precio son requeridos' }, { status: 400 });
+        }
+
+        // Check if handle already exists
+        const existingHandle = await (prisma as any).handleModel.findUnique({
+            where: { name }
+        });
+
+        if (existingHandle) {
+            return NextResponse.json({ error: 'Ya existe una jaladera con ese nombre' }, { status: 400 });
         }
 
         const handle = await (prisma as any).handleModel.create({

@@ -9,29 +9,35 @@ async function main() {
     console.log(`Checking Line ID: ${lineId}`)
 
     const line = await prisma.productLine.findUnique({
-        where: { id: lineId },
-        include: { products: true }
+        where: { id: lineId }
     })
 
     if (!line) {
         console.log('Line NOT found')
     } else {
         console.log('Line found:', line.name)
-        console.log('Products count:', line.products.length)
-        if (line.products.length > 0) {
-            console.log('First product:', line.products[0].name, line.products[0].id)
+        
+        // Query products by linea field
+        const products = await prisma.product.findMany({
+            where: { linea: line.name }
+        })
+        
+        console.log('Products count:', products.length)
+        if (products.length > 0) {
+            console.log('First product:', products[0].name, products[0].id)
         }
     }
 
     // Also list all lines and their products to see what's available
-    const allLines = await prisma.productLine.findMany({
-        include: { products: true }
-    })
+    const allLines = await prisma.productLine.findMany()
 
     console.log('\nAll Lines:')
-    allLines.forEach(l => {
-        console.log(`- ${l.name} (${l.id}): ${l.products.length} products`)
-    })
+    for (const l of allLines) {
+        const products = await prisma.product.count({
+            where: { linea: l.name }
+        })
+        console.log(`- ${l.name} (${l.id}): ${products} products`)
+    }
 }
 
 main()

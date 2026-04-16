@@ -27,10 +27,13 @@ import {
   CheckCircle,
   Clock,
   ArrowRight,
-  Folder
+  Folder,
+  HardDrive,
+  Server
 } from 'lucide-react'
 import UserManagement from './components/user-management'
 import LogoUpload from '@/components/logo-upload'
+import BackupManagement from '@/components/backup-management'
 import Link from 'next/link'
 
 interface CompanySettings {
@@ -45,6 +48,8 @@ interface CompanySettings {
   taxId: string
   website?: string
   sessionTimeoutMinutes?: number
+  expressDeliveryPercentage?: number
+  exhibitionPercentage?: number
 }
 
 interface DashboardStats {
@@ -73,7 +78,9 @@ export default function AdminPage() {
     zipCode: '06600',
     taxId: 'CDL123456789',
     website: 'https://cocinasdelujo.mx',
-    sessionTimeoutMinutes: 15
+    sessionTimeoutMinutes: 15,
+    expressDeliveryPercentage: 20,
+    exhibitionPercentage: 25,
   })
 
   // Redirect if not authenticated or not admin
@@ -116,7 +123,9 @@ export default function AdminPage() {
               zipCode: settingsData.data.zipCode || '',
               taxId: settingsData.data.taxId || '',
               website: settingsData.data.website || '',
-              sessionTimeoutMinutes: settingsData.data.sessionTimeoutMinutes || 15
+              sessionTimeoutMinutes: settingsData.data.sessionTimeoutMinutes || 15,
+              expressDeliveryPercentage: settingsData.data.expressDeliveryPercentage || 20,
+              exhibitionPercentage: settingsData.data.exhibitionPercentage || 25,
             })
           }
         }
@@ -265,7 +274,7 @@ export default function AdminPage() {
           )}
 
           <Tabs defaultValue="company" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-6">
               <TabsTrigger value="company" className="flex items-center space-x-2">
                 <Building className="w-4 h-4" />
                 <span>Empresa</span>
@@ -281,6 +290,14 @@ export default function AdminPage() {
               <TabsTrigger value="activity" className="flex items-center space-x-2">
                 <BarChart3 className="w-4 h-4" />
                 <span>Actividad</span>
+              </TabsTrigger>
+              <TabsTrigger value="system" className="flex items-center space-x-2">
+                <Server className="w-4 h-4" />
+                <span>Sistema</span>
+              </TabsTrigger>
+              <TabsTrigger value="backup" data-value="backup" className="flex items-center space-x-2">
+                <HardDrive className="w-4 h-4" />
+                <span>Respaldos</span>
               </TabsTrigger>
             </TabsList>
 
@@ -419,6 +436,51 @@ export default function AdminPage() {
                     </div>
                   </div>
 
+                  <div className="border-t pt-6">
+                    <h3 className="text-lg font-semibold mb-4">Porcentajes de Opciones Especiales</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <Label htmlFor="expressDeliveryPercentage">Porcentaje de Envío Express (%)</Label>
+                        <Input
+                          id="expressDeliveryPercentage"
+                          type="number"
+                          min={0}
+                          max={100}
+                          value={companySettings.expressDeliveryPercentage || 20}
+                          onChange={(e) => {
+                            const value = parseFloat(e.target.value) || 10
+                            if (value >= 0 && value <= 100) {
+                              setCompanySettings({ ...companySettings, expressDeliveryPercentage: value })
+                            }
+                          }}
+                        />
+                        <p className="text-sm text-muted-foreground">
+                          Porcentaje adicional para envío express.
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="exhibitionPercentage">Porcentaje de Producto de Exhibición (%)</Label>
+                        <Input
+                          id="exhibitionPercentage"
+                          type="number"
+                          min={0}
+                          max={100}
+                          value={companySettings.exhibitionPercentage || 25}
+                          onChange={(e) => {
+                            const value = parseFloat(e.target.value) || 10
+                            if (value >= 0 && value <= 100) {
+                              setCompanySettings({ ...companySettings, exhibitionPercentage: value })
+                            }
+                          }}
+                        />
+                        <p className="text-sm text-muted-foreground">
+                          Porcentaje de descuento para productos de demostración.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="flex justify-end">
                     <Button
                       onClick={handleSaveCompanySettings}
@@ -478,6 +540,38 @@ export default function AdminPage() {
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center space-x-2">
+                      <Settings className="w-5 h-5" />
+                      <span>Configuración de Wizards</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <p className="text-muted-foreground">
+                      Crea y configura wizards de cotización personalizados para diferentes usuarios y roles.
+                    </p>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between p-3 border rounded-lg">
+                        <div>
+                          <h4 className="font-medium">Wizards Configurables</h4>
+                          <p className="text-sm text-muted-foreground">
+                            Personaliza los pasos de cotización
+                          </p>
+                        </div>
+                        <Settings className="w-8 h-8 text-purple-600" />
+                      </div>
+                    </div>
+                    <Link href="/admin/wizards">
+                      <Button className="w-full flex items-center justify-center space-x-2">
+                        <Settings className="w-4 h-4" />
+                        <span>Configurar Wizards</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </Button>
+                    </Link>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center space-x-2">
                       <BarChart3 className="w-5 h-5" />
                       <span>Resumen de Inventario</span>
                     </CardTitle>
@@ -511,6 +605,20 @@ export default function AdminPage() {
                               Gestionar Categorías
                             </Button>
                           </Link>
+                          {session?.user?.role === 'ADMIN' && (
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="w-full justify-start"
+                              onClick={() => {
+                                const backupTab = document.querySelector('[data-value="backup"]') as HTMLButtonElement;
+                                if (backupTab) backupTab.click();
+                              }}
+                            >
+                              <HardDrive className="w-4 h-4 mr-2" />
+                              Crear Respaldo
+                            </Button>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -568,6 +676,46 @@ export default function AdminPage() {
                   )}
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            {/* System Tab */}
+            <TabsContent value="system">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Server className="w-5 h-5" />
+                    <span>Información del Sistema</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-muted-foreground">
+                    Monitorea el rendimiento y la configuración del hardware del VPS.
+                  </p>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between p-3 border rounded-lg">
+                      <div>
+                        <h4 className="font-medium">Estado del Servidor</h4>
+                        <p className="text-sm text-muted-foreground">
+                          Ver información de CPU, memoria y disco
+                        </p>
+                      </div>
+                      <Server className="w-8 h-8 text-blue-600" />
+                    </div>
+                  </div>
+                  <Link href="/admin/system-info">
+                    <Button className="w-full flex items-center justify-center space-x-2">
+                      <Server className="w-4 h-4" />
+                      <span>Ver Información del Sistema</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </Button>
+                  </Link>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Backup Tab */}
+            <TabsContent value="backup">
+              <BackupManagement />
             </TabsContent>
           </Tabs>
         </motion.div>

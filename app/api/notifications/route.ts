@@ -17,6 +17,16 @@ export async function GET(request: NextRequest) {
             where: {
                 userId: session.user.id
             },
+            select: {
+                id: true,
+                userId: true,
+                title: true,
+                message: true,
+                type: true,
+                link: true,
+                isRead: true,
+                createdAt: true,
+            },
             orderBy: {
                 createdAt: 'desc'
             },

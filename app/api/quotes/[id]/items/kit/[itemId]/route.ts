@@ -63,11 +63,7 @@ export async function PUT(
                 isExpressDelivery: config.isExpressDelivery || false,
             },
             include: {
-                product: {
-                    include: {
-                        category: true,
-                    }
-                },
+                product: true,
                 productLine: true,
                 productTone: true,
                 handleModel: true,

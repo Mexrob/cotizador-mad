@@ -275,6 +275,9 @@ export interface QuoteItem {
   totalPrice: number;
   packagingCost: number; // Costo de Empaque calculado por Alto × Ancho
 
+  ceramicColor?: string | null;
+  vetaOrientation?: string | null;
+
   product?: Product;
   createdAt: Date;
   updatedAt: Date;
@@ -299,6 +302,9 @@ export interface CompanySettings {
   currency: string
   timezone: string
   language: string
+  sessionTimeoutMinutes?: number
+  expressDeliveryPercentage?: number
+  exhibitionPercentage?: number
   createdAt: Date
   updatedAt: Date
 }

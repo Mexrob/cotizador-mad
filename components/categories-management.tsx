@@ -222,7 +222,7 @@ export default function CategoriesManagement() {
                         <div className="flex items-center space-x-2 mt-1">
                           {getStatusBadge(category.status)}
                           <Badge variant="outline">
-                            {category._count.products} productos
+                            {category._count?.products || 0} productos
                           </Badge>
                         </div>
                       </div>
@@ -240,7 +240,7 @@ export default function CategoriesManagement() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            disabled={category._count.products > 0 || getSubcategories(category.id).length > 0}
+                            disabled={(category._count?.products || 0) > 0 || getSubcategories(category.id).length > 0}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -279,7 +279,7 @@ export default function CategoriesManagement() {
                           <div className="flex items-center space-x-2 mt-1">
                             {getStatusBadge(subcategory.status)}
                             <Badge variant="outline">
-                              {subcategory._count.products} productos
+                              {subcategory._count?.products || 0} productos
                             </Badge>
                           </div>
                         </div>
@@ -297,7 +297,7 @@ export default function CategoriesManagement() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              disabled={subcategory._count.products > 0}
+                              disabled={(subcategory._count?.products || 0) > 0}
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>

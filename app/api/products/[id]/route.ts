@@ -3,7 +3,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
-import { UserRole } from '@prisma/client';
 import { adminAuthGuard } from '@/lib/authUtils';
 
 export const dynamic = 'force-dynamic';
@@ -14,40 +13,9 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
     const product = await prisma.product.findUnique({
       where: { id: params.id },
-      include: {
-        category: true,
-        materials: true,
-        hardware: true,
-        productTone: true,
-        line: true,
-        edgeBandingRef: true,
-        handleRef: true,
-        pricing: session ? {
-          where: { userRole: session.user.role as UserRole }
-        } : false, // Only include pricing if session exists
-        _count: {
-          select: { quoteItems: true }
-        }
-      }
     });
-
-    // If no session, public access is allowed, but pricing won't be included.
-    // If session exists but product is not found, or not authorized, then return error.
-    if (!product && session) {
-      return NextResponse.json(
-        { error: 'Producto no encontrado' },
-        { status: 404 }
-      );
-    } else if (!product) {
-      // If no session and product not found, return generic not found without auth error
-      return NextResponse.json(
-        { error: 'Producto no encontrado' },
-        { status: 404 }
-      );
-    }
 
     if (!product) {
       return NextResponse.json(
@@ -60,7 +28,7 @@ export async function GET(
   } catch (error: any) {
     console.error('Error fetching product:', error);
     return NextResponse.json(
-      { error: error.message || 'Error interno del servidor' },
+      { error: 'Error interno del servidor' },
       { status: 500 }
     );
   }
@@ -76,138 +44,74 @@ export async function PUT(
     if (!session) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
+    
     const authGuardResponse = adminAuthGuard(session);
     if (authGuardResponse) return authGuardResponse;
 
     const body = await request.json();
     const {
       name,
-      description,
-      sku,
       categoryId,
-      width,
-      height,
-      depth,
-      weight,
-      dimensionUnit,
-      weightUnit,
-      basePrice,
-      currency,
+      categoria,
+      coleccion,
+      linea,
+      tonoColor,
+      tonoVidrio,
+      tonoAluminio,
+      precioBaseM2,
+      tiempoEntrega,
+      puertaAnchoMin,
+      puertaAnchoMax,
+      puertaAltoMin,
+      puertaAltoMax,
+      frenteAnchoMin,
+      frenteAnchoMax,
+      frenteAltoMin,
+      frenteAltoMax,
+      ventanaAnchoMin,
+      ventanaAnchoMax,
+      ventanaAltoMin,
+      ventanaAltoMax,
+      precioVidrio,
       images,
-      model3d,
-      thumbnail,
-      isCustomizable,
-      leadTime,
-      minQuantity,
-      maxQuantity,
-      tags,
-      featured,
-      status,
-      minHeight,
-      maxHeight,
-      lineId,
-      productToneId,
-      edgeBandingId,
-      handleId,
-      faces,
-      orientation
     } = body;
-
-    if (!name || !sku || !categoryId) {
-      return NextResponse.json(
-        { error: 'Nombre, SKU y categoría son requeridos' },
-        { status: 400 }
-      );
-    }
-
-    // Check if product exists
-    const existingProduct = await prisma.product.findUnique({
-      where: { id: params.id }
-    });
-
-    if (!existingProduct) {
-      return NextResponse.json(
-        { error: 'Producto no encontrado' },
-        { status: 404 }
-      );
-    }
-
-    // Check if SKU already exists (but not for this product)
-    const existingSku = await prisma.product.findUnique({
-      where: { sku }
-    });
-
-    if (existingSku && existingSku.id !== params.id) {
-      return NextResponse.json(
-        { error: 'El SKU ya existe' },
-        { status: 400 }
-      );
-    }
-
-    // Check if category exists
-    const category = await prisma.category.findUnique({
-      where: { id: categoryId }
-    });
-
-    if (!category) {
-      return NextResponse.json(
-        { error: 'Categoría no encontrada' },
-        { status: 400 }
-      );
-    }
 
     const product = await prisma.product.update({
       where: { id: params.id },
       data: {
         name,
-        description,
-        sku,
         categoryId,
-        width,
-        height,
-        depth,
-        weight,
-        dimensionUnit,
-        weightUnit,
-        basePrice,
-        currency,
+        categoria,
+        coleccion,
+        linea,
+        tonoColor,
+        tonoVidrio,
+        tonoAluminio,
+        precioBaseM2,
+        tiempoEntrega,
+        puertaAnchoMin,
+        puertaAnchoMax,
+        puertaAltoMin,
+        puertaAltoMax,
+        frenteAnchoMin,
+        frenteAnchoMax,
+        frenteAltoMin,
+        frenteAltoMax,
+        ventanaAnchoMin,
+        ventanaAnchoMax,
+        ventanaAltoMin,
+        ventanaAltoMax,
+        precioVidrio,
         images,
-        model3d,
-        thumbnail,
-        isCustomizable,
-        leadTime,
-        minQuantity,
-        maxQuantity,
-        tags,
-        featured,
-        status,
-        // New characteristic fields
-        minHeight,
-        maxHeight,
-        lineId,
-        productToneId,
-        edgeBandingId,
-        handleId,
-        faces,
-        orientation
-      },
-      include: {
-        category: true,
-        materials: true,
-        hardware: true,
-        productTone: true,
-        line: true,
-        edgeBandingRef: true,
-        handleRef: true,
-        pricing: true
+        status: body.status || 'ACTIVE',
       }
     });
 
-    return NextResponse.json(product);
+    return NextResponse.json({ success: true, product });
   } catch (error: any) {
     console.error('Error updating product:', error);
     return NextResponse.json(
-      { error: error.message || 'Error interno del servidor' },
+      { success: false, error: error.message || 'Error interno del servidor' },
       { status: 500 }
     );
   }
@@ -223,43 +127,19 @@ export async function DELETE(
     if (!session) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
+    
     const authGuardResponse = adminAuthGuard(session);
     if (authGuardResponse) return authGuardResponse;
-
-    // Check if product exists
-    const existingProduct = await prisma.product.findUnique({
-      where: { id: params.id },
-      include: {
-        _count: {
-          select: { quoteItems: true }
-        }
-      }
-    });
-
-    if (!existingProduct) {
-      return NextResponse.json(
-        { error: 'Producto no encontrado' },
-        { status: 404 }
-      );
-    }
-
-    // Check if product is used in quotes
-    if (existingProduct._count.quoteItems > 0) {
-      return NextResponse.json(
-        { error: 'No se puede eliminar un producto que está siendo usado en cotizaciones. Cambia su estado a DISCONTINUADO en su lugar.' },
-        { status: 400 }
-      );
-    }
 
     await prisma.product.delete({
       where: { id: params.id }
     });
 
-    return NextResponse.json({ message: 'Producto eliminado exitosamente' });
+    return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error('Error deleting product:', error);
     return NextResponse.json(
-      { error: error.message || 'Error interno del servidor' },
+      { success: false, error: error.message || 'Error interno del servidor' },
       { status: 500 }
     );
   }

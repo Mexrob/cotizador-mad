@@ -1,0 +1,32 @@
+# Dockerfile para Desarrollo - Cotizador MAD
+# Ejecuta el servidor de desarrollo con hot reload
+
+FROM node:20-alpine
+
+# Instalar dependencias del sistema necesarias para Prisma, pg_dump y zip
+RUN apk add --no-cache libc6-compat openssl curl postgresql-client zip
+
+WORKDIR /app
+
+# Copiar archivos de package
+COPY package*.json ./
+
+# Instalar todas las dependencias (incluyendo devDependencies)
+RUN npm ci
+
+# Copiar el resto del código
+COPY . .
+
+# Generar Prisma Client
+RUN npx prisma generate
+
+# Variables de entorno
+ENV NEXT_TELEMETRY_DISABLED 1
+ENV NODE_ENV development
+ENV PORT 3000
+
+# Exponer puerto
+EXPOSE 3000
+
+# Comando de inicio - servidor de desarrollo
+CMD ["npm", "run", "dev"]

@@ -152,3 +152,15 @@ deploy_key
 deploy.tar.gz
 deploy_temp/
 wizard-backup-*.tar.gz
+
+# Local dev/test files
+venv_import/
+capturas/
+.env.temp
+.env.docker
+*.pdf
+git-pat.txt
+imports_list.txt
+*.backup
+*.backup*
+check-alto-brillo.mjs

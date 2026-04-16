@@ -2,7 +2,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ArrowLeft, Package, Folder } from 'lucide-react';
+import { ArrowLeft, Package, Folder, Truck, PlusCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -13,42 +13,47 @@ import ProductsTable from '@/components/products-table';
 import ProductForm from '@/components/product-form';
 import Link from 'next/link';
 import ProductLinesManagement from '@/components/product-lines-management';
-import ProductTonesManagement from '@/components/product-tones-management';
 import EdgeBandingsManagement from '@/components/edge-bandings-management';
 import HandleModelsManagement from '@/components/handle-models-management';
 import CategoriesManagement from '@/components/categories-management';
 import BackFacesManagement from '@/components/back-faces-management';
-import { Palette, Ruler, ShoppingBag, Layout } from 'lucide-react';
+import BrandsManagement from '@/components/brands-management';
+import ExtraServicesManagement from '@/components/extra-services-management';
+import ShippingCostsManagement from '@/components/shipping-costs-management';
+import { Palette, Ruler, ShoppingBag, Layout, Tag as TagIcon, DollarSign } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface ProductDetails {
   id: string;
   name: string;
-  description?: string;
-  sku: string;
   categoryId: string;
-  width?: number;
-  height?: number;
-  depth?: number;
-  weight?: number;
-  dimensionUnit: string;
-  weightUnit: string;
-  basePrice: number;
-  currency: string;
-  images: string[];
-  model3d?: string;
-  thumbnail?: string;
-  isCustomizable: boolean;
-  leadTime: number;
-  minQuantity: number;
-  maxQuantity?: number;
-  tags: string[];
-  featured: boolean;
-  status: string;
+  categoria?: string;
+  coleccion?: string;
+  linea?: string;
+  tonoColor?: string;
+  tonoVidrio?: string;
+  tonoAluminio?: string;
+  precioBaseM2?: number;
+  tiempoEntrega?: number;
+  puertaAnchoMin?: number;
+  puertaAnchoMax?: number;
+  puertaAltoMin?: number;
+  puertaAltoMax?: number;
+  frenteAnchoMin?: number;
+  frenteAnchoMax?: number;
+  frenteAltoMin?: number;
+  frenteAltoMax?: number;
+  ventanaAnchoMin?: number;
+  ventanaAnchoMax?: number;
+  ventanaAltoMin?: number;
+  ventanaAltoMax?: number;
+  precioVidrio?: number;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 export default function ProductsAdminPage() {
-  const [activeTab, setActiveTab] = useState('products');
+  const [activeTab, setActiveTab] = useState('tones');
   const [showProductForm, setShowProductForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<ProductDetails | null>(null);
   const [viewingProduct, setViewingProduct] = useState<ProductDetails | null>(null);
@@ -84,6 +89,8 @@ export default function ProductsAdminPage() {
       const url = editingProduct ? `/api/products/${editingProduct.id}` : '/api/products';
       const method = editingProduct ? 'PUT' : 'POST';
 
+      console.log('Submitting product:', { url, method, data });
+
       const response = await fetch(url, {
         method,
         headers: {
@@ -92,36 +99,29 @@ export default function ProductsAdminPage() {
         body: JSON.stringify(data),
       });
 
-      if (response.ok) {
+      const result = await response.json();
+      console.log('Response:', result);
+
+      if (response.ok && result.success) {
         toast.success(editingProduct ? 'Producto actualizado exitosamente' : 'Producto creado exitosamente');
         handleCloseProductForm();
-        // Refresh the products table
         window.location.reload();
       } else {
-        const error = await response.json();
-        toast.error(error.error || 'Error al guardar el producto');
+        toast.error(result.error || result.message || 'Error al guardar el producto');
       }
     } catch (error) {
-      console.error('Error saving product:', error);
+      console.error('Error submitting product:', error);
       toast.error('Error al guardar el producto');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const formatPrice = (price: number, currency: string) => {
+  const formatPrice = (price: number) => {
     return new Intl.NumberFormat('es-MX', {
       style: 'currency',
-      currency: currency,
-    }).format(price);
-  };
-
-  const getDimensionsText = (product: ProductDetails) => {
-    const dimensions = [];
-    if (product.width) dimensions.push(`${product.width}${product.dimensionUnit}`);
-    if (product.height) dimensions.push(`${product.height}${product.dimensionUnit}`);
-    if (product.depth) dimensions.push(`${product.depth}${product.dimensionUnit}`);
-    return dimensions.length > 0 ? `${dimensions.join(' × ')}` : 'Sin dimensiones';
+      currency: 'MXN',
+    }).format(price || 0);
   };
 
   return (
@@ -140,7 +140,7 @@ export default function ProductsAdminPage() {
           <div>
             <h1 className="text-3xl font-bold text-foreground">Gestión de Productos</h1>
             <p className="text-muted-foreground mt-2">
-              Administra el catálogo completo de productos y sus categorías
+              Administra el catálogo completo de productos
             </p>
           </div>
         </div>
@@ -148,10 +148,6 @@ export default function ProductsAdminPage() {
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="flex flex-wrap h-auto w-full justify-start border-b rounded-none bg-transparent gap-2 mb-4">
-            <TabsTrigger value="products" className="flex items-center gap-2 px-4 py-2 border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent rounded-none">
-              <Package className="h-4 w-4" />
-              Productos
-            </TabsTrigger>
             <TabsTrigger value="categories" className="flex items-center gap-2 px-4 py-2 border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent rounded-none">
               <Folder className="h-4 w-4" />
               Categorías
@@ -161,8 +157,8 @@ export default function ProductsAdminPage() {
               Líneas
             </TabsTrigger>
             <TabsTrigger value="tones" className="flex items-center gap-2 px-4 py-2 border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent rounded-none">
-              <Palette className="h-4 w-4" />
-              Tonos
+              <Package className="h-4 w-4" />
+              Productos
             </TabsTrigger>
             <TabsTrigger value="edges" className="flex items-center gap-2 px-4 py-2 border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent rounded-none">
               <Ruler className="h-4 w-4" />
@@ -176,15 +172,19 @@ export default function ProductsAdminPage() {
               <Layout className="h-4 w-4" />
               Caras
             </TabsTrigger>
+            <TabsTrigger value="brands" className="flex items-center gap-2 px-4 py-2 border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent rounded-none">
+              <TagIcon className="h-4 w-4" />
+              Marcas
+            </TabsTrigger>
+            <TabsTrigger value="extras" className="flex items-center gap-2 px-4 py-2 border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent rounded-none">
+              <DollarSign className="h-4 w-4" />
+              Extras
+            </TabsTrigger>
+            <TabsTrigger value="shipping" className="flex items-center gap-2 px-4 py-2 border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent rounded-none">
+              <Truck className="h-4 w-4" />
+              Envíos
+            </TabsTrigger>
           </TabsList>
-
-          <TabsContent value="products">
-            <ProductsTable
-              onAddProduct={handleAddProduct}
-              onEditProduct={handleEditProduct}
-              onViewProduct={handleViewProduct}
-            />
-          </TabsContent>
 
           <TabsContent value="categories">
             <CategoriesManagement />
@@ -195,7 +195,11 @@ export default function ProductsAdminPage() {
           </TabsContent>
 
           <TabsContent value="tones">
-            <ProductTonesManagement />
+            <ProductsTable
+              onAddProduct={handleAddProduct}
+              onEditProduct={handleEditProduct}
+              onViewProduct={handleViewProduct}
+            />
           </TabsContent>
 
           <TabsContent value="edges">
@@ -209,17 +213,30 @@ export default function ProductsAdminPage() {
           <TabsContent value="backfaces">
             <BackFacesManagement />
           </TabsContent>
+
+          <TabsContent value="brands">
+            <BrandsManagement />
+          </TabsContent>
+
+          <TabsContent value="extras">
+            <ExtraServicesManagement />
+          </TabsContent>
+
+          <TabsContent value="shipping">
+            <ShippingCostsManagement />
+          </TabsContent>
         </Tabs>
 
         {/* Product Form Dialog */}
         <Dialog open={showProductForm} onOpenChange={setShowProductForm}>
-          <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
                 {editingProduct ? 'Editar Producto' : 'Nuevo Producto'}
               </DialogTitle>
             </DialogHeader>
             <ProductForm
+              key={editingProduct?.id || 'new-product'}
               product={editingProduct || undefined}
               onSubmit={handleSubmitProduct}
               onCancel={handleCloseProductForm}
@@ -239,7 +256,7 @@ export default function ProductsAdminPage() {
                 {/* Basic Info */}
                 <Card>
                   <CardHeader>
-                    <CardTitle>Información Básica</CardTitle>
+                    <CardTitle>Información General</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
@@ -248,105 +265,110 @@ export default function ProductsAdminPage() {
                         <p className="text-lg font-semibold">{viewingProduct.name}</p>
                       </div>
                       <div>
-                        <Label className="text-sm font-medium text-gray-500">SKU</Label>
-                        <p className="font-mono bg-gray-100 px-2 py-1 rounded inline-block">
-                          {viewingProduct.sku}
-                        </p>
+                        <Label className="text-sm font-medium text-gray-500">Línea</Label>
+                        <p className="text-lg">{(viewingProduct as any).lineaName || viewingProduct.linea || 'N/A'}</p>
                       </div>
                     </div>
-                    {viewingProduct.description && (
+                    <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <Label className="text-sm font-medium text-gray-500">Descripción</Label>
-                        <p className="text-gray-700">{viewingProduct.description}</p>
+                        <Label className="text-sm font-medium text-gray-500">Categoría</Label>
+                        <p className="text-lg">{viewingProduct.categoria || viewingProduct.categoryId}</p>
                       </div>
-                    )}
+                      <div>
+                        <Label className="text-sm font-medium text-gray-500">Colección</Label>
+                        <p className="text-lg">{viewingProduct.coleccion || 'N/A'}</p>
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
 
-                {/* Pricing & Dimensions */}
+                {/* Colores */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Colores y Materiales</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label className="text-sm font-medium text-gray-500">Tono/Color</Label>
+                        <p>{viewingProduct.tonoColor || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <Label className="text-sm font-medium text-gray-500">Tono Vidrio</Label>
+                        <p>{viewingProduct.tonoVidrio || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <Label className="text-sm font-medium text-gray-500">Tono Aluminio</Label>
+                        <p>{viewingProduct.tonoAluminio || 'N/A'}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Pricing */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <Card>
                     <CardHeader>
-                      <CardTitle>Precio y Configuración</CardTitle>
+                      <CardTitle>Precios</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-3">
                       <div>
-                        <Label className="text-sm font-medium text-gray-500">Precio Base</Label>
+                        <Label className="text-sm font-medium text-gray-500">Precio Base por m²</Label>
                         <p className="text-xl font-bold text-green-600">
-                          {formatPrice(viewingProduct.basePrice, viewingProduct.currency)}
+                          {formatPrice(viewingProduct.precioBaseM2 || 0)}
                         </p>
                       </div>
-                      <div className="grid grid-cols-2 gap-4 text-sm">
+                      {viewingProduct.precioVidrio && (
                         <div>
-                          <Label className="text-sm font-medium text-gray-500">Tiempo de Entrega</Label>
-                          <p>{viewingProduct.leadTime} días</p>
+                          <Label className="text-sm font-medium text-gray-500">Precio Vidrio 4mm</Label>
+                          <p className="text-lg font-semibold">
+                            {formatPrice(viewingProduct.precioVidrio)}
+                          </p>
                         </div>
-                        <div>
-                          <Label className="text-sm font-medium text-gray-500">Cantidad Mínima</Label>
-                          <p>{viewingProduct.minQuantity}</p>
-                        </div>
+                      )}
+                      <div>
+                        <Label className="text-sm font-medium text-gray-500">Tiempo de Entrega</Label>
+                        <p>{viewingProduct.tiempoEntrega || 7} días hábiles</p>
                       </div>
                     </CardContent>
                   </Card>
 
+                  {/* Dimensiones */}
                   <Card>
                     <CardHeader>
                       <CardTitle>Dimensiones</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-3">
-                      <div>
-                        <Label className="text-sm font-medium text-gray-500">Dimensiones</Label>
-                        <p className="text-lg">{getDimensionsText(viewingProduct)}</p>
-                      </div>
-                      {viewingProduct.weight && (
+                      {viewingProduct.puertaAnchoMin && (
                         <div>
-                          <Label className="text-sm font-medium text-gray-500">Peso</Label>
-                          <p>{viewingProduct.weight}{viewingProduct.weightUnit}</p>
+                          <Label className="text-sm font-medium text-gray-500">Puerta</Label>
+                          <p className="text-sm">
+                            {viewingProduct.puertaAnchoMin}-{viewingProduct.puertaAnchoMax}mm (Ancho) × 
+                            {viewingProduct.puertaAltoMin}-{viewingProduct.puertaAltoMax}mm (Alto)
+                          </p>
+                        </div>
+                      )}
+                      {viewingProduct.frenteAnchoMin && (
+                        <div>
+                          <Label className="text-sm font-medium text-gray-500">Frente</Label>
+                          <p className="text-sm">
+                            {viewingProduct.frenteAnchoMin}-{viewingProduct.frenteAnchoMax}mm (Ancho) × 
+                            {viewingProduct.frenteAltoMin}-{viewingProduct.frenteAltoMax}mm (Alto)
+                          </p>
+                        </div>
+                      )}
+                      {viewingProduct.ventanaAnchoMin && (
+                        <div>
+                          <Label className="text-sm font-medium text-gray-500">Ventana</Label>
+                          <p className="text-sm">
+                            {viewingProduct.ventanaAnchoMin}-{viewingProduct.ventanaAnchoMax}mm (Ancho) × 
+                            {viewingProduct.ventanaAltoMin}-{viewingProduct.ventanaAltoMax}mm (Alto)
+                          </p>
                         </div>
                       )}
                     </CardContent>
                   </Card>
                 </div>
-
-                {/* Images */}
-                {viewingProduct.images.length > 0 && (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Imágenes</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        {viewingProduct.images.map((image, index) => (
-                          <div key={index} className="aspect-square relative rounded-lg overflow-hidden bg-gray-100">
-                            <img
-                              src={image}
-                              alt={`${viewingProduct.name} ${index + 1}`}
-                              className="object-cover w-full h-full"
-                            />
-                          </div>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-
-                {/* Tags */}
-                {viewingProduct.tags.length > 0 && (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Etiquetas</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="flex flex-wrap gap-2">
-                        {viewingProduct.tags.map((tag) => (
-                          <Badge key={tag} variant="secondary">
-                            {tag}
-                          </Badge>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
               </div>
             )}
           </DialogContent>

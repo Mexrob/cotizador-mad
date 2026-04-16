@@ -21,13 +21,6 @@ export async function GET(
         parent: true,
         children: {
           where: { status: 'ACTIVE' }
-        },
-        products: {
-          where: { status: 'ACTIVE' },
-          take: 10
-        },
-        _count: {
-          select: { products: true }
         }
       }
     });
@@ -100,13 +93,6 @@ export async function PUT(
         parentId: parentId || null,
         image,
         status
-      },
-      include: {
-        parent: true,
-        children: true,
-        _count: {
-          select: { products: true }
-        }
       }
     });
 
@@ -137,10 +123,7 @@ export async function DELETE(
     const existingCategory = await prisma.category.findUnique({
       where: { id: params.id },
       include: {
-        children: true,
-        _count: {
-          select: { products: true }
-        }
+        children: true
       }
     });
 
@@ -148,14 +131,6 @@ export async function DELETE(
       return NextResponse.json(
         { error: 'Categoría no encontrada' },
         { status: 404 }
-      );
-    }
-
-    // Check if category has products
-    if (existingCategory._count.products > 0) {
-      return NextResponse.json(
-        { error: 'No se puede eliminar una categoría que tiene productos. Muve los productos a otra categoría primero.' },
-        { status: 400 }
       );
     }
 

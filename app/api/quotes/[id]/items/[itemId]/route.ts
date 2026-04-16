@@ -79,21 +79,26 @@ export async function PUT(
         customDepth,
         productLineId: body.lineId,
         productToneId: body.toneId,
-        handleModelId: body.handleId,
+        handleModelId: body.handleModelId || body.handleId || undefined,
         woodGrainId: body.backFace && (body.backFace === 'Horizontal' || body.backFace === 'Vertical') 
             ? (await prisma.woodGrain.findUnique({ where: { name: body.backFace } }))?.id 
             : undefined,
-        isTwoSided: body.cars === 2 || (body.backFace === 'Horizontal' || body.backFace === 'Vertical'),
+        isTwoSided: body.isTwoSided ?? (body.cars === 2 || (body.backFace === 'Horizontal' || body.backFace === 'Vertical')),
         isExhibition: body.isExhibition ?? currentItem.isExhibition,
         isExpressDelivery: body.isExpressDelivery ?? currentItem.isExpressDelivery,
+        expressAmount: body.expressAmount ?? currentItem.expressAmount,
+        exhibitionAmount: body.exhibitionAmount ?? currentItem.exhibitionAmount,
         ceramicColor: body.ceramicColor,
+        vetaOrientation: body.vetaOrientation,
+        jaladera: body.jaladera,
+        jaladeraOrientation: body.jaladeraOrientation,
+        cubrecanto: body.cubrecanto,
+        handlePrice: body.handlePrice,
+        edgeBanding: body.edgeBanding,
+        packagingCost: body.packagingCost,
       },
       include: {
-        product: {
-          include: {
-            category: true,
-          },
-        },
+        product: true,
         productLine: true,
         productTone: true,
         handleModel: true,

@@ -306,11 +306,6 @@ export default function ProductDetailPage() {
                       </div>
                     )}
                   </div>
-
-                  <div className="text-right">
-                    <div className="text-sm text-gray-500 mb-1">SKU</div>
-                    <div className="font-mono text-sm">{product.sku}</div>
-                  </div>
                 </div>
               </CardContent>
             </Card>

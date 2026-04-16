@@ -39,35 +39,16 @@ export async function GET(
                     },
                     items: {
                         include: {
-                            product: {
-                                include: {
-                                    category: true,
-                                },
-                            },
+                            product: true,
                             handleModel: true,
                             productLine: true,
                             productTone: true,
+                            woodGrain: true,
                         },
                     },
                 },
             }),
-            prisma.companySettings.findFirst({
-                select: {
-                    companyName: true,
-                    logo: true,
-                    address: true,
-                    city: true,
-                    state: true,
-                    zipCode: true,
-                    country: true,
-                    phone: true,
-                    email: true,
-                    website: true,
-                    primaryColor: true,
-                    secondaryColor: true,
-                    tertiaryColor: true,
-                },
-            })
+            prisma.companySettings.findFirst()
         ])
 
         if (!quote) {
@@ -463,84 +444,136 @@ function generateQuotePDFHTML(quote: any, companySettings: any): string {
         
         <div class="products-section">
             <h2 class="section-title">📦 Productos Cotizados</h2>
-            <table class="products-table">
+            ${quote.items.map((item: any) => {
+        const width = item.customWidth || item.product.width || 0
+        const height = item.customHeight || item.product.height || 0
+        const area = width && height ? ((width * height / 1000000) * item.quantity).toFixed(2) : '-'
+        
+        const expressFormatted = item.expressAmount ? formatMXN(item.expressAmount) : '-'
+        const exhibitionFormatted = item.exhibitionAmount ? formatMXN(item.exhibitionAmount) : '-'
+        const handleCostFormatted = item.packagingCost ? formatMXN(item.packagingCost) : '-'
+        
+        const vetaOrientation = item.woodGrain?.name || (item.isTwoSided ? 'Vertical' : '-')
+        const toneColor = item.productTone?.name || item.ceramicColor || '-'
+        const faces = item.isTwoSided ? '2' : '1'
+        
+        const lineName = (item.productLine?.name || '').toLowerCase()
+        const isEuropa = lineName.includes('europa') || lineName.includes('alto brillo')
+        
+        if (isEuropa) {
+            const tiempoEntrega = item.product?.tiempoEntrega || 7
+            return `
+            <div style="margin-bottom: 20px; border: 1px solid #cbd5e1; border-radius: 6px;">
+                <div style="background: #f1f5f9; padding: 8px 12px; border-bottom: 1px solid #cbd5e1; font-weight: bold; display: flex; justify-content: space-between; align-items: center;">
+                    <span>Producto: ${item.product.name}</span>
+                    <span style="background: #dbeafe; color: #1e40af; padding: 2px 8px; border-radius: 4px; font-size: 11px;">${tiempoEntrega} días de entrega</span>
+                </div>
+                <table class="products-table" style="margin-bottom: 0;">
+                    <thead>
+                        <tr>
+                            <th>Producto</th>
+                            <th>Tono/Color</th>
+                            <th>Orientación veta</th>
+                            <th style="text-align: right;">Dimensiones</th>
+                            <th style="text-align: right;">Cantidad</th>
+                            <th style="text-align: right;">Área total</th>
+                            <th style="text-align: right;">Costo unitario</th>
+                            <th style="text-align: center;">Caras</th>
+                            <th>Cubrecanto</th>
+                            <th>Jaladera</th>
+                            <th>Orientación</th>
+                            <th style="text-align: right;">Costo Jaladera</th>
+                            <th style="text-align: right;">Tiempo entrega</th>
+                            <th style="text-align: right;">Envío express</th>
+                            <th style="text-align: right;">Desc. exhibición</th>
+                            <th style="text-align: right;">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>${item.product.name}</td>
+                            <td>${toneColor}</td>
+                            <td>${vetaOrientation}</td>
+                            <td style="text-align: right;">${height > 0 ? height + ' x ' + width + ' mm' : '-'}</td>
+                            <td style="text-align: right;">${item.quantity}</td>
+                            <td style="text-align: right;">${area} m²</td>
+                            <td style="text-align: right;">${formatMXN(item.unitPrice)}</td>
+                            <td style="text-align: center;">${faces}</td>
+                            <td>${item.edgeBanding || '-'}</td>
+                            <td>${item.handleModel?.name || '-'}</td>
+                            <td>${vetaOrientation}</td>
+                            <td style="text-align: right;">${handleCostFormatted}</td>
+                            <td style="text-align: right;">${tiempoEntrega} días</td>
+                            <td style="text-align: right; color: ${item.isExpressDelivery ? '#ea580c' : 'inherit'};">${expressFormatted}</td>
+                            <td style="text-align: right; color: ${item.isExhibition ? '#1d4ed8' : 'inherit'};">${exhibitionFormatted}</td>
+                            <td style="text-align: right;">${formatMXN(item.totalPrice)}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            `
+        }
+        
+        return `
+        <div style="margin-bottom: 20px; border: 1px solid #cbd5e1; border-radius: 6px;">
+            <div style="background: #f1f5f9; padding: 8px 12px; border-bottom: 1px solid #cbd5e1; font-weight: bold;">
+                Producto: ${item.product.name}
+            </div>
+            <table class="products-table" style="margin-bottom: 0;">
                 <thead>
                     <tr>
-                        <th>Producto</th>
                         <th style="text-align: right;">Alto</th>
                         <th style="text-align: right;">Ancho</th>
-                        <th style="text-align: right;">Precio m²</th>
                         <th style="text-align: right;">Cantidad</th>
-                        <th style="text-align: center;">Caras</th>
-                        <th style="text-align: center;">Cubrecanto</th>
-                        <th style="text-align: right;">Costo unitario</th>
+                        <th>Color/Tono</th>
+                        <th>Cubrecanto</th>
                         <th>Jaladera</th>
-                        <th style="text-align: right;">Precio Jaladera</th>
-                        <th style="text-align: right;">Cant. Jaladera</th>
-                        <th style="text-align: right;">Acabado Especial</th>
-                        <th style="text-align: center;">Prod. Exhibición</th>
-                        <th style="text-align: center;">Envío Express</th>
+                        <th>Orientación Veta</th>
+                        <th style="text-align: right;">Envío Express</th>
+                        <th style="text-align: right;">Exhibición</th>
                         <th style="text-align: right;">Total</th>
                     </tr>
                 </thead>
                 <tbody>
-                    ${quote.items.map((item: any) => {
-        const width = item.customWidth || item.product.width || 0
-        const height = item.customHeight || item.product.height || 0
-        const area = (width / 1000) * (height / 1000)
-
-        const handlePrice = item.handleModel?.price || 0
-        const baseUnitPrice = item.unitPrice - handlePrice
-        const pricePerM2 = area > 0 ? baseUnitPrice / area : 0
-
-        const handleName = item.handleModel ? `${item.handleModel.model} - ${item.handleModel.finish}` : 'Sin jaladera'
-        const handlePriceFormatted = item.handleModel ? formatMXN(item.handleModel.price) : '-'
-        const handleQuantity = item.handleModel ? item.quantity : '-'
-
-        // Calculate totals for this item
-        const itemBaseTotal = baseUnitPrice * item.quantity
-        const itemHandleTotal = handlePrice * item.quantity // handlePrice is already unit price
-        const itemBackFaceFee = item.isTwoSided ? 100 : 0
-
-        // Effective subtotal (Base + Handle + BackFace)
-        const itemSubtotal = itemBaseTotal + itemHandleTotal + itemBackFaceFee
-
-        // Calculate optional fees percentages
-        const exhibitionFeeAmount = item.isExhibition ? itemSubtotal * -0.25 : 0
-        const expressDeliveryFeeAmount = item.isExpressDelivery ? itemSubtotal * 0.20 : 0
-
-        const exhibitionFeeFormatted = item.isExhibition ? formatMXN(exhibitionFeeAmount) : '-'
-        const expressDeliveryFeeFormatted = item.isExpressDelivery ? "+" + formatMXN(expressDeliveryFeeAmount) : '-'
-        const backFaceFeeFormatted = item.isTwoSided ? formatMXN(100) : '-'
-
-        // Total for line item
-        const itemTotal = itemSubtotal + exhibitionFeeAmount + expressDeliveryFeeAmount
-
-        return `
-                        <tr>
-                            <td>${item.product.name}</td>
-                            <td style="text-align: right;">${height} mm</td>
-                            <td style="text-align: right;">${width} mm</td>
-                            <td style="text-align: right;">${pricePerM2 > 0 ? formatMXN(pricePerM2) : '-'}</td>
-                            <td style="text-align: right;">${item.quantity}</td>
-                            <td style="text-align: center;">${item.isTwoSided ? '2' : '1'}</td>
-                            <td style="text-align: center;">${item.edgeBanding || '-'}</td>
-                            <td style="text-align: right;">${formatMXN(itemBaseTotal)}</td>
-                            <td>${handleName}</td>
-                            <td style="text-align: right;">${handlePriceFormatted}</td>
-                            <td style="text-align: right;">${handleQuantity}</td>
-                            <td style="text-align: right;">${backFaceFeeFormatted}</td>
-                            <td style="text-align: center; color: ${item.isExhibition ? '#059669' : 'inherit'};">${exhibitionFeeFormatted}</td>
-                            <td style="text-align: center; color: ${item.isExpressDelivery ? '#2563eb' : 'inherit'};">${expressDeliveryFeeFormatted}</td>
-                            <td style="text-align: right;">${formatMXN(itemTotal)}</td>
-                        </tr>
-                        `;
-    }).join('')}
+                    <tr>
+                        <td style="text-align: right;">${height > 0 ? height + ' mm' : '-'}</td>
+                        <td style="text-align: right;">${width > 0 ? width + ' mm' : '-'}</td>
+                        <td style="text-align: right;">${item.quantity}</td>
+                        <td>${toneColor}</td>
+                        <td>${item.edgeBanding || '-'}</td>
+                        <td>${item.handleModel?.name || '-'}</td>
+                        <td>${vetaOrientation}</td>
+                        <td style="text-align: right; color: ${item.isExpressDelivery ? '#ea580c' : 'inherit'};">${expressFormatted}</td>
+                        <td style="text-align: right; color: ${item.isExhibition ? '#1d4ed8' : 'inherit'};">${exhibitionFormatted}</td>
+                        <td style="text-align: right;">${formatMXN(item.totalPrice)}</td>
+                    </tr>
                 </tbody>
             </table>
         </div>
+        `
+    }).join('')}
+        </div>
         
+        ${(() => {
+        const expressDeliveryPercentage = companySettings?.expressDeliveryPercentage || 20
+        const exhibitionPercentage = companySettings?.exhibitionPercentage || 25
+        const totalExpressFees = quote.items.reduce((sum: number, item: any) => sum + (item.expressAmount || 0), 0)
+        const totalExhibitionFees = quote.items.reduce((sum: number, item: any) => sum + (item.exhibitionAmount || 0), 0)
+        
+        return `
         <div class="total-section">
+            ${totalExpressFees > 0 ? `
+            <div class="total-row" style="color: #ea580c;">
+                <span>Envío Express (+${expressDeliveryPercentage}%):</span>
+                <span>+${formatMXN(totalExpressFees)}</span>
+            </div>
+            ` : ''}
+            ${totalExhibitionFees !== 0 ? `
+            <div class="total-row" style="color: #1d4ed8;">
+                <span>Producto de Exhibición (-${exhibitionPercentage}%):</span>
+                <span>${formatMXN(totalExhibitionFees)}</span>
+            </div>
+            ` : ''}
             <div class="total-row">
                 <span>Subtotal:</span>
                 <span>${formatMXN(quote.subtotal)}</span>
@@ -560,6 +593,8 @@ function generateQuotePDFHTML(quote: any, companySettings: any): string {
                 <span>${formatMXN(quote.totalAmount)}</span>
             </div>
         </div>
+        `
+        })()}
         
         ${quote.roomDimensions ? `
         <div class="info-card" style="margin-top: 30px;">

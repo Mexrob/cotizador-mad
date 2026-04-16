@@ -43,7 +43,7 @@ export async function POST(
         let product = await prisma.product.findFirst({
             where: {
                 name: 'Puerta Super Mate',
-                lineId: productLine.id
+                linea: productLine.id
             }
         })
 
@@ -61,14 +61,24 @@ export async function POST(
             product = await prisma.product.create({
                 data: {
                     name: 'Puerta Super Mate',
-                    description: 'Puerta con acabado Super Mate',
-                    sku: 'SUPER-MATE',
                     categoryId: category.id,
-                    lineId: productLine.id,
-                    basePrice: 2655, // Base price placeholder
-                    dimensionUnit: 'mm'
+                    linea: productLine.id,
+                    precioBaseM2: 2655,
                 }
             })
+        }
+
+        // Validate tiempo de entrega - prevent mixing different delivery times
+        const existingItems = await prisma.quoteItem.findMany({
+            where: { quoteId: params.id },
+            include: { product: { select: { tiempoEntrega: true } } }
+        })
+        const existingTiempoEntrega = existingItems[0]?.product?.tiempoEntrega
+        if (existingItems.length > 0 && existingTiempoEntrega !== product.tiempoEntrega) {
+            return NextResponse.json(
+                { success: false, error: `Error en el tiempo de entrega. Esta cotización tiene productos con ${existingTiempoEntrega} días. Solo puedes agregar productos con el mismo tiempo de entrega.` },
+                { status: 400 }
+            )
         }
 
         // 3. Find ProductTone
@@ -109,9 +119,14 @@ export async function POST(
 
         const subtotal = basePrice + handlePrice
 
-        const exhibitionFee = optionals.isExhibition ? subtotal * -0.25 : 0
-        const expressDeliveryFee = optionals.isExpressDelivery ? subtotal * 0.20 : 0
-        const total = subtotal + exhibitionFee + expressDeliveryFee
+        // Get company settings for dynamic percentages
+        const companySettings = await prisma.companySettings.findFirst()
+        const expressPercentage = companySettings?.expressDeliveryPercentage || 20
+        const exhibitionPercentage = companySettings?.exhibitionPercentage || 25
+
+        const expressDeliveryFee = optionals.isExpressDelivery ? subtotal * (expressPercentage / 100) : 0
+        const exhibitionFee = optionals.isExhibition ? subtotal * (exhibitionPercentage / 100) : 0
+        const total = subtotal + expressDeliveryFee - exhibitionFee
 
         // 6. Create Quote Item
         const quoteItem = await prisma.quoteItem.create({
@@ -131,6 +146,8 @@ export async function POST(
                 isTwoSided: false,
                 isExhibition: optionals.isExhibition,
                 isExpressDelivery: optionals.isExpressDelivery,
+                expressAmount: expressDeliveryFee,
+                exhibitionAmount: exhibitionFee,
             }
         })
 
@@ -203,11 +220,7 @@ export async function PUT(
                 isExpressDelivery: config.optionals?.isExpressDelivery || false,
             },
             include: {
-                product: {
-                    include: {
-                        category: true,
-                    }
-                },
+                product: true,
                 productLine: true,
                 productTone: true,
                 handleModel: true,

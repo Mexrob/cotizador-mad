@@ -132,14 +132,12 @@ export async function GET() {
         take: 5,
       })
 
-      const productIds = productStats.map(stat => stat.productId)
+      const productIds = productStats.map(stat => stat.productId).filter(Boolean) as string[]
       const products = await prisma.product.findMany({
         where: { id: { in: productIds } },
         select: {
           id: true,
           name: true,
-          thumbnail: true,
-          sku: true,
         },
       })
 

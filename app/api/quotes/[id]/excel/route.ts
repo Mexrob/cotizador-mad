@@ -36,11 +36,7 @@ export async function GET(
           },
           items: {
             include: {
-              product: {
-                include: {
-                  category: true,
-                },
-              },
+              product: true,
               productLine: true,
               productTone: true,
               handleModel: true,
@@ -122,63 +118,53 @@ export async function GET(
     const productsData = [
       [
         'Producto',
+        'Tono',
+        'Color Cerámica',
         'Alto (mm)',
         'Ancho (mm)',
-        'Precio m²',
+        'Costo unitario',
         'Cantidad',
         'Caras',
         'Cubrecanto',
-        'Costo unitario',
         'Jaladera',
         'Precio Jaladera',
         'Cant. Jaladeras',
-        'Acabado Especial',
-        'Producto Exhibición',
+        'Tiempo Entrega',
         'Envío Express',
+        'Demo',
         'Total'
       ],
       ...quote.items.map((item: any) => {
         const width = item.customWidth || item.product.width || 0
         const height = item.customHeight || item.product.height || 0
-        const area = (width / 1000) * (height / 1000)
+        const unitCost = (item.unitPrice || 0) - (item.packagingCost || 0)
 
-        const handlePrice = item.handleModel ? parseFloat(item.handleModel.price.toFixed(2)) : 0
-        const baseUnitPrice = parseFloat((item.unitPrice - handlePrice).toFixed(2))
-        const pricePerM2 = area > 0 ? parseFloat((baseUnitPrice / area).toFixed(2)) : 0
+        const handleName = item.handleModel?.name || '-'
+        const handlePrice = item.packagingCost || 0
+        const handleQuantity = item.handleModel ? item.quantity : '-'
 
-        const handleQuantity = item.handleModel ? item.quantity : 0
+        const expressAmount = item.isExpressDelivery ? item.expressAmount || 0 : 0
+        const exhibitionAmount = item.isExhibition ? item.exhibitionAmount || 0 : 0
 
-        // Calculate totals for this item
-        const itemBaseTotal = baseUnitPrice * item.quantity
-        const itemHandleTotal = handlePrice * item.quantity // handlePrice is already unit price
-        const itemBackFaceFee = item.isTwoSided ? 100 : 0
-
-        // Effective subtotal (Base + Handle + BackFace)
-        const itemSubtotal = itemBaseTotal + itemHandleTotal + itemBackFaceFee
-
-        // Calculate optional fees percentages
-        const exhibitionFeeAmount = item.isExhibition ? itemSubtotal * -0.25 : 0
-        const expressDeliveryFeeAmount = item.isExpressDelivery ? itemSubtotal * 0.20 : 0
-
-        // Total for line item
-        const itemTotal = itemSubtotal + exhibitionFeeAmount + expressDeliveryFeeAmount
+        const tiempoEntrega = item.product?.tiempoEntrega || 7
 
         return [
           item.product.name,
-          height,
-          width,
-          pricePerM2,
+          item.productTone?.name || '-',
+          item.ceramicColor || '-',
+          height > 0 ? height : '-',
+          width > 0 ? width : '-',
+          unitCost,
           item.quantity,
-          item.isTwoSided ? '2' : '1',
+          item.ceramicColor || (item.isTwoSided ? '2' : '1'),
           item.edgeBanding || '-',
-          itemBaseTotal, // Using calculated base total
-          item.handleModel ? `${item.handleModel.model} - ${item.handleModel.finish}` : 'Sin jaladera',
-          handlePrice,
+          handleName,
+          handlePrice > 0 ? handlePrice : '-',
           handleQuantity,
-          itemBackFaceFee > 0 ? itemBackFaceFee : 0,
-          exhibitionFeeAmount,
-          expressDeliveryFeeAmount,
-          parseFloat(itemTotal.toFixed(2))
+          tiempoEntrega + ' días',
+          expressAmount > 0 ? expressAmount : '-',
+          exhibitionAmount > 0 ? exhibitionAmount : '-',
+          item.totalPrice
         ]
       })
     ]
@@ -188,50 +174,35 @@ export async function GET(
     // Aplicar formato de moneda MXN a las columnas de precio
     const range = XLSX.utils.decode_range(wsProducts['!ref'] || 'A1')
     for (let row = 1; row <= range.e.r; row++) {
-      // Columna D (3): Precio m²
-      const priceM2Cell = XLSX.utils.encode_cell({ r: row, c: 3 })
-      if (wsProducts[priceM2Cell] && typeof wsProducts[priceM2Cell].v === 'number') {
-        wsProducts[priceM2Cell].z = '$#,##0.00'
-        wsProducts[priceM2Cell].t = 'n'
-      }
-
-      // Columna G (7): Costo unitario (Shifted by 1 due to Caras and Cubrecanto)
-      const unitCostCell = XLSX.utils.encode_cell({ r: row, c: 7 })
+      // Columna F (5): Costo unitario
+      const unitCostCell = XLSX.utils.encode_cell({ r: row, c: 5 })
       if (wsProducts[unitCostCell] && typeof wsProducts[unitCostCell].v === 'number') {
         wsProducts[unitCostCell].z = '$#,##0.00'
         wsProducts[unitCostCell].t = 'n'
       }
 
-      // Columna I (9): Precio Jaladera
-      const handlePriceCell = XLSX.utils.encode_cell({ r: row, c: 9 })
+      // Columna K (10): Precio Jaladera
+      const handlePriceCell = XLSX.utils.encode_cell({ r: row, c: 10 })
       if (wsProducts[handlePriceCell] && typeof wsProducts[handlePriceCell].v === 'number') {
         wsProducts[handlePriceCell].z = '$#,##0.00'
         wsProducts[handlePriceCell].t = 'n'
       }
 
-      // Columna K (11): Acabado Especial (Nuevo)
-      const backFaceCell = XLSX.utils.encode_cell({ r: row, c: 11 })
-      if (wsProducts[backFaceCell] && typeof wsProducts[backFaceCell].v === 'number') {
-        wsProducts[backFaceCell].z = '$#,##0.00'
-        wsProducts[backFaceCell].t = 'n'
-      }
-
-      // Columna L (12): Producto Exhibición
-      const exhibitionFeeCell = XLSX.utils.encode_cell({ r: row, c: 12 })
-      if (wsProducts[exhibitionFeeCell] && typeof wsProducts[exhibitionFeeCell].v === 'number') {
-        wsProducts[exhibitionFeeCell].z = '$#,##0.00'
-        wsProducts[exhibitionFeeCell].t = 'n'
-        // Optional: Color formatting for discount could be added here if library supports it easily, skipping for standard xlsx basic usage
-      }
-
-      // Columna M (13): Envío Express
-      const expressFeeCell = XLSX.utils.encode_cell({ r: row, c: 13 })
+      // Columna M (12): Envío Express
+      const expressFeeCell = XLSX.utils.encode_cell({ r: row, c: 12 })
       if (wsProducts[expressFeeCell] && typeof wsProducts[expressFeeCell].v === 'number') {
         wsProducts[expressFeeCell].z = '$#,##0.00'
         wsProducts[expressFeeCell].t = 'n'
       }
 
-      // Columna N (14): Total
+      // Columna N (13): Demo
+      const exhibitionFeeCell = XLSX.utils.encode_cell({ r: row, c: 13 })
+      if (wsProducts[exhibitionFeeCell] && typeof wsProducts[exhibitionFeeCell].v === 'number') {
+        wsProducts[exhibitionFeeCell].z = '$#,##0.00'
+        wsProducts[exhibitionFeeCell].t = 'n'
+      }
+
+      // Columna O (14): Total
       const totalCell = XLSX.utils.encode_cell({ r: row, c: 14 })
       if (wsProducts[totalCell] && typeof wsProducts[totalCell].v === 'number') {
         wsProducts[totalCell].z = '$#,##0.00'
@@ -242,19 +213,19 @@ export async function GET(
     // Ajustar anchos de columnas
     wsProducts['!cols'] = [
       { wch: 30 }, // Producto
+      { wch: 15 }, // Tono
+      { wch: 15 }, // Color Cerámica
       { wch: 12 }, // Alto
       { wch: 12 }, // Ancho
-      { wch: 15 }, // Precio m²
+      { wch: 15 }, // Costo unitario
       { wch: 10 }, // Cantidad
       { wch: 8 },  // Caras
-      { wch: 15 }, // Cubrecanto
-      { wch: 15 }, // Costo unitario
+      { wch: 20 }, // Cubrecanto
       { wch: 25 }, // Jaladera
       { wch: 15 }, // Precio Jaladera
-      { wch: 15 }, // Cant. Jaladeras
-      { wch: 18 }, // Acabado Especial
-      { wch: 18 }, // Producto Exhibición
+      { wch: 12 }, // Cant. Jaladeras
       { wch: 15 }, // Envío Express
+      { wch: 15 }, // Demo
       { wch: 15 }, // Total
     ]
 
