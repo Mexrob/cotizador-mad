@@ -5,6 +5,8 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { generateQuoteNumber } from '@/lib/utils'
 import { adminAuthGuard } from '@/lib/authUtils'
+import { quoteSchema } from '@/lib/validationSchemas'
+import { z } from 'zod'
 
 export const dynamic = 'force-dynamic'
 
@@ -210,7 +212,11 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { customerName, customerEmail, customerPhone, projectName, validUntil, notes } = body
+    
+    // Validate request body
+    const validatedData = quoteSchema.parse(body)
+    
+    const { customerName, customerEmail, customerPhone, projectName, validUntil, notes } = validatedData
 
     // Generate quote number
     const quoteNumber = await generateQuoteNumber()
@@ -249,7 +255,13 @@ export async function POST(request: NextRequest) {
       data: quote,
       message: 'Cotización creada exitosamente',
     })
-  } catch (error) {
+  } catch (error: any) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { success: false, error: 'Datos de validación inválidos', details: error.errors },
+        { status: 400 }
+      )
+    }
     console.error('Quote creation error:', error)
     return NextResponse.json(
       { success: false, error: 'Error al crear cotización' },

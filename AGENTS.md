@@ -11,6 +11,11 @@
 3. **Verify Links**: Check `app/quotes/[id]/page.tsx` to ensure the correct `wizardTemplateCode` is being passed for the specific quote.
 4. **Isolated Testing**: Test new flows using a unique `templateCode` to prevent overwriting global configuration.
 
+## Calidad y Estabilidad (Crucial)
+- **Zero-Bugs Policy**: Cualquier cambio en la lógica de cálculo (`lib/pricing.ts`), validación (`lib/validationSchemas.ts`) o estado del wizard (`lib/wizard-base/`) **DEBE** ir acompañado de la ejecución satisfactoria de los tests: `npm run test`.
+- **No Refactoring**: No cambies lógica de negocio existente que ya funcione a menos que sea el objetivo principal de la tarea.
+- **Strict Types**: Evita el uso de `any`. Si encuentras uno, intenta tiparlo correctamente.
+
 1. **Old KitWizard**: Legacy (`components/kit-wizard/`).
 2. **ConfigurableWizard**: Dynamic, template-driven (`components/configurable-wizard/`).
    - Templates managed in `/admin/wizard-templates`.

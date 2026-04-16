@@ -39,3 +39,59 @@ export const createUserSchema = z.object({
 export const updateUserSchema = createUserSchema.extend({
   password: z.string().min(8, 'La contraseña debe tener al menos 8 caracteres').max(255).optional().or(z.literal('')),
 });
+
+export const productSchema = z.object({
+  name: z.string({ required_error: 'El nombre es requerido' }).min(1, 'El nombre es requerido'),
+  categoryId: z.string().optional(),
+  
+  // Información básica
+  categoria: z.string().optional(),
+  coleccion: z.string().optional(),
+  linea: z.string().optional(),
+  
+  // Colores
+  tonoColor: z.string().optional(),
+  tonoVidrio: z.string().optional(),
+  tonoAluminio: z.string().optional(),
+  
+  // Precio
+  precioBaseM2: z.number().min(0).optional(),
+  tiempoEntrega: z.number().int().min(1).optional(),
+  
+  // Dimensiones Puerta
+  puertaAnchoMin: z.number().optional(),
+  puertaAnchoMax: z.number().optional(),
+  puertaAltoMin: z.number().optional(),
+  puertaAltoMax: z.number().optional(),
+  
+  // Dimensiones Frente
+  frenteAnchoMin: z.number().optional(),
+  frenteAnchoMax: z.number().optional(),
+  frenteAltoMin: z.number().optional(),
+  frenteAltoMax: z.number().optional(),
+  
+  // Dimensiones Ventana
+  ventanaAnchoMin: z.number().optional(),
+  ventanaAnchoMax: z.number().optional(),
+  ventanaAltoMin: z.number().optional(),
+  ventanaAltoMax: z.number().optional(),
+  
+  // Precio vidrio
+  precioVidrio: z.number().optional(),
+  
+  // Imágenes
+  images: z.array(z.string()).optional(),
+});
+
+export type ProductFormData = z.infer<typeof productSchema>;
+
+export const quoteSchema = z.object({
+  customerName: z.string().min(1, 'El nombre del cliente es requerido'),
+  customerEmail: z.string().email('Email del cliente inválido'),
+  customerPhone: z.string().optional().or(z.literal('')),
+  projectName: z.string().min(1, 'El nombre del proyecto es requerido'),
+  validUntil: z.string().optional().or(z.literal('')),
+  notes: z.string().optional().or(z.literal('')),
+});
+
+export type QuoteFormData = z.infer<typeof quoteSchema>;
