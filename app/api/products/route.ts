@@ -3,6 +3,8 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { adminAuthGuard } from '@/lib/authUtils';
+import { productSchema } from '@/lib/validationSchemas';
+import { z } from 'zod';
 
 export const dynamic = 'force-dynamic';
 export const fetchCache = 'force-no-store';
@@ -139,6 +141,10 @@ export async function POST(request: NextRequest) {
     if (authGuardResponse) return authGuardResponse;
 
     const body = await request.json();
+    
+    // Validate request body
+    const validatedData = productSchema.parse(body);
+    
     const {
       name,
       categoryId,
@@ -159,12 +165,10 @@ export async function POST(request: NextRequest) {
       frenteAltoMin,
       frenteAltoMax,
       ventanaAnchoMin,
-      ventanaAnchoMax,
       ventanaAltoMin,
       ventanaAltoMax,
-      precioVidrio,
       images,
-    } = body;
+    } = validatedData;
 
     const product = await prisma.product.create({
       data: {
@@ -198,6 +202,12 @@ export async function POST(request: NextRequest) {
       product
     });
   } catch (error: any) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { success: false, error: 'Datos de validación inválidos', details: error.errors },
+        { status: 400 }
+      );
+    }
     console.error('Error creating product:', error);
     return NextResponse.json(
       { success: false, error: error.message || 'Error interno del servidor' },

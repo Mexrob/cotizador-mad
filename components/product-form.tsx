@@ -10,51 +10,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import ProductImageUpload from '@/components/product-image-upload';
 
-const productSchema = z.object({
-  name: z.string().min(1, 'El nombre es requerido'),
-  categoryId: z.string().optional(),
-  
-  // Información básica
-  categoria: z.string().optional(),
-  coleccion: z.string().optional(),
-  linea: z.string().optional(),
-  
-  // Colores
-  tonoColor: z.string().optional(),
-  tonoVidrio: z.string().optional(),
-  tonoAluminio: z.string().optional(),
-  
-  // Precio
-  precioBaseM2: z.number().min(0).optional(),
-  tiempoEntrega: z.number().int().min(1).optional(),
-  
-  // Dimensiones Puerta
-  puertaAnchoMin: z.number().optional(),
-  puertaAnchoMax: z.number().optional(),
-  puertaAltoMin: z.number().optional(),
-  puertaAltoMax: z.number().optional(),
-  
-  // Dimensiones Frente
-  frenteAnchoMin: z.number().optional(),
-  frenteAnchoMax: z.number().optional(),
-  frenteAltoMin: z.number().optional(),
-  frenteAltoMax: z.number().optional(),
-  
-  // Dimensiones Ventana
-  ventanaAnchoMin: z.number().optional(),
-  ventanaAnchoMax: z.number().optional(),
-  ventanaAltoMin: z.number().optional(),
-  ventanaAltoMax: z.number().optional(),
-  
-  // Precio vidrio
-  precioVidrio: z.number().optional(),
-  
-  // Imágenes
-  images: z.array(z.string()).optional(),
-});
+import { productSchema } from '@/lib/validationSchemas';
 
 type ProductFormData = z.infer<typeof productSchema>;
 
@@ -103,6 +63,7 @@ export default function ProductForm({ product, onSubmit, onCancel, isLoading }: 
   const [categories, setCategories] = useState<Category[]>([]);
   const [lines, setLines] = useState<Category[]>([]);
   const [images, setImages] = useState<string[]>(product?.images || []);
+  const [loadingData, setLoadingData] = useState(true);
   
   const {
     register,
@@ -140,8 +101,12 @@ export default function ProductForm({ product, onSubmit, onCancel, isLoading }: 
   });
 
   useEffect(() => {
-    fetchCategories();
-    fetchLines();
+    const loadAllData = async () => {
+      setLoadingData(true);
+      await Promise.all([fetchCategories(), fetchLines()]);
+      setLoadingData(false);
+    };
+    loadAllData();
   }, []);
 
   useEffect(() => {
@@ -231,35 +196,38 @@ export default function ProductForm({ product, onSubmit, onCancel, isLoading }: 
 
             <div className="space-y-2">
               <Label htmlFor="categoryId">Categoría</Label>
-              <Controller
-                name="categoryId"
-                control={control}
-                render={({ field }) => {
-                  const selectedCategory = categories.find(c => c.id === field.value);
-                  const displayValue = selectedCategory ? field.value : (product?.categoria || '');
-                  
-                  return (
-                    <select
-                      id="categoryId"
-                      value={selectedCategory ? field.value : ''}
-                      onChange={(e) => field.onChange(e.target.value)}
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
-                    >
-                      <option value="">Seleccionar categoría</option>
-                      {categories.map((cat) => (
-                        <option key={cat.id} value={cat.id}>
-                          {cat.name}
-                        </option>
-                      ))}
-                      {!selectedCategory && product?.categoria && (
-                        <option value={product.categoria} disabled>
-                          {product.categoria} (actual)
-                        </option>
-                      )}
-                    </select>
-                  );
-                }}
-              />
+              {loadingData ? (
+                <Skeleton className="h-10 w-full" />
+              ) : (
+                <Controller
+                  name="categoryId"
+                  control={control}
+                  render={({ field }) => {
+                    const selectedCategory = categories.find(c => c.id === field.value);
+                    
+                    return (
+                      <select
+                        id="categoryId"
+                        value={selectedCategory ? field.value : ''}
+                        onChange={(e) => field.onChange(e.target.value)}
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+                      >
+                        <option value="">Seleccionar categoría</option>
+                        {categories.map((cat) => (
+                          <option key={cat.id} value={cat.id}>
+                            {cat.name}
+                          </option>
+                        ))}
+                        {!selectedCategory && product?.categoria && (
+                          <option value={product.categoria} disabled>
+                            {product.categoria} (actual)
+                          </option>
+                        )}
+                      </select>
+                    );
+                  }}
+                />
+              )}
               {errors.categoryId && (
                 <p className="text-sm text-red-500">{errors.categoryId.message}</p>
               )}
@@ -269,34 +237,38 @@ export default function ProductForm({ product, onSubmit, onCancel, isLoading }: 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label htmlFor="linea">Línea</Label>
-              <Controller
-                name="linea"
-                control={control}
-                render={({ field }) => {
-                  const selectedLine = lines.find(l => l.id === field.value);
-                  
-                  return (
-                    <select
-                      id="linea"
-                      value={selectedLine ? field.value : ''}
-                      onChange={(e) => field.onChange(e.target.value)}
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      <option value="">Seleccionar línea</option>
-                      {lines.map((line) => (
-                        <option key={line.id} value={line.id}>
-                          {line.name}
-                        </option>
-                      ))}
-                      {!selectedLine && product?.linea && (
-                        <option value={product.linea} disabled>
-                          {product.lineaName || product.linea} (actual)
-                        </option>
-                      )}
-                    </select>
-                  );
-                }}
-              />
+              {loadingData ? (
+                <Skeleton className="h-10 w-full" />
+              ) : (
+                <Controller
+                  name="linea"
+                  control={control}
+                  render={({ field }) => {
+                    const selectedLine = lines.find(l => l.id === field.value);
+                    
+                    return (
+                      <select
+                        id="linea"
+                        value={selectedLine ? field.value : ''}
+                        onChange={(e) => field.onChange(e.target.value)}
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        <option value="">Seleccionar línea</option>
+                        {lines.map((line) => (
+                          <option key={line.id} value={line.id}>
+                            {line.name}
+                          </option>
+                        ))}
+                        {!selectedLine && product?.linea && (
+                          <option value={product.linea} disabled>
+                            {product.lineaName || product.linea} (actual)
+                          </option>
+                        )}
+                      </select>
+                    );
+                  }}
+                />
+              )}
             </div>
 
             <div className="space-y-2">

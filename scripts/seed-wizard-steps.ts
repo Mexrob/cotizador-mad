@@ -129,19 +129,20 @@ async function main() {
   console.log('Seeding wizard step definitions...')
 
   for (const step of WIZARD_STEPS) {
-    const existing = await prisma.wizardStepDefinition.findUnique({
+    await prisma.wizardStepDefinition.upsert({
       where: { code: step.code },
+      update: {
+        name: step.name,
+        description: step.description,
+        componentName: step.componentName,
+        componentPath: step.componentPath,
+        icon: step.icon,
+        isSystem: step.isSystem,
+        stepType: step.stepType,
+      },
+      create: step,
     })
-
-    if (existing) {
-      console.log(`Skipping ${step.code} - already exists`)
-      continue
-    }
-
-    await prisma.wizardStepDefinition.create({
-      data: step,
-    })
-    console.log(`Created: ${step.code}`)
+    console.log(`✓ Synchronized: ${step.code}`)
   }
 
   console.log('Done!')
