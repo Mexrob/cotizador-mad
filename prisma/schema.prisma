@@ -97,6 +97,8 @@ model User {
   quotes        Quote[]
   quotesShared  QuoteShare[]
   notifications Notification[]
+  wizardAssignments WizardAssignment[]
+  wizardUsages    WizardUsage[]
   
   @@map("users")
 }
@@ -162,6 +164,10 @@ model CompanySettings {
   language      String   @default("es")
   sessionTimeoutMinutes Int @default(15) // Session timeout in minutes
   
+  // Special Options Percentages
+  expressDeliveryPercentage Float @default(20) // Percentage for express delivery
+  exhibitionPercentage Float @default(25) // Percentage for exhibition/demo products
+  
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
   
@@ -198,7 +204,7 @@ model Category {
   
   parent      Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
   children    Category[] @relation("CategoryHierarchy")
-  products    Product[]
+  
   
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -220,7 +226,7 @@ model Material {
   costPerUnit Float
   unit        String        @default("m2")
   
-  products    Product[]
+  
   
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -242,7 +248,7 @@ model Hardware {
   costPerUnit Float
   unit        String        @default("piece")
   
-  products    Product[]
+  
   
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -250,82 +256,71 @@ model Hardware {
   @@map("hardware")
 }
 
+model Brand {
+  id          String        @id @default(cuid())
+  name        String        @unique
+  description String?
+  imageUrl    String?
+  website     String?
+  status      ProductStatus @default(ACTIVE)
+  sortOrder   Int          @default(0)
+
+  
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("brands")
+}
+
 model Product {
-  id              String        @id @default(cuid())
-  name            String
-  description     String?
-  sku             String        @unique
-  categoryId      String
-  status          ProductStatus @default(ACTIVE)
+  // Obligatorios
+  id          String   @id @default(cuid())
+  name        String   @default("Producto")
+  categoryId  String   @default("default")
+  status      ProductStatus @default(ACTIVE)
   
-  // Physical Properties
-  width           Float?
-  height          Float?
-  depth           Float?
-  weight          Float?
-  dimensionUnit   String        @default("mm") // mm, cm, m, in
-  weightUnit      String        @default("kg") // kg, g, lb
+  // Campos principales
+  categoria       String?   // Categoria (Puerta/Ventana)
+  coleccion       String?   // Colección
+  linea           String?   // Línea de producto
+  tonoColor       String?   // Tono o Color
+  tonoVidrio     String?   // Tono de Vidrio
+  tonoAluminio   String?   // Tono de Aluminio
+  precioBaseM2   Float?    // Precio Base por metro cuadrado
+  tiempoEntrega  Int?      // Tiempo de entrega (días hábiles)
   
-  // New Product Characteristics
-  modelName       String?       // Modelo
-  colorToneText   String?       // Tono o Color (texto libre)
-  woodGrainText   String?       // Veta (Horizontal/Vertical - texto libre)
-  edgeBanding     String?       // Cubrecanto (legacy/text)
-  edgeBandingId   String?       // Reference to EdgeBanding model
-  edgeBandingRef  EdgeBanding?  @relation(fields: [edgeBandingId], references: [id])
-  faces           Int?          // Caras (1 o 2)
-  minWidth        Float?        // Ancho mínimo (mm)
-  maxWidth        Float?        // Ancho máximo (mm)
-  minHeight       Float?        // Alto mínimo (mm)
-  maxHeight       Float?        // Alto máximo (mm)
-  handleType      String?       // Jaladera (legacy/text)
-  handleId        String?       // Reference to HandleModel
-  handleRef       HandleModel?  @relation(fields: [handleId], references: [id])
-  orientation     String?       // Horizontal o Vertical
+  // Dimensiones PUERTA
+  puertaAnchoMin Float?    // PUERTA Ancho Mínimo (mm)
+  puertaAnchoMax Float?    // PUERTA Ancho Máximo (mm)
+  puertaAltoMin  Float?    // PUERTA Alto Mínimo (mm)
+  puertaAltoMax  Float?    // PUERTA Alto Máximo (mm)
   
-  // Pricing
-  basePrice       Float         @default(0)
-  currency        String        @default("MXN")
+  // Dimensiones FRENTE
+  frenteAnchoMin Float?    // FRENTE Ancho Mínimo (mm)
+  frenteAnchoMax Float?    // FRENTE Ancho Máximo (mm)
+  frenteAltoMin  Float?    // FRENTE Alto Mínimo (mm)
+  frenteAltoMax  Float?    // FRENTE Alto Máximo (mm)
   
-  // Images and 3D
-  images          String[]
-  model3d         String?       // URL to 3D model
-  thumbnail       String?
+  // Dimensiones VENTANA
+  ventanaAnchoMin Float?   // VENTANA Ancho Mínimo (mm)
+  ventanaAnchoMax Float?   // VENTANA Ancho Máximo (mm)
+  ventanaAltoMin  Float?   // VENTANA Alto Mínimo (mm)
+  ventanaAltoMax  Float?   // VENTANA Alto Máximo (mm)
   
-  // Manufacturing
-  isCustomizable  Boolean       @default(true)
-  leadTime        Int           @default(7) // days
-  minQuantity     Int           @default(1)
-  maxQuantity     Int?
+  // Precio vidrio
+  precioVidrio   Float?    // PRECIO DE VIDRIO CLARO DE 4MM
   
-  // SEO and Search
-  tags            String[]      // For search and filtering
-  featured        Boolean       @default(false)
+  // Imágenes
+  images         String[]  // Array de URLs de imágenes
   
-  // Relationships
-  category        Category      @relation(fields: [categoryId], references: [id])
-  materials       Material[]
-  hardware        Hardware[]
-  pricing         ProductPricing[]
-  quoteItems      QuoteItem[]
+  // Timestamps
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
   
-  // New fields for door configuration
-  doorTypeId      String?
-  doorModelId     String?
-  colorToneId     String?
-  productToneId   String?
-  woodGrainId     String?
-  lineId          String?       // Link to ProductLine for guided configuration
-  
-  doorType        DoorType?     @relation(fields: [doorTypeId], references: [id])
-  doorModel       DoorModel?    @relation(fields: [doorModelId], references: [id])
-  colorTone       ColorTone?    @relation(fields: [colorToneId], references: [id])
-  productTone     ProductTone?  @relation(fields: [productToneId], references: [id])
-  woodGrain       WoodGrain?    @relation(fields: [woodGrainId], references: [id])
-  line            ProductLine?  @relation(fields: [lineId], references: [id])
-  
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  // Relaciones
+  pricing     ProductPricing[]
+  quoteItems  QuoteItem[]
   
   @@map("products")
 }
@@ -335,7 +330,7 @@ model DoorType {
   name        String        @unique
   description String?
   status      ProductStatus @default(ACTIVE)
-  products    Product[]
+  
   quoteItems  QuoteItem[]
   
   createdAt   DateTime @default(now())
@@ -349,7 +344,7 @@ model DoorModel {
   name        String        @unique
   description String?
   status      ProductStatus @default(ACTIVE)
-  products    Product[]
+  
   quoteItems  QuoteItem[]
   
   createdAt   DateTime @default(now())
@@ -364,7 +359,7 @@ model ColorTone {
   hexCode     String?
   imageUrl    String?
   status      ProductStatus @default(ACTIVE)
-  products    Product[]
+  
   quoteItems  QuoteItem[]
   
   createdAt   DateTime @default(now())
@@ -379,7 +374,7 @@ model WoodGrain {
   direction   String?       // Vertical, Horizontal
   imageUrl    String?
   status      ProductStatus @default(ACTIVE)
-  products    Product[]
+  
   quoteItems  QuoteItem[]
   
   createdAt   DateTime @default(now())
@@ -406,13 +401,13 @@ model Handle {
 // Pricing System
 model ProductPricing {
   id          String   @id @default(cuid())
-  productId   String
+  productId   String?
   userRole    UserRole
   basePrice   Float
   markup      Float    @default(0)
   finalPrice  Float
   
-  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product     Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
   
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -456,6 +451,10 @@ model Quote {
   projectAddress  String?
   roomDimensions  Json?         // {width: 4.5, height: 2.4, depth: 3.2}
   
+  @@index([userId])
+  @@index([status])
+  @@index([customerEmail])
+  
   // Pricing
   subtotal        Float         @default(0)
   taxAmount       Float         @default(0)
@@ -496,7 +495,7 @@ model Quote {
 model QuoteItem {
   id            String  @id @default(cuid())
   quoteId       String
-  productId     String
+  productId     String?
   quantity      Int     @default(1)
   
   // Customization
@@ -521,6 +520,10 @@ model QuoteItem {
   colorTone       ColorTone?   @relation(fields: [colorToneId], references: [id])
   woodGrain       WoodGrain?   @relation(fields: [woodGrainId], references: [id])
   handle          Handle?      @relation(fields: [handleId], references: [id])
+  
+  @@index([quoteId])
+  @@index([productId])
+  
   // New relation to product line for configured items
   productLineId   String?
   productLine     ProductLine? @relation(fields: [productLineId], references: [id])
@@ -529,15 +532,22 @@ model QuoteItem {
   handleModelId   String?
   handleModel     HandleModel? @relation(fields: [handleModelId], references: [id])
   ceramicColor    String?      // Color selection for ceramic products (e.g., "DANAE", "KELYA")
+  vetaOrientation String?      // Orientation for ceramic products (e.g., "vertical", "horizontal")
+  jaladera          String?      // Jaladera name for ceramic products (e.g., "JAL-001")
+  jaladeraOrientation String?   // Orientation for jaladera (e.g., "vertical", "horizontal")
+  cubrecanto        String?     // Cubrecanto selection (e.g., "Tono Aluminio", "Similar al tono")
+  handlePrice      Float?       // Price of the handle/jaladera separately
   
   // Pricing
   unitPrice     Float
   totalPrice    Float
   pricePerSquareMeter Float?    // Precio base por m² del tono seleccionado
   packagingCost Float         @default(0) // Costo de Empaque calculado por Alto × Ancho
+  expressAmount Float         @default(0) // Monto de envío express calculado
+  exhibitionAmount Float      @default(0) // Monto de descuento de exhibición calculado
   
   quote         Quote   @relation(fields: [quoteId], references: [id], onDelete: Cascade)
-  product       Product @relation(fields: [productId], references: [id])
+  product       Product? @relation(fields: [productId], references: [id])
   
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -607,7 +617,7 @@ model ProductLine {
   sortOrder   Int           @default(0) // Display order in UI
   
   // Relationships
-  products    Product[]
+  
   tones       ProductTone[]
   quoteItems  QuoteItem[]  // Back-reference to quote items using this line
   
@@ -640,7 +650,7 @@ model ProductTone {
   sortOrder   Int      @default(0)
   
   quoteItems  QuoteItem[] // Back-reference to quote items using this tone
-  products    Product[]
+  
   
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -658,7 +668,7 @@ model EdgeBanding {
   isActive    Boolean  @default(true)
   sortOrder   Int      @default(0)
   
-  products    Product[]
+  
   
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -686,7 +696,7 @@ model HandleModel {
   isActive    Boolean  @default(true)
   sortOrder   Int      @default(0)
   
-  products    Product[]
+  
   quoteItems  QuoteItem[] // Back-reference to quote items using this handle
   
   createdAt   DateTime @default(now())
@@ -708,4 +718,180 @@ model ProductBackFace {
   updatedAt       DateTime @updatedAt
 
   @@map("product_back_faces")
+}
+
+// Configurable Wizard System
+// This system allows admins to create custom wizards with different steps,
+// calculations, and assign them to specific users/roles
+
+model WizardTemplate {
+  id          String   @id @default(cuid())
+  name        String   // "Wizard Estándar Puertas", "Wizard Express", etc.
+  description String?
+  code        String   @unique // "standard-doors", "express-kit", etc.
+  
+  // Status
+  isActive    Boolean  @default(true)
+  isDefault   Boolean  @default(false) // Default wizard for new users
+  
+  // Steps configuration (JSON para flexibilidad)
+  stepsConfig Json     // Array de pasos con su configuración
+  
+  // Pricing configuration
+  pricingConfig Json?  // Fórmulas y reglas de cálculo de precios
+  
+  // Validation rules
+  validationRules Json? // Reglas de validación por paso
+  
+  // UI Configuration
+  uiConfig    Json?    // Colores, estilos, textos personalizados
+  
+  // Relationships
+  assignments WizardAssignment[]
+  usages      WizardUsage[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("wizard_templates")
+}
+
+model WizardStepDefinition {
+  id          String   @id @default(cuid())
+  name        String   // "Selección de Categoría", "Dimensiones", etc.
+  code        String   @unique // "category-selection", "dimensions", etc.
+  
+  // Component info
+  componentName String // Nombre del componente React a renderizar
+  componentPath String // Ruta al componente (opcional, para pasos dinámicos)
+  
+  // Step metadata
+  description String?
+  icon        String?  // Nombre del icono Lucide
+  isSystem    Boolean  @default(false) // Pasos del sistema vs custom
+  
+  // Configuration schema (para validar el config del paso)
+  configSchema Json?   // JSON Schema para validar la configuración
+  
+  // Default configuration
+  defaultConfig Json?
+  
+  // Step type
+  stepType    WizardStepType @default(STANDARD)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("wizard_step_definitions")
+}
+
+enum WizardStepType {
+  STANDARD      // Paso estándar del sistema
+  CUSTOM        // Paso personalizado creado por admin
+  CONDITIONAL   // Paso que aparece según condiciones
+  CALCULATION   // Paso de cálculo automático
+}
+
+model WizardAssignment {
+  id        String   @id @default(cuid())
+  
+  // Assignment scope
+  templateId String
+  userId    String?  // Asignación a usuario específico
+  role      UserRole? // Asignación a rol
+  
+  // Priority (si hay conflictos)
+  priority  Int      @default(0)
+  
+  // Date range (opcional)
+  validFrom DateTime?
+  validUntil DateTime?
+  
+  // Relationships
+  template  WizardTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  user      User?          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@unique([templateId, userId])
+  @@unique([templateId, role])
+  @@map("wizard_assignments")
+}
+
+model WizardUsage {
+  id        String   @id @default(cuid())
+  
+  templateId String
+  userId    String
+  quoteId   String?
+  
+  // Usage data
+  startedAt DateTime @default(now())
+  completedAt DateTime?
+  stepData  Json?    // Datos recolectados en cada paso
+  
+  @@index([userId])
+  @@index([templateId])
+  @@index([quoteId])
+  
+  // Performance metrics
+  durationSeconds Int? // Tiempo total en segundos
+  
+  // Relationships
+  template  WizardTemplate @relation(fields: [templateId], references: [id])
+  user      User           @relation(fields: [userId], references: [id])
+  
+  createdAt DateTime @default(now())
+  
+  @@map("wizard_usages")
+}
+
+model PricingFormula {
+  id          String   @id @default(cuid())
+  name        String   // "Cálculo Vidrio", "Cálculo Alhú", etc.
+  code        String   @unique // "glass-calculation", "alhu-calculation"
+  
+  // Formula definition
+  formula     String   // Expresión matemática o JavaScript
+  variables   Json     // Variables disponibles: { "width": "number", "height": "number" }
+  
+  // Conditions
+  conditions  Json?    // Condiciones para aplicar esta fórmula
+  
+  // Metadata
+  description String?
+  isActive    Boolean  @default(true)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("pricing_formulas")
+}
+
+model ExtraService {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  price       Float
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("extra_services")
+}
+
+model ShippingCost {
+  id          String   @id @default(cuid())
+  zone        String
+  description String?
+  cost        Float
+  freeFrom    Float?
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("shipping_costs")
 }

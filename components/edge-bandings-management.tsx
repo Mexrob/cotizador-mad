@@ -63,14 +63,15 @@ export default function EdgeBandingsManagement() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData),
             });
+            const data = await res.json();
             if (res.ok) {
                 toast.success('Guardado');
                 fetchEdges();
                 setDialogOpen(false);
+                setEditingEdge(null);
+                setFormData({ name: '', description: '', isActive: true, sortOrder: 0 });
             } else {
-                const errorData = await res.json().catch(() => ({}));
-                console.error('Error response:', errorData);
-                toast.error(errorData.error || 'Error al guardar');
+                toast.error(data.error || 'Error al guardar');
             }
         } catch (error) {
             console.error('Submission error:', error);
@@ -137,7 +138,9 @@ export default function EdgeBandingsManagement() {
                         </CardHeader>
                         <CardContent>
                             <p className="text-sm text-gray-500 mb-2">{edge.description || 'Sin descripción'}</p>
-                            <Badge variant="outline">{edge._count.products} Productos</Badge>
+                            <Badge variant={edge.isActive ? 'default' : 'secondary'}>
+                                {edge.isActive ? 'Activo' : 'Inactivo'}
+                            </Badge>
                         </CardContent>
                     </Card>
                 ))}

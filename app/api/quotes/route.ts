@@ -117,36 +117,28 @@ export async function GET(request: NextRequest) {
         skip,
         take: limit,
         orderBy,
-        include: {
+        select: {
+          id: true,
+          quoteNumber: true,
+          status: true,
+          customerName: true,
+          customerEmail: true,
+          projectName: true,
+          totalAmount: true,
+          validUntil: true,
+          createdAt: true,
+          userId: true,
+          _count: {
+            select: {
+              items: true,
+            },
+          },
           user: {
             select: {
               id: true,
               name: true,
               email: true,
               role: true,
-            },
-          },
-          items: {
-            include: {
-              product: {
-                select: {
-                  id: true,
-                  name: true,
-                  thumbnail: true,
-                  sku: true,
-                  lineId: true,
-                },
-              },
-              doorType: { select: { id: true, name: true } },
-              doorModel: { select: { id: true, name: true } },
-              colorTone: { select: { id: true, name: true } },
-              woodGrain: { select: { id: true, name: true } },
-              handle: { select: { id: true, name: true, cost: true } },
-            },
-          },
-          _count: {
-            select: {
-              items: true,
             },
           },
         },
@@ -168,10 +160,11 @@ export async function GET(request: NextRequest) {
       },
     })
 
-    // Get status counts
+    // Get status counts - only filter by userId if NOT admin
+    const authGuardResponse2 = adminAuthGuard(session)
     const statusCounts = await prisma.quote.groupBy({
       by: ['status'],
-      where: adminAuthGuard(session) ? { userId: session.user.id } : {},
+      where: authGuardResponse2 ? { userId: session.user.id } : {},
       _count: {
         _all: true,
       },

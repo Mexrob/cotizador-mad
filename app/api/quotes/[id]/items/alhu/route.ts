@@ -33,7 +33,7 @@ export async function POST(
 
         // 2. Find or create base product for Alhú
         let product = await prisma.product.findFirst({
-            where: { lineId: productLine.id }
+            where: { linea: productLine.id }
         })
 
         if (!product) {
@@ -52,13 +52,24 @@ export async function POST(
             product = await prisma.product.create({
                 data: {
                     name: 'Puerta Línea Alhú',
-                    sku: 'ALHU-KIT',
                     categoryId: category.id,
-                    lineId: productLine.id,
-                    basePrice: 4440,
-                    isCustomizable: true,
+                    linea: productLine.id,
+                    precioBaseM2: 4440,
                 }
             })
+        }
+
+        // Validate tiempo de entrega - prevent mixing different delivery times
+        const existingItems = await prisma.quoteItem.findMany({
+            where: { quoteId: params.id },
+            include: { product: { select: { tiempoEntrega: true } } }
+        })
+        const existingTiempoEntrega = existingItems[0]?.product?.tiempoEntrega
+        if (existingItems.length > 0 && existingTiempoEntrega !== product.tiempoEntrega) {
+            return NextResponse.json(
+                { success: false, error: `Error en el tiempo de entrega. Esta cotización tiene productos con ${existingTiempoEntrega} días. Solo puedes agregar productos con el mismo tiempo de entrega.` },
+                { status: 400 }
+            )
         }
 
         // 3. Find Glass Tone (stored in config.tone)
@@ -101,11 +112,16 @@ export async function POST(
 
         const subtotal = baseItemPrice + handlePrice
 
-        // Optionals
-        const exhibitionFee = optionals.isExhibition ? subtotal * -0.25 : 0
-        const expressFee = optionals.isExpressDelivery ? subtotal * 0.20 : 0
+        // Get company settings for dynamic percentages
+        const companySettings = await prisma.companySettings.findFirst()
+        const expressPercentage = companySettings?.expressDeliveryPercentage || 20
+        const exhibitionPercentage = companySettings?.exhibitionPercentage || 25
 
-        const total = subtotal + exhibitionFee + expressFee
+        // Optionals - using dynamic percentages from company settings
+        const expressFee = optionals.isExpressDelivery ? subtotal * (expressPercentage / 100) : 0
+        const exhibitionFee = optionals.isExhibition ? subtotal * (exhibitionPercentage / 100) : 0
+
+        const total = subtotal + expressFee - exhibitionFee
 
         // 6. Create Quote Item
         const quoteItem = await prisma.quoteItem.create({
@@ -125,6 +141,8 @@ export async function POST(
                 isExhibition: optionals.isExhibition,
                 isExpressDelivery: optionals.isExpressDelivery,
                 isTwoSided: false,
+                expressAmount: expressFee,
+                exhibitionAmount: exhibitionFee,
             }
         })
 

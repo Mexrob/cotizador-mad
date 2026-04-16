@@ -69,6 +69,8 @@ export async function PUT(request: NextRequest) {
       timezone,
       language,
       sessionTimeoutMinutes,
+      expressDeliveryPercentage,
+      exhibitionPercentage,
     } = body
 
     // Get existing settings or create new ones
@@ -96,6 +98,8 @@ export async function PUT(request: NextRequest) {
           timezone,
           language,
           sessionTimeoutMinutes,
+          expressDeliveryPercentage,
+          exhibitionPercentage,
         },
       })
     } else {
@@ -118,6 +122,8 @@ export async function PUT(request: NextRequest) {
           timezone,
           language,
           sessionTimeoutMinutes,
+          expressDeliveryPercentage,
+          exhibitionPercentage,
         },
       })
     }
@@ -129,8 +135,9 @@ export async function PUT(request: NextRequest) {
     })
   } catch (error) {
     console.error('Company settings update error:', error)
+    console.error('Error details:', JSON.stringify(error, null, 2))
     return NextResponse.json(
-      { error: 'Error al actualizar configuración' },
+      { error: 'Error al actualizar configuración', details: (error as Error).message },
       { status: 500 }
     )
   }

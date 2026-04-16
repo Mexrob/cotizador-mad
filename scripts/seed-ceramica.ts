@@ -30,30 +30,29 @@ async function main() {
     }
 
     // Create a base product for Cerámica line
-    const product = await prisma.product.upsert({
-        where: { sku: 'CERAMICA-BASE-001' },
-        update: {
-            name: 'Puerta Cerámica Personalizada',
-            lineId: ceramica.id,
-            categoryId: category.id,
-        },
-        create: {
-            sku: 'CERAMICA-BASE-001',
-            name: 'Puerta Cerámica Personalizada',
-            description: 'Puerta personalizada con acabado cerámico',
-            basePrice: 2600.00,
-            currency: 'MXN',
-            dimensionUnit: 'mm',
-            width: 1000,
-            height: 2000,
-            depth: 18,
-            isCustomizable: true,
-            lineId: ceramica.id,
-            categoryId: category.id,
-        },
+    const existingProduct = await prisma.product.findFirst({
+        where: { linea: 'LÍNEA CERÁMICA' }
     })
 
-    console.log(`✓ Created/Updated product: ${product.name}`)
+    if (!existingProduct) {
+        const product = await prisma.product.create({
+            data: {
+                name: 'Puerta Cerámica Personalizada',
+                linea: 'LÍNEA CERÁMICA',
+                categoria: 'Puerta',
+                coleccion: 'LÍNEA CERÁMICA',
+                precioBaseM2: 2600.00,
+                categoryId: category.id,
+                puertaAnchoMin: 300,
+                puertaAnchoMax: 1500,
+                puertaAltoMin: 500,
+                puertaAltoMax: 2400,
+            }
+        })
+        console.log(`✓ Created product: ${product.name}`)
+    } else {
+        console.log(`✓ Product already exists: ${existingProduct.name}`)
+    }
 
     // Create ceramic tones
     const ceramicTones = [

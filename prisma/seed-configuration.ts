@@ -1,4 +1,4 @@
-import { PrismaClient, ProductStatus } from '@prisma/client'
+import { PrismaClient } from '@prisma/client'
 
 const prisma = new PrismaClient()
 
@@ -122,14 +122,14 @@ async function main() {
             data: {
                 name: 'Puertas',
                 description: 'Puertas de cocina MODULE 2025',
-                status: ProductStatus.ACTIVE,
             }
         })
     }
     console.log(`✅ Category: Puertas\n`)
 
     // 2. Create Product Lines and Tones
-    for (const lineData of PRODUCT_LINES) {
+    for (let i = 0; i < PRODUCT_LINES.length; i++) {
+        const lineData = PRODUCT_LINES[i]
         const line = await prisma.productLine.upsert({
             where: { name: lineData.name },
             update: lineData,
@@ -168,50 +168,39 @@ async function main() {
         console.log(`   ✓ ${tones.length} tonos creados`)
 
         // Create base product for this line
-        const sku = `PTA-${lineData.code}-LINE`
-
-        await prisma.product.upsert({
-            where: { sku },
-            update: {
-                name: `Puerta ${lineData.name}`,
-                description: `Puerta de la ${lineData.name} modelo LINE (liscio)`,
-            },
-            create: {
-                name: `Puerta ${lineData.name}`,
-                description: `Puerta de la ${lineData.name} modelo LINE (liscio). Producto base para configuración guiada.`,
-                sku,
-                categoryId: puertasCategory.id,
-                lineId: line.id,
-                status: ProductStatus.ACTIVE,
-
-                // Precio base (a definir por línea - placeholder)
-                basePrice: 0.05, // $0.05 MXN por mm²
-                currency: 'MXN',
-
-                // Dimensiones estándar
-                width: 700,
-                height: 2100,
-                depth: 18,
-                dimensionUnit: 'mm',
-
-                // Características
-                modelName: 'LINE',
-                isCustomizable: true,
-                leadTime: 15,
-                minQuantity: 1,
-
-                // Rangos de dimensiones
-                minWidth: 300,
-                maxWidth: 1500,
-                minHeight: 500,
-                maxHeight: 2400,
-
-                // Metadata
-                tags: ['puerta', 'cocina', lineData.name.toLowerCase()],
-                images: [],
-                featured: false,
-            }
+        const existingProduct = await prisma.product.findFirst({
+            where: { linea: lineData.name }
         })
+
+        if (!existingProduct) {
+            await prisma.product.create({
+                data: {
+                    name: `Puerta ${lineData.name}`,
+                    categoryId: puertasCategory.id,
+                    linea: lineData.name,
+                    categoria: 'Puerta',
+                    coleccion: lineData.name,
+                    
+                    // Precio base por m² (placeholder)
+                    precioBaseM2: 0.05,
+                    
+                    // Dimensiones estándar puerta
+                    puertaAnchoMin: 300,
+                    puertaAnchoMax: 1500,
+                    puertaAltoMin: 500,
+                    puertaAltoMax: 2400,
+                    
+                    // Dimensiones estándar frente
+                    frenteAnchoMin: 300,
+                    frenteAnchoMax: 1200,
+                    frenteAltoMin: 400,
+                    frenteAltoMax: 2400,
+                    
+                    // Tiempo de entrega
+                    tiempoEntrega: 15,
+                }
+            })
+        }
 
         console.log(`   ✓ Producto base creado\n`)
     }

@@ -4,13 +4,11 @@ import { PrismaClient } from '@prisma/client'
 const prisma = new PrismaClient()
 
 async function main() {
-    const products = await prisma.product.findMany({
-        include: { line: true }
-    })
+    const products = await prisma.product.findMany()
 
     console.log(`Total Products: ${products.length}`)
     products.forEach(p => {
-        console.log(`- ${p.name} (${p.id}) -> Line: ${p.line?.name || 'None'}`)
+        console.log(`- ${p.name} (${p.id}) -> Linea: ${p.linea || 'None'}`)
     })
 }
 

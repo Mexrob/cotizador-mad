@@ -33,13 +33,26 @@ export async function POST(
 
         // Find a product in the selected line
         const product = await prisma.product.findFirst({
-            where: { lineId: productLine.id }
+            where: { linea: productLine.id }
         })
 
         if (!product) {
             return NextResponse.json(
                 { success: false, error: `No se encontró un producto base para la línea ${lineName}` },
                 { status: 404 }
+            )
+        }
+
+        // Validate tiempo de entrega - prevent mixing different delivery times
+        const existingItems = await prisma.quoteItem.findMany({
+            where: { quoteId: params.id },
+            include: { product: { select: { tiempoEntrega: true } } }
+        })
+        const existingTiempoEntrega = existingItems[0]?.product?.tiempoEntrega
+        if (existingItems.length > 0 && existingTiempoEntrega !== product.tiempoEntrega) {
+            return NextResponse.json(
+                { success: false, error: `Error en el tiempo de entrega. Esta cotización tiene productos con ${existingTiempoEntrega} días. Solo puedes agregar productos con el mismo tiempo de entrega.` },
+                { status: 400 }
             )
         }
 
@@ -92,11 +105,7 @@ export async function POST(
                 packagingCost: 0,
             },
             include: {
-                product: {
-                    include: {
-                        category: true,
-                    }
-                },
+                product: true,
                 productLine: true,
                 productTone: true,
                 handleModel: true,

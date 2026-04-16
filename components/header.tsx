@@ -20,7 +20,13 @@ import {
   Home,
   Package,
   FileText,
-  BarChart3
+  BarChart3,
+  Cpu,
+  HardDrive,
+  Clock,
+  Activity,
+  MemoryStick,
+  Thermometer
 } from 'lucide-react'
 import { NotificationsDropdown } from '@/components/notifications-dropdown'
 
@@ -29,7 +35,15 @@ export function Header() {
   const router = useRouter()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
-  const [currentDate, setCurrentDate] = useState(new Date())
+  const [currentDate, setCurrentDate] = useState<string | null>(null)
+  const [systemStats, setSystemStats] = useState<{
+    cpu: number
+    memory: { total: number; used: number; free: number; usagePercent: number }
+    disk: { total: number; used: number; free: number; usagePercent: number }
+    uptime: { days: number; hours: number; minutes: number }
+    system: { hostname: string; cpuCount: number; cpuModel: string }
+    temperature: number | null
+  } | null>(null)
   const [companySettings, setCompanySettings] = useState<{
     companyName: string
     logo?: string
@@ -61,12 +75,49 @@ export function Header() {
 
   // Update date every minute
   useEffect(() => {
+    setCurrentDate(new Date().toLocaleDateString('es-ES', { 
+      weekday: 'long', 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    }))
+    
     const timer = setInterval(() => {
-      setCurrentDate(new Date())
+      setCurrentDate(new Date().toLocaleDateString('es-ES', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      }))
     }, 60000) // Update every minute
 
     return () => clearInterval(timer)
   }, [])
+
+  useEffect(() => {
+    const fetchSystemStats = async () => {
+      if (session?.user?.role !== 'ADMIN') return
+
+      try {
+        const response = await fetch('/api/admin/system-stats', {
+          credentials: 'include'
+        })
+        if (response.ok) {
+          const result = await response.json()
+          if (result.success) {
+            setSystemStats(result.data)
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching system stats:', error)
+      }
+    }
+
+    fetchSystemStats()
+    const interval = setInterval(fetchSystemStats, 3000)
+
+    return () => clearInterval(interval)
+  }, [session])
 
   // Función robusta de logout para producción
   const handleLogout = async () => {
@@ -112,7 +163,7 @@ export function Header() {
 
   // Enlaces base (siempre visibles)
   const baseNavigation = [
-    { name: 'Inicio', href: '/', icon: Home },
+    { name: 'Inicio', href: '/dashboard', icon: Home },
   ]
 
   // Enlaces que requieren autenticación
@@ -162,12 +213,7 @@ export function Header() {
 
           {/* Current Date */}
           <div className="hidden lg:flex items-center text-sm text-gray-600 dark:text-gray-400 font-medium">
-            {currentDate.toLocaleDateString('es-MX', {
-              weekday: 'long',
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric'
-            })}
+            {currentDate || 'Cargando...'}
           </div>
 
           {/* Desktop Navigation */}
@@ -188,6 +234,36 @@ export function Header() {
             <NotificationsDropdown />
             <ModeToggle />
           </div>
+
+          {/* System Stats (Admin Only) */}
+          {session?.user?.role === 'ADMIN' && systemStats && (
+            <div className="hidden xl:flex items-center ml-4 space-x-3 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 rounded-lg text-xs">
+              {systemStats.temperature !== null && (
+                <div className="flex items-center space-x-1" title={`Temperatura: ${systemStats.temperature}°C`}>
+                  <Thermometer className="w-3.5 h-3.5 text-red-500 dark:text-red-400" />
+                  <span className="font-medium text-gray-700 dark:text-gray-300">{systemStats.temperature}°C</span>
+                </div>
+              )}
+              <div className="flex items-center space-x-1" title={`CPU: ${systemStats.cpu}%`}>
+                <Cpu className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                <span className="font-medium text-gray-700 dark:text-gray-300">{systemStats.cpu}%</span>
+              </div>
+              <div className="flex items-center space-x-1" title={`Memoria: ${systemStats.memory.used}GB / ${systemStats.memory.total}GB`}>
+                <MemoryStick className="w-3.5 h-3.5 text-green-600 dark:text-green-400" />
+                <span className="font-medium text-gray-700 dark:text-gray-300">{systemStats.memory.usagePercent}%</span>
+              </div>
+              <div className="flex items-center space-x-1" title={`SSD: ${systemStats.disk.used}GB / ${systemStats.disk.total}GB`}>
+                <HardDrive className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+                <span className="font-medium text-gray-700 dark:text-gray-300">{systemStats.disk.usagePercent}%</span>
+              </div>
+              <div className="flex items-center space-x-1" title={`Uptime: ${systemStats.uptime.days}d ${systemStats.uptime.hours}h`}>
+                <Clock className="w-3.5 h-3.5 text-orange-600 dark:text-orange-400" />
+                <span className="font-medium text-gray-700 dark:text-gray-300">
+                  {systemStats.uptime.days > 0 ? `${systemStats.uptime.days}d ` : ''}{systemStats.uptime.hours}h
+                </span>
+              </div>
+            </div>
+          )}
 
           {/* User Menu / Auth Buttons */}
           <div className="flex items-center space-x-2 sm:space-x-4">

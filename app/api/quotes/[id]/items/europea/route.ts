@@ -18,6 +18,9 @@ export async function POST(
 
         const config = await request.json()
         console.log('Europea Básica config received:', JSON.stringify(config, null, 2))
+        
+        // Extraer backFace del config (puede venir en diferentes formatos)
+        const backFace = config.backFace || config.dimensions?.backFace || config.vetaOrientation || null
 
         // 1. Find ProductLine "Europea Básica"
         const productLine = await prisma.productLine.findUnique({
@@ -33,7 +36,7 @@ export async function POST(
 
         // 2. Find or create base product for Europea Básica
         let product = await prisma.product.findFirst({
-            where: { lineId: productLine.id }
+            where: { linea: productLine.id }
         })
 
         if (!product) {
@@ -52,13 +55,24 @@ export async function POST(
             product = await prisma.product.create({
                 data: {
                     name: 'Puerta Europea Básica',
-                    sku: 'EUROPEA-KIT',
                     categoryId: category.id,
-                    lineId: productLine.id,
-                    basePrice: 977,
-                    isCustomizable: true,
+                    linea: productLine.id,
+                    precioBaseM2: 977,
                 }
             })
+        }
+
+        // Validate tiempo de entrega - prevent mixing different delivery times
+        const existingItems = await prisma.quoteItem.findMany({
+            where: { quoteId: params.id },
+            include: { product: { select: { tiempoEntrega: true } } }
+        })
+        const existingTiempoEntrega = existingItems[0]?.product?.tiempoEntrega
+        if (existingItems.length > 0 && existingTiempoEntrega !== product.tiempoEntrega) {
+            return NextResponse.json(
+                { success: false, error: `Error en el tiempo de entrega. Esta cotización tiene productos con ${existingTiempoEntrega} días. Solo puedes agregar productos con el mismo tiempo de entrega.` },
+                { status: 400 }
+            )
         }
 
         // 3. Find Tone (stored in config.tone)
@@ -101,11 +115,16 @@ export async function POST(
 
         const subtotal = baseItemPrice + handlePrice
 
-        // Optionals
-        const exhibitionFee = optionals.isExhibition ? subtotal * -0.25 : 0
-        const expressFee = optionals.isExpressDelivery ? subtotal * 0.20 : 0
+        // Get company settings for dynamic percentages
+        const companySettings = await prisma.companySettings.findFirst()
+        const expressPercentage = companySettings?.expressDeliveryPercentage || 20
+        const exhibitionPercentage = companySettings?.exhibitionPercentage || 25
 
-        const total = subtotal + exhibitionFee + expressFee
+        // Optionals - using dynamic percentages from company settings
+        const expressFee = optionals.isExpressDelivery ? subtotal * (expressPercentage / 100) : 0
+        const exhibitionFee = optionals.isExhibition ? subtotal * (exhibitionPercentage / 100) : 0
+
+        const total = subtotal + expressFee - exhibitionFee
 
         // 6. Create Quote Item
         const quoteItem = await prisma.quoteItem.create({
@@ -121,10 +140,13 @@ export async function POST(
                 customHeight: dimensions.height,
                 productToneId: toneId,
                 handleModelId: handleId,
-                edgeBanding: config.edgeBanding, // "Mismo tono de puerta"
-                isTwoSided: config.backFace === 'Horizontal' || config.backFace === 'Vertical', // Grain direction stored in backFace
+                edgeBanding: config.edgeBanding,
+                isTwoSided: backFace === 'Horizontal' || backFace === 'Vertical',
+                vetaOrientation: backFace === 'Horizontal' || backFace === 'Vertical' ? backFace : null,
                 isExhibition: optionals.isExhibition,
                 isExpressDelivery: optionals.isExpressDelivery,
+                expressAmount: expressFee,
+                exhibitionAmount: exhibitionFee,
             }
         })
 

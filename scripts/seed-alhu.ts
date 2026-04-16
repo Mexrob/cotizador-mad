@@ -111,7 +111,7 @@ async function main() {
         || await prisma.category.create({ data: { name: 'Puertas' } })
 
     const product = await prisma.product.findFirst({
-        where: { lineId: line.id }
+        where: { linea: 'LÍNEA ALHÚ' }
     })
 
     if (!product) {
@@ -119,11 +119,11 @@ async function main() {
         await prisma.product.create({
             data: {
                 name: 'Puerta Alhú',
-                sku: 'PUERTA-ALHU-BASE',
                 categoryId: category.id,
-                lineId: line.id,
-                basePrice: 4440.00, // Base price mentioned
-                description: 'Puerta de línea Alhú configurable',
+                linea: 'LÍNEA ALHÚ',
+                categoria: 'Puerta',
+                coleccion: 'LÍNEA ALHÚ',
+                precioBaseM2: 4440.00,
             }
         })
     }

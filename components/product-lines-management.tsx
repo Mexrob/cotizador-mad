@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, Layout } from 'lucide-react';
+import { Plus, Edit, Trash2, Layout, Image as ImageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,12 +12,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
+import Image from 'next/image';
+import ProductImageUpload from '@/components/product-image-upload';
 
 interface ProductLine {
     id: string;
     name: string;
     description?: string;
     code?: string;
+    imageUrl?: string | null;
     isActive: boolean;
     sortOrder: number;
     _count: {
@@ -35,6 +38,7 @@ export default function ProductLinesManagement() {
         name: '',
         description: '',
         code: '',
+        imageUrl: '',
         isActive: true,
         sortOrder: 0
     });
@@ -69,6 +73,7 @@ export default function ProductLinesManagement() {
                 name: line.name,
                 description: line.description || '',
                 code: line.code || '',
+                imageUrl: line.imageUrl || '',
                 isActive: line.isActive,
                 sortOrder: line.sortOrder
             });
@@ -78,6 +83,7 @@ export default function ProductLinesManagement() {
                 name: '',
                 description: '',
                 code: '',
+                imageUrl: '',
                 isActive: true,
                 sortOrder: lines.length * 10
             });
@@ -162,7 +168,7 @@ export default function ProductLinesManagement() {
                                     <Button variant="ghost" size="sm" onClick={() => handleOpenDialog(line)}><Edit className="h-4 w-4" /></Button>
                                     <AlertDialog>
                                         <AlertDialogTrigger asChild>
-                                            <Button variant="ghost" size="sm" disabled={line._count.products > 0}><Trash2 className="h-4 w-4 text-red-500" /></Button>
+                                            <Button variant="ghost" size="sm"><Trash2 className="h-4 w-4 text-red-500" /></Button>
                                         </AlertDialogTrigger>
                                         <AlertDialogContent>
                                             <AlertDialogHeader><AlertDialogTitle>¿Eliminar línea?</AlertDialogTitle><AlertDialogDescription>Esta acción eliminará "{line.name}".</AlertDialogDescription></AlertDialogHeader>
@@ -173,11 +179,25 @@ export default function ProductLinesManagement() {
                             </div>
                         </CardHeader>
                         <CardContent>
+                            {line.imageUrl ? (
+                                <div className="relative w-full h-32 mb-3 rounded-lg overflow-hidden bg-gray-100">
+                                    <Image
+                                        src={line.imageUrl}
+                                        alt={line.name}
+                                        fill
+                                        className="object-cover"
+                                        sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                                    />
+                                </div>
+                            ) : (
+                                <div className="w-full h-32 mb-3 rounded-lg bg-gray-100 flex items-center justify-center">
+                                    <ImageIcon className="h-12 w-12 text-gray-400" />
+                                </div>
+                            )}
                             <p className="text-sm text-gray-500 line-clamp-2 mb-2">{line.description || 'Sin descripción'}</p>
                             <div className="flex flex-wrap gap-2">
                                 <Badge variant={line.isActive ? 'default' : 'secondary'}>{line.isActive ? 'Activa' : 'Inactiva'}</Badge>
-                                <Badge variant="outline">{line._count.tones} Tonos</Badge>
-                                <Badge variant="outline">{line._count.products} Productos</Badge>
+                                <Badge variant="outline">{line._count?.tones || 0} Tonos</Badge>
                             </div>
                         </CardContent>
                     </Card>
@@ -193,6 +213,14 @@ export default function ProductLinesManagement() {
                         <div className="grid grid-cols-2 gap-4">
                             <div><Label>Código</Label><Input value={formData.code} onChange={(e) => setFormData({ ...formData, code: e.target.value })} /></div>
                             <div><Label>Orden</Label><Input type="number" value={formData.sortOrder} onChange={(e) => setFormData({ ...formData, sortOrder: parseInt(e.target.value) })} /></div>
+                        </div>
+                        <div>
+                            <Label className="mb-2 block">Imagen</Label>
+                            <ProductImageUpload
+                                images={formData.imageUrl ? [formData.imageUrl] : []}
+                                onImagesChange={(imgs) => setFormData({ ...formData, imageUrl: imgs[0] || '' })}
+                                maxImages={1}
+                            />
                         </div>
                         <DialogFooter>
                             <Button type="button" variant="outline" onClick={handleCloseDialog}>Cancelar</Button>

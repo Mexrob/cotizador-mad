@@ -59,7 +59,7 @@ export default function ProductsPage() {
       const data = await response.json()
 
       if (data.success) {
-        setProducts(data.data)
+        setProducts(data.products)
       }
     } catch (error) {
       console.error('Error fetching products:', error)
@@ -74,7 +74,9 @@ export default function ProductsPage() {
       const data = await response.json()
 
       if (data.success) {
-        setCategories(data.data)
+        setCategories(data.data || data)
+      } else if (Array.isArray(data)) {
+        setCategories(data)
       }
     } catch (error) {
       console.error('Error fetching categories:', error)

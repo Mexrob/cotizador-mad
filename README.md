@@ -1,5 +1,17 @@
 # Cotizador MAD
 
+## Documentación
+
+Ver archivos en la raíz del proyecto:
+
+- **README.md** - Este archivo
+- **TECHNICAL_DOC.md** - Documentación técnica completa
+- **WIZARDS_GUIDE.md** - Guía de cotizadores (wizards)
+- **AGENTS.md** - Guía para agentes IA
+- **IMPLEMENTATION_SUMMARY.md** - Resumen de implementación
+
+---
+
 ## Descripción del Proyecto
 
 **Cotizador MAD** es una aplicación web robusta y completa diseñada para la gestión eficiente de cotizaciones, productos y usuarios. Desarrollada con Next.js, esta plataforma ofrece una solución integral para empresas que necesitan generar y administrar cotizaciones de manera ágil, así como mantener un control detallado sobre su catálogo de productos y la administración de usuarios.

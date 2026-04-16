@@ -42,16 +42,9 @@ export async function POST(
     // Check if quote exists and user has access
     const quote = await prisma.quote.findUnique({
       where: { id: params.id },
-      include: {
-        items: {
-          include: {
-            product: {
-              include: {
-                pricing: true,
-              },
-            },
-          },
-        },
+      select: {
+        id: true,
+        userId: true,
       },
     })
 
@@ -87,6 +80,19 @@ export async function POST(
       )
     }
 
+    // Validate tiempo de entrega - prevent mixing different delivery times
+    const existingItems = await prisma.quoteItem.findMany({
+      where: { quoteId: params.id },
+      include: { product: { select: { tiempoEntrega: true } } }
+    })
+    const existingTiempoEntrega = existingItems[0]?.product?.tiempoEntrega
+    if (existingItems.length > 0 && existingTiempoEntrega !== product.tiempoEntrega) {
+      return NextResponse.json(
+        { error: `Error en el tiempo de entrega. Esta cotización tiene productos con ${existingTiempoEntrega} días. Solo puedes agregar productos con el mismo tiempo de entrega.` },
+        { status: 400 }
+      )
+    }
+
     // Get the base price for user's role
     let basePrice = 0
     // Explicitly cast product to any to bypass TypeScript error for pricing
@@ -97,23 +103,15 @@ export async function POST(
       const defaultPricing = await prisma.productPricing.findFirst({
         where: { productId, userRole: 'RETAIL' as any },
       })
-      basePrice = defaultPricing?.finalPrice || product.basePrice || 0
+      basePrice = defaultPricing?.finalPrice || (product as any).precioBaseM2 || 0
     }
 
     // Calculate unit price based on custom dimensions for customizable products
     let unitPrice = 0
-    if (product.isCustomizable && width && height && product.width && product.height) {
-      // Standard product dimensions in m²
-      const standardArea = (product.width / 1000) * (product.height / 1000)
-      
-      // Custom dimensions area in m²
-      const customArea = (width / 1000) * (height / 1000)
-      
-      // Price per m² based on standard dimensions
-      const pricePerSquareMeter = standardArea > 0 ? basePrice / standardArea : 0
-      
-      // Calculate price for custom dimensions
-      unitPrice = customArea * pricePerSquareMeter
+    if (width && height) {
+      // Calculate price based on area and price per m²
+      const area = (width / 1000) * (height / 1000)
+      unitPrice = area * basePrice
     } else {
       // For non-customizable products, use the base price as-is
       unitPrice = basePrice
@@ -156,11 +154,7 @@ export async function POST(
         packagingCost,
       } as any, // Cast to any to bypass type checking for now
       include: {
-        product: {
-          include: {
-            category: true,
-          },
-        },
+        product: true,
         doorType: { select: { id: true, name: true } },
         doorModel: { select: { id: true, name: true } },
         colorTone: { select: { id: true, name: true } },

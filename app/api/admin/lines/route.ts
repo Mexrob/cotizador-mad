@@ -17,7 +17,7 @@ export async function GET() {
             orderBy: { sortOrder: 'asc' },
             include: {
                 _count: {
-                    select: { products: true, tones: true }
+                    select: { tones: true }
                 }
             }
         });
@@ -42,6 +42,15 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'El nombre es requerido' }, { status: 400 });
         }
 
+        // Check if line with this name already exists
+        const existingLine = await prisma.productLine.findUnique({
+            where: { name }
+        });
+
+        if (existingLine) {
+            return NextResponse.json({ error: 'Ya existe una línea con ese nombre' }, { status: 400 });
+        }
+
         const line = await prisma.productLine.create({
             data: {
                 name,
@@ -54,7 +63,7 @@ export async function POST(request: NextRequest) {
         });
 
         return NextResponse.json({ success: true, data: line }, { status: 201 });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error creating line:', error);
         return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
     }

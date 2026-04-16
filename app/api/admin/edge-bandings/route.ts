@@ -14,12 +14,7 @@ export async function GET() {
         if (authGuardResponse) return authGuardResponse;
 
         const edges = await (prisma as any).edgeBanding.findMany({
-            orderBy: { sortOrder: 'asc' },
-            include: {
-                _count: {
-                    select: { products: true }
-                }
-            }
+            orderBy: { sortOrder: 'asc' }
         });
 
         return NextResponse.json({ success: true, data: edges });
@@ -40,6 +35,15 @@ export async function POST(request: NextRequest) {
 
         if (!name) {
             return NextResponse.json({ error: 'El nombre es requerido' }, { status: 400 });
+        }
+
+        // Check if edge banding already exists
+        const existingEdge = await (prisma as any).edgeBanding.findUnique({
+            where: { name }
+        });
+
+        if (existingEdge) {
+            return NextResponse.json({ error: 'Ya existe un cubrecanto con ese nombre' }, { status: 400 });
         }
 
         const edge = await (prisma as any).edgeBanding.create({

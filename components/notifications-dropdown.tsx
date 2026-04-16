@@ -14,6 +14,7 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Badge } from '@/components/ui/badge'
 import { useRouter } from 'next/navigation'
+import { useSession } from 'next-auth/react'
 import { formatDistanceToNow } from 'date-fns'
 import { es } from 'date-fns/locale'
 
@@ -33,10 +34,14 @@ export function NotificationsDropdown() {
     const [unreadCount, setUnreadCount] = useState(0)
     const [isOpen, setIsOpen] = useState(false)
     const router = useRouter()
+    const { data: session } = useSession()
 
     const fetchNotifications = async () => {
+        if (!session) return
+        
         try {
             const response = await fetch('/api/notifications')
+            if (response.status === 401) return
             const data = await response.json()
             if (data.success) {
                 setNotifications(data.data)
@@ -50,11 +55,12 @@ export function NotificationsDropdown() {
     }
 
     useEffect(() => {
-        fetchNotifications()
-        // Poll every minute
-        const interval = setInterval(fetchNotifications, 60000)
-        return () => clearInterval(interval)
-    }, [])
+        if (session) {
+            fetchNotifications()
+            const interval = setInterval(fetchNotifications, 60000)
+            return () => clearInterval(interval)
+        }
+    }, [session])
 
     const markAsRead = async (id: string, link?: string) => {
         try {
