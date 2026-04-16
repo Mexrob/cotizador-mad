@@ -51,6 +51,7 @@ enum UserRole {
   RETAIL
   VIP
   WHOLESALE
+  DEMO
 }
 
 enum UserStatus {

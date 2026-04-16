@@ -2,11 +2,35 @@
 import { withAuth } from 'next-auth/middleware'
 import { NextResponse } from 'next/server'
 
+const DEMO_EMAIL = 'demo@module.com.mx'
+
 export default withAuth(
   function middleware(req) {
     const { pathname } = req.nextUrl
     const token = req.nextauth.token;
 
+    // Handle Demo User Read-Only restrictions (identified by email)
+    if (token?.email === DEMO_EMAIL) {
+      const isMutation = ['POST', 'PUT', 'DELETE', 'PATCH'].includes(req.method)
+      // Allow only safe methods for demo users
+      if (isMutation) {
+        // Allow log out
+        if (pathname === '/api/auth/signout') {
+          return NextResponse.next()
+        }
+        
+        return new NextResponse(
+          JSON.stringify({ 
+            error: 'Modo Demo Activo', 
+            message: 'No tienes permisos para realizar cambios en los datos en el modo de demostración.' 
+          }),
+          { 
+            status: 403, 
+            headers: { 'content-type': 'application/json' } 
+          }
+        )
+      }
+    }
 
     // Handle root path redirection
     if (pathname === '/') {

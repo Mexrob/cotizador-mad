@@ -5,6 +5,8 @@ import { PrismaAdapter } from '@next-auth/prisma-adapter'
 import { compare } from 'bcryptjs'
 import { prisma } from './db'
 
+export const DEMO_EMAIL = 'demo@module.com.mx'
+
 // Function to get session timeout from database
 async function getSessionTimeout(): Promise<number> {
   try {
@@ -44,20 +46,22 @@ export const authOptions: NextAuthOptions = {
         })
 
         if (!user) {
-          console.log('❌ [Auth] User not found:', credentials.email)
+          console.log('❌ [Auth] Error: Usuario no encontrado:', credentials.email)
           return null
         }
 
+        console.log('🔍 [Auth] Usuario encontrado:', user.email, 'con rol:', user.role)
+
         if (!user.password) {
-          console.log('❌ [Auth] User has no password set')
+          console.log('❌ [Auth] Error: El usuario no tiene contraseña establecida')
           return null
         }
 
         const isPasswordValid = await compare(credentials.password, user.password)
-        console.log('🔐 [Auth] Password validation result:', isPasswordValid)
+        console.log('🔐 [Auth] Resultado de validación de contraseña:', isPasswordValid)
 
         if (!isPasswordValid) {
-          console.log('❌ [Auth] Invalid password')
+          console.log('❌ [Auth] Error de contraseña para:', credentials.email)
           return null
         }
 
@@ -73,15 +77,25 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger }) {
       if (user) {
         token.role = user.role
         token.status = user.status
+        token.email = user.email
       }
 
-      // Set dynamic session expiration
-      const sessionTimeout = await getSessionTimeout()
-      token.exp = Math.floor(Date.now() / 1000) + sessionTimeout
+      // Enforce 1 hour session for DEMO users (identified by email)
+      const isDemoUser = token.email === DEMO_EMAIL
+      if (isDemoUser) {
+        if (!token.demo_exp) {
+          token.demo_exp = Math.floor(Date.now() / 1000) + (60 * 60)
+        }
+        token.exp = token.demo_exp
+      } else {
+        // Set dynamic session expiration for regular users
+        const sessionTimeout = await getSessionTimeout()
+        token.exp = Math.floor(Date.now() / 1000) + sessionTimeout
+      }
 
       return token
     },
@@ -90,6 +104,10 @@ export const authOptions: NextAuthOptions = {
         session.user.id = token.sub!
         session.user.role = token.role
         session.user.status = token.status
+        // Flag demo user for frontend
+        session.user.isDemo = token.email === DEMO_EMAIL
+        // Pass expiration time to frontend for the timer
+        session.expiresAt = token.exp as number
       }
       return session
     },

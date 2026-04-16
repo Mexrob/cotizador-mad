@@ -176,9 +176,17 @@ export function QuoteActions({
         <Button
           variant="outline"
           size="sm"
-          onClick={() => router.push(`/quotes/${quote.id}`)}
+          onClick={() => {
+            setLoading('view')
+            router.push(`/quotes/${quote.id}`)
+          }}
+          disabled={loading !== null}
         >
-          <Eye className="w-4 h-4 mr-2" />
+          {loading === 'view' ? (
+            <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+          ) : (
+            <Eye className="w-4 h-4 mr-2" />
+          )}
           Ver
         </Button>
 
@@ -203,9 +211,17 @@ export function QuoteActions({
 
             {canEdit && (
               <DropdownMenuItem
-                onClick={() => router.push(`/quotes/${quote.id}/edit`)}
+                onClick={() => {
+                  setLoading('edit')
+                  router.push(`/quotes/${quote.id}/edit`)
+                }}
+                disabled={loading !== null}
               >
-                <Edit className="w-4 h-4 mr-2" />
+                {loading === 'edit' ? (
+                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Edit className="w-4 h-4 mr-2" />
+                )}
                 Editar
               </DropdownMenuItem>
             )}
