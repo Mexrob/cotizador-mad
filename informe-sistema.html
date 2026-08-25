@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>Informe Cotizador MAD</title>
+  <style>
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      background-color: #1a1a1a;
+      border: none;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">Informe Cotizador MAD</h1>
+</header>
+<h1 id="informe-completo-del-sistema-cotizador-mad">Informe Completo del
+Sistema Cotizador MAD</h1>
+<p><strong>Fecha de generación:</strong> 25 de agosto de 2026
+<strong>Versión del proyecto:</strong> Producción
+<strong>Repositorio:</strong> Mexrob/cotizador-mad</p>
+<hr />
+<h2 id="resumen-ejecutivo">1. Resumen Ejecutivo</h2>
+<p>Cotizador MAD es una aplicación web empresarial robusta y completa,
+diseñada para la gestión integral de cotizaciones, catálogo de productos
+y administración de usuarios. Está construida con tecnologías modernas
+(Next.js 14, React 18, Prisma 6) y desplegada mediante Docker con
+PostgreSQL 16 y Nginx como reverse proxy.</p>
+<p>El sistema incluye un motor de <strong>Wizards Configurables</strong>
+que permite crear flujos de cotización dinámicos sin modificar código,
+convirtiéndose en una plataforma flexible y escalable.</p>
+<hr />
+<h2 id="características-de-hardware">2. Características de Hardware</h2>
+<table>
+<thead>
+<tr class="header">
+<th>Componente</th>
+<th>Especificación</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Sistema Operativo</strong></td>
+<td>Ubuntu 25.10 (Questing)</td>
+</tr>
+<tr class="even">
+<td><strong>Kernel</strong></td>
+<td>Linux 6.17.0-41-generic</td>
+</tr>
+<tr class="odd">
+<td><strong>Arquitectura</strong></td>
+<td>x86_64, Little Endian</td>
+</tr>
+<tr class="even">
+<td><strong>CPU</strong></td>
+<td>Intel Core i5-4570T @ 2.90GHz</td>
+</tr>
+<tr class="odd">
+<td><strong>Núcleos / Hilos</strong></td>
+<td>2 núcleos / 4 hilos (2 hilos por núcleo)</td>
+</tr>
+<tr class="even">
+<td><strong>Memoria RAM</strong></td>
+<td>15 GB total (11 GB disponible)</td>
+</tr>
+<tr class="odd">
+<td><strong>Memoria Swap</strong></td>
+<td>4.0 GB</td>
+</tr>
+<tr class="even">
+<td><strong>Disco Duro</strong></td>
+<td>216 GB LVM (126 GB libres, 39% usado)</td>
+</tr>
+<tr class="odd">
+<td><strong>Virtualización</strong></td>
+<td>VT-x habilitado</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="stack-de-software-de-desarrollo">3. Stack de Software de
+Desarrollo</h2>
+<h3 id="lenguajes-y-runtimes">3.1 Lenguajes y Runtimes</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Herramienta</th>
+<th>Versión</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Node.js</td>
+<td>v20.19.3</td>
+</tr>
+<tr class="even">
+<td>TypeScript</td>
+<td>5.2.2</td>
+</tr>
+<tr class="odd">
+<td>Python</td>
+<td>(entorno virtual disponible)</td>
+</tr>
+<tr class="even">
+<td>Bash</td>
+<td>nativo del sistema</td>
+</tr>
+</tbody>
+</table>
+<h3 id="framework-y-librerías-principales">3.2 Framework y Librerías
+Principales</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Tecnología</th>
+<th>Versión</th>
+<th>Propósito</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Next.js</td>
+<td>14.2.28</td>
+<td>Framework full-stack React</td>
+</tr>
+<tr class="even">
+<td>React</td>
+<td>18.2.0</td>
+<td>Biblioteca UI</td>
+</tr>
+<tr class="odd">
+<td>Prisma</td>
+<td>6.7.0</td>
+<td>ORM para base de datos</td>
+</tr>
+<tr class="even">
+<td>PostgreSQL</td>
+<td>16 (Docker)</td>
+<td>Base de datos relacional</td>
+</tr>
+<tr class="odd">
+<td>NextAuth.js</td>
+<td>4.24.11</td>
+<td>Autenticación</td>
+</tr>
+<tr class="even">
+<td>Tailwind CSS</td>
+<td>3.3.3</td>
+<td>Framework CSS utility-first</td>
+</tr>
+<tr class="odd">
+<td>Shadcn/UI</td>
+<td>última</td>
+<td>Componentes accesibles</td>
+</tr>
+<tr class="even">
+<td>Zustand</td>
+<td>última</td>
+<td>Estado global</td>
+</tr>
+<tr class="odd">
+<td>TanStack Query</td>
+<td>última</td>
+<td>Estado del servidor</td>
+</tr>
+<tr class="even">
+<td>React Hook Form</td>
+<td>7.53.0</td>
+<td>Manejo de formularios</td>
+</tr>
+<tr class="odd">
+<td>Zod</td>
+<td>3.23.8</td>
+<td>Validación de esquemas</td>
+</tr>
+<tr class="even">
+<td>Framer Motion</td>
+<td>10.18.0</td>
+<td>Animaciones</td>
+</tr>
+<tr class="odd">
+<td>Lucide React</td>
+<td>0.446.0</td>
+<td>Iconografía</td>
+</tr>
+<tr class="even">
+<td>Recharts</td>
+<td>2.15.3</td>
+<td>Gráficos</td>
+</tr>
+<tr class="odd">
+<td>Plotly.js</td>
+<td>2.35.3</td>
+<td>Visualización de datos</td>
+</tr>
+<tr class="even">
+<td>XLSX</td>
+<td>0.18.5</td>
+<td>Importación de Excel</td>
+</tr>
+<tr class="odd">
+<td>Vitest</td>
+<td>4.1.4</td>
+<td>Framework de testing</td>
+</tr>
+</tbody>
+</table>
+<h3 id="herramientas-de-despliegue">3.3 Herramientas de Despliegue</h3>
+<ul>
+<li>Docker + Docker Compose</li>
+<li>Nginx (reverse proxy)</li>
+<li>PM2 (gestor de procesos Node.js)</li>
+<li>Yarn 1.22.22 (gestor de paquetes)</li>
+<li>OpenCode 1.18.22 (IDE / agente IA)</li>
+</ul>
+<hr />
+<h2 id="arquitectura-del-proyecto">4. Arquitectura del Proyecto</h2>
+<h3 id="patrón-de-arquitectura">4.1 Patrón de Arquitectura</h3>
+<ul>
+<li><strong>Frontend:</strong> Next.js 14 con App Router (Server
+Components + Client Components)</li>
+<li><strong>Backend:</strong> API Routes de Next.js (serverless
+functions)</li>
+<li><strong>ORM:</strong> Prisma con PostgreSQL</li>
+<li><strong>Autenticación:</strong> NextAuth.js con estrategia de
+credenciales y sesiones JWT</li>
+<li><strong>Estado:</strong> Zustand (cliente) + TanStack Query
+(servidor)</li>
+<li><strong>Estilos:</strong> Tailwind CSS con componentes
+Shadcn/UI</li>
+</ul>
+<h3 id="estructura-de-directorios">4.2 Estructura de Directorios</h3>
+<pre><code>cotizador-mad/
+├── app/                        # Rutas y páginas (Next.js App Router)
+│   ├── api/                    # 74 endpoints REST
+│   ├── admin/                  # Panel de administración
+│   ├── dashboard/              # Dashboard principal
+│   ├── quotes/                 # Gestión de cotizaciones
+│   └── profile/                # Perfil de usuario
+├── components/                 # 103 componentes React
+│   ├── ui/                     # Componentes base Shadcn
+│   ├── configurable-wizard/    # Motor de wizards dinámicos
+│   ├── wizard-admin/           # Panel admin de wizards
+│   ├── alhu-wizard/            # Wizard ALHU
+│   ├── vidrio-wizard/          # Wizard Vidrio
+│   ├── europa-sincro-wizard/   # Wizard Europa Sincro
+│   ├── ceramica-wizard/        # Wizard Cerámica
+│   └── ...
+├── lib/                        # Lógica de negocio (19 archivos)
+│   ├── prisma.ts               # Cliente Prisma
+│   ├── auth.ts                 # Configuración NextAuth
+│   ├── pricing.ts              # Motor de cálculo de precios
+│   ├── wizard-base/            # Sistema base de wizards
+│   └── wizard-configurable/    # Wizards configurables
+├── prisma/                     # Esquema y migraciones
+│   └── schema.prisma           # 35 modelos de datos
+├── scripts/                    # 41 scripts (TS, Python, Bash)
+├── public/                     # Recursos estáticos
+├── backups/                    # Respaldos de BD
+├── docker-compose.yml          # Orquestación de servicios
+├── Dockerfile                  # Imagen de producción
+└── Dockerfile.dev              # Imagen de desarrollo</code></pre>
+<hr />
+<h2 id="modelo-de-base-de-datos">5. Modelo de Base de Datos</h2>
+<p>El sistema cuenta con <strong>35 modelos Prisma</strong> organizados
+en las siguientes áreas:</p>
+<h3 id="autenticación-y-sesiones-nextauth">5.1 Autenticación y Sesiones
+(NextAuth)</h3>
+<ul>
+<li>Account, Session, VerificationToken</li>
+</ul>
+<h3 id="gestión-de-usuarios">5.2 Gestión de Usuarios</h3>
+<ul>
+<li>User, DeliveryAddress, BillingAddress</li>
+<li>6 roles: ADMIN, DEALER, RETAIL, VIP, WHOLESALE, DEMO</li>
+<li>Información fiscal: RFC, Régimen Fiscal, CFDI (México)</li>
+</ul>
+<h3 id="configuración">5.3 Configuración</h3>
+<ul>
+<li>CompanySettings, TaxSettings</li>
+</ul>
+<h3 id="catálogo-de-productos">5.4 Catálogo de Productos</h3>
+<ul>
+<li>Category, Material, Hardware, Brand</li>
+<li>Product, DoorType, DoorModel</li>
+<li>ColorTone, WoodGrain, Handle</li>
+<li>ProductPricing, ProductLine, ProductTone</li>
+<li>EdgeBanding, HandleModel, ProductBackFace</li>
+</ul>
+<h3 id="cotizaciones">5.5 Cotizaciones</h3>
+<ul>
+<li>Quote, QuoteItem, QuoteShare</li>
+<li>Estados: DRAFT, SENT, APPROVED, REJECTED, PAID</li>
+</ul>
+<h3 id="sistema">5.6 Sistema</h3>
+<ul>
+<li>Notification, AuditLog</li>
+<li>ExtraService, ShippingCost</li>
+</ul>
+<h3 id="wizards-configurables">5.7 Wizards Configurables</h3>
+<ul>
+<li>WizardTemplate, WizardStepDefinition</li>
+<li>WizardAssignment, WizardUsage, PricingFormula</li>
+</ul>
+<hr />
+<h2 id="sistema-de-wizards-configurables">6. Sistema de Wizards
+Configurables</h2>
+<p>El componente más innovador del sistema. Permite crear flujos de
+cotización dinámicos <strong>sin modificar código</strong>.</p>
+<h3 id="características">6.1 Características</h3>
+<ul>
+<li><strong>11 tipos de pasos</strong> reutilizables</li>
+<li><strong>Pasos condicionales</strong> (mostrar/ocultar según
+selecciones)</li>
+<li><strong>Cálculo de precios</strong> configurable por fórmula</li>
+<li><strong>Asignación</strong> por roles o usuarios específicos</li>
+<li><strong>Drag &amp; Drop</strong> para reordenar pasos</li>
+<li><strong>Validación</strong> por paso</li>
+<li><strong>Preview</strong> antes de publicar</li>
+<li><strong>Duplicación</strong> de templates</li>
+</ul>
+<h3 id="pasos-disponibles">6.2 Pasos Disponibles</h3>
+<ol type="1">
+<li><code>step-category</code> - Selección de categoría</li>
+<li><code>step-line</code> - Selección de línea de producto</li>
+<li><code>step-dimensions</code> - Dimensiones (ancho, alto,
+cantidad)</li>
+<li><code>step-tone</code> - Selección de tono/color</li>
+<li><code>step-grain</code> - Dirección de veta</li>
+<li><code>step-back-face</code> - Cara trasera</li>
+<li><code>step-edge-banding</code> - Cubrecanto</li>
+<li><code>step-handle</code> - Jaladera</li>
+<li><code>step-optionals</code> - Opcionales (exhibición, express, dos
+caras)</li>
+<li><code>step-summary</code> - Resumen y desglose de precios</li>
+<li><code>step-custom</code> - Paso completamente personalizable</li>
+</ol>
+<h3 id="wizards-implementados">6.3 Wizards Implementados</h3>
+<ul>
+<li><strong>KitWizard</strong> (legacy) - Wizard original de kits</li>
+<li><strong>ConfigurableWizard</strong> - Sistema nuevo basado en
+templates</li>
+<li>Wizards específicos por línea de producto:
+<ul>
+<li>ALHU (Alto Brillo)</li>
+<li>Vidrio</li>
+<li>Cerámica</li>
+<li>Europa Sincro</li>
+<li>Europa Básica</li>
+<li>Super Mate</li>
+</ul></li>
+</ul>
+<hr />
+<h2 id="estadísticas-del-proyecto">7. Estadísticas del Proyecto</h2>
+<table>
+<thead>
+<tr class="header">
+<th>Métrica</th>
+<th>Valor</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Commits en Git</td>
+<td>32</td>
+</tr>
+<tr class="even">
+<td>Período de desarrollo</td>
+<td>~9 meses (jul 2025 - abr 2026)</td>
+</tr>
+<tr class="odd">
+<td>Rutas API</td>
+<td>74</td>
+</tr>
+<tr class="even">
+<td>Componentes React</td>
+<td>103</td>
+</tr>
+<tr class="odd">
+<td>Páginas (app/)</td>
+<td>100 archivos</td>
+</tr>
+<tr class="even">
+<td>Archivos lib/</td>
+<td>19</td>
+</tr>
+<tr class="odd">
+<td>Scripts auxiliares</td>
+<td>41</td>
+</tr>
+<tr class="even">
+<td>Modelos Prisma</td>
+<td>35</td>
+</tr>
+<tr class="odd">
+<td>Líneas de código TS/TSX</td>
+<td>~44,500</td>
+</tr>
+<tr class="even">
+<td>Líneas de código Python</td>
+<td>~1,270</td>
+</tr>
+<tr class="odd">
+<td>Tamaño node_modules</td>
+<td>1.3 GB</td>
+</tr>
+<tr class="even">
+<td>Tamaño build (.next)</td>
+<td>534 MB</td>
+</tr>
+<tr class="odd">
+<td>Dependencias totales</td>
+<td>~100 paquetes</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="despliegue-e-infraestructura">8. Despliegue e
+Infraestructura</h2>
+<h3 id="arquitectura-de-contenedores">8.1 Arquitectura de
+Contenedores</h3>
+<p>El sistema se ejecuta en 3 contenedores Docker:</p>
+<ol type="1">
+<li><strong>postgres</strong> (postgres:16-alpine)
+<ul>
+<li>Puerto: 5434 → 5432</li>
+<li>Volumen persistente para datos</li>
+<li>Healthcheck automático</li>
+</ul></li>
+<li><strong>app</strong> (Next.js)
+<ul>
+<li>Puerto: 3000</li>
+<li>Hot reload en desarrollo</li>
+<li>Volumen para uploads</li>
+</ul></li>
+<li><strong>nginx</strong> (nginx:alpine)
+<ul>
+<li>Puerto: 1922 (HTTP) + 443 (HTTPS)</li>
+<li>Reverse proxy con SSL</li>
+<li>Servicio de archivos estáticos</li>
+</ul></li>
+</ol>
+<h3 id="pipeline-de-actualización">8.2 Pipeline de Actualización</h3>
+<p>El script <code>update.sh</code> automatiza: 1.
+<code>git fetch</code> + <code>git pull</code> (rama master) 2.
+<code>npm ci</code> (instalar dependencias) 3.
+<code>npx prisma generate</code> (regenerar cliente) 4.
+<code>npx prisma migrate deploy</code> (aplicar migraciones) 5.
+<code>npm run build</code> (build de producción) 6.
+<code>pm2 restart</code> (reiniciar app)</p>
+<hr />
+<h2 id="detalles-de-desarrollo-y-tiempo-invertido">9. Detalles de
+Desarrollo y Tiempo Invertido</h2>
+<h3 id="cronología-del-proyecto">9.1 Cronología del Proyecto</h3>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Fase</th>
+<th>Período</th>
+<th>Actividad Principal</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Fase 1</strong></td>
+<td>Jul 2025</td>
+<td>Inicio del proyecto, configuración inicial, primeros modelos de
+datos</td>
+</tr>
+<tr class="even">
+<td><strong>Fase 2</strong></td>
+<td>Nov 2025</td>
+<td>Refactor UI, modo oscuro, formularios de productos</td>
+</tr>
+<tr class="odd">
+<td><strong>Fase 3</strong></td>
+<td>Nov-Dic 2025</td>
+<td>Sistema de cotizaciones, estados, notificaciones, deployment</td>
+</tr>
+<tr class="even">
+<td><strong>Fase 4</strong></td>
+<td>Ene 2026</td>
+<td>Configuración Docker, deployment en VPS, corrección de build</td>
+</tr>
+<tr class="odd">
+<td><strong>Fase 5</strong></td>
+<td>Feb 2026</td>
+<td>Catálogo de productos, scripts de importación Excel</td>
+</tr>
+<tr class="even">
+<td><strong>Fase 6</strong></td>
+<td>Abr 2026</td>
+<td>Sistema de testing (Vitest), validaciones Zod, código defensivo</td>
+</tr>
+</tbody>
+</table>
+<h3 id="estimación-de-horas-invertidas">9.2 Estimación de Horas
+Invertidas</h3>
+<p>Basado en el análisis de complejidad, volumen de código, número de
+commits y sesiones documentadas:</p>
+<table>
+<thead>
+<tr class="header">
+<th>Categoría</th>
+<th>Horas Estimadas</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Configuración inicial y arquitectura</td>
+<td>20-30</td>
+</tr>
+<tr class="even">
+<td>Modelado de base de datos (35 modelos)</td>
+<td>40-60</td>
+</tr>
+<tr class="odd">
+<td>Sistema de autenticación y roles</td>
+<td>30-40</td>
+</tr>
+<tr class="even">
+<td>Panel de administración</td>
+<td>60-80</td>
+</tr>
+<tr class="odd">
+<td>Sistema de cotizaciones (PDF, estados)</td>
+<td>80-100</td>
+</tr>
+<tr class="even">
+<td>Catálogo de productos (CRUD, imágenes)</td>
+<td>60-80</td>
+</tr>
+<tr class="odd">
+<td>Motor de Wizards Configurables</td>
+<td>100-150</td>
+</tr>
+<tr class="even">
+<td>Sistema de pricing y validaciones</td>
+<td>50-70</td>
+</tr>
+<tr class="odd">
+<td>UI/UX y componentes Shadcn</td>
+<td>80-100</td>
+</tr>
+<tr class="even">
+<td>Configuración Docker / Nginx</td>
+<td>20-30</td>
+</tr>
+<tr class="odd">
+<td>Despliegue en VPS</td>
+<td>15-25</td>
+</tr>
+<tr class="even">
+<td>Testing y debugging</td>
+<td>40-60</td>
+</tr>
+<tr class="odd">
+<td>Documentación</td>
+<td>15-25</td>
+</tr>
+<tr class="even">
+<td><strong>TOTAL ESTIMADO</strong></td>
+<td><strong>610-850 horas</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Rango realista:</strong> 200-400 horas de desarrollo directo
+(considerando reuso de código, trabajo en pareja, y posibles sesiones no
+documentadas).</p>
+<h3 id="commits-destacados">9.3 Commits Destacados</h3>
+<ul>
+<li><code>36b0143</code> (abr 2026) - feat: usuario demo, duplicar
+partidas, fix cotizador vidrio, UX feedback</li>
+<li><code>364be3e</code> (abr 2026) - feat: implement code defense
+system (Vitest), API validations (Zod) and reusable skills</li>
+<li><code>2bfa002</code> (dic 2025) - feat: Implementar wizard de
+cerámica con selección de marca y color</li>
+<li><code>a792447</code> (dic 2025) - feat: Add Docker deployment
+configuration</li>
+<li><code>4bd7276</code> (dic 2025) - feat: add VPS deployment scripts
+and documentation</li>
+<li><code>867cc27</code> (nov 2025) - Refactor wizard layout: stabilize
+dimensions, fix label overlap</li>
+</ul>
+<hr />
+<h2 id="funcionalidades-implementadas">10. Funcionalidades
+Implementadas</h2>
+<h3 id="gestión-de-cotizaciones">10.1 Gestión de Cotizaciones</h3>
+<ul>
+<li>Crear, editar y eliminar cotizaciones</li>
+<li>Duplicar cotizaciones existentes</li>
+<li>Generación de PDF para impresión/envío</li>
+<li>Gestión de ítems por cotización</li>
+<li>Acciones masivas (eliminar, cambiar estado)</li>
+<li>Compartir cotizaciones vía enlace</li>
+<li>Estados: Borrador, Enviada, Aprobada, Rechazada, Pagada</li>
+</ul>
+<h3 id="catálogo-de-productos-1">10.2 Catálogo de Productos</h3>
+<ul>
+<li>CRUD completo de productos</li>
+<li>Carga de imágenes</li>
+<li>Organización por categorías y líneas</li>
+<li>Filtros y búsqueda avanzada</li>
+<li>Importación masiva desde Excel/CSV</li>
+<li>Gestión de tonos, dimensiones, materiales</li>
+</ul>
+<h3 id="gestión-de-usuarios-1">10.3 Gestión de Usuarios</h3>
+<ul>
+<li>6 roles diferentes</li>
+<li>Activar/desactivar usuarios</li>
+<li>Sistema de aprobación (PENDING)</li>
+<li>Información fiscal completa (México)</li>
+<li>Direcciones de entrega y facturación</li>
+</ul>
+<h3 id="panel-de-control">10.4 Panel de Control</h3>
+<ul>
+<li>Estadísticas en tiempo real</li>
+<li>Métricas de cotizaciones</li>
+<li>Notificaciones</li>
+<li>Gráficos de actividad</li>
+<li>Tarjetas de resumen (incluye Pagadas)</li>
+</ul>
+<h3 id="administración-del-sistema">10.5 Administración del Sistema</h3>
+<ul>
+<li>Configuración de empresa (logo, datos fiscales)</li>
+<li>Gestión de wizards desde UI</li>
+<li>Sistema de backups automatizado</li>
+<li>Auditoría (logs)</li>
+<li>Health check endpoint</li>
+<li>Información del sistema</li>
+</ul>
+<h3 id="autenticación-y-seguridad">10.6 Autenticación y Seguridad</h3>
+<ul>
+<li>NextAuth.js con múltiples proveedores</li>
+<li>Sesiones JWT</li>
+<li>Hashing de contraseñas con bcrypt</li>
+<li>Middleware de protección de rutas</li>
+<li>Roles y permisos granulares</li>
+</ul>
+<hr />
+<h2 id="conclusiones">11. Conclusiones</h2>
+<p>Cotizador MAD representa un proyecto empresarial de
+<strong>mediana-alta complejidad</strong> que combina:</p>
+<ul>
+<li><strong>Flexibilidad</strong> mediante el sistema de Wizards
+Configurables</li>
+<li><strong>Escalabilidad</strong> por su arquitectura modular y basada
+en microservicios Docker</li>
+<li><strong>Mantenibilidad</strong> con TypeScript estricto, Prisma, y
+tests automatizados</li>
+<li><strong>Calidad</strong> con una política de cero errores en lógica
+de negocio crítica</li>
+<li><strong>Internacionalización</strong> con soporte para facturación
+mexicana (CFDI, RFC)</li>
+</ul>
+<p>El proyecto está <strong>listo para producción</strong> y cuenta con
+un sistema de actualización automatizado, lo que facilita su
+mantenimiento a largo plazo.</p>
+<hr />
+<p><strong>Generado con:</strong> Pandoc 3.1.11.1 + LaTeX
+<strong>Host:</strong> cotizador (Ubuntu 25.10)</p>
+</body>
+</html>
